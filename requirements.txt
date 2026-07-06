@@ -1,0 +1,31 @@
+# Core binary analysis
+angr==9.2.136
+z3-solver==4.13.0.0
+
+# Graph analysis
+networkx==3.4.2
+
+# Web UI
+dash==2.18.2
+dash-cytoscape==1.0.2
+dash-bootstrap-components==1.6.0
+plotly==5.24.1
+
+# Data / formatting
+pandas==2.2.3
+markdown==3.7
+
+# Terminal output
+rich==13.9.4
+
+# Utilities
+gitpython==3.1.43
+requests==2.32.3
+
+# AI / LLM fix advisor (optional — only needed if GEMINI_API_KEY is set)
+google-generativeai==0.8.3
+
+# Machine Learning Pipeline (GNN)
+torch>=2.0.0
+torch_geometric>=2.3.0
+scikit-learn>=1.3.0
