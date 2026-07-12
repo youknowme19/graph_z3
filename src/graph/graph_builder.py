@@ -108,3 +108,113 @@ class GraphBuilder:
             func = functions.function(node_addr)
             if not func:
                 continue
+
+            bb_count = len(func.block_addrs) if hasattr(func, 'block_addrs') else 0
+            instr_count = 0
+            try:
+                for b in func.blocks:
+                    if hasattr(b, 'instruction_addrs'):
+                        instr_count += len(b.instruction_addrs)
+            except Exception:
+                pass
+
+            # Cyclomatic complexity
+            cyclomatic = 1
+            try:
+                fg = func.graph
+                if fg is not None:
+                    n_nodes = fg.number_of_nodes()
+                    n_edges = fg.number_of_edges()
+                    if n_nodes > 0:
+                        cyclomatic = max(1, n_edges - n_nodes + 2)
+            except Exception:
+                pass
+
+            is_lib = func.is_simprocedure or func.is_plt
+            is_entry = func.addr == self.entry_addr or func.name == 'main'
+
+            if is_entry:
+                node_class = 'entry'
+            elif is_lib:
+                node_class = 'library'
+            else:
+                node_class = 'internal'
+
+            # Binary section
+            section_name = ".text"
+            try:
+                sec = self.loader.project.loader.find_section_containing(func.addr)
+                if sec:
+                    section_name = sec.name
+            except Exception:
+                pass
+
+            nx_graph.add_node(
+                node_addr,
+                label=func.name,
+                name=func.name,
+                addr=hex(func.addr),
+                size=getattr(func, 'size', 0),
+                type="function",
+                basic_block_count=bb_count,
+                instruction_count=instr_count,
+                cyclomatic_complexity=cyclomatic,
+                is_library_call=is_lib,
+                is_loop_header=False,  # filled below
+                node_class=node_class,
+                binary_section=section_name,
+                is_recursive=False,   # filled below
+                callers=[],
+                callees=[],
+                block_addrs=set(func.block_addrs) if hasattr(func, 'block_addrs') else set(),
+            )
+
+        # Add edges
+        for src, dst in angr_cg.edges():
+            if src in nx_graph and dst in nx_graph:
+                nx_graph.add_edge(src, dst)
+
+        # Detect recursive functions (cycles containing the function node or self-loops)
+        try:
+            for scc in nx.strongly_connected_components(nx_graph):
+                if len(scc) > 1:
+                    for node in scc:
+                        nx_graph.nodes[node]['is_recursive'] = True
+            # Also check self-loops
+            for node in nx_graph.nodes():
+                if nx_graph.has_edge(node, node):
+                    nx_graph.nodes[node]['is_recursive'] = True
+        except Exception:
+            pass
+
+        # Loop detection for the function's own internal CFG (not call graph)
+        for node_addr in nx_graph.nodes():
+            func = functions.function(node_addr)
+            if func:
+                try:
+                    fg = func.graph
+                    if fg is not None and not nx.is_directed_acyclic_graph(fg):
+                        nx_graph.nodes[node_addr]['is_loop_header'] = True
+                except Exception:
+                    pass
+
+        # Second pass: degree, callers, callees
+        for node_addr in nx_graph.nodes():
+            nx_graph.nodes[node_addr]['incoming_edges'] = nx_graph.in_degree(node_addr)
+            nx_graph.nodes[node_addr]['outgoing_edges'] = nx_graph.out_degree(node_addr)
+
+            # Callers
+            callers = []
+            for pred in nx_graph.predecessors(node_addr):
+                name = nx_graph.nodes[pred].get('name', hex(pred))
+                callers.append(name)
+            nx_graph.nodes[node_addr]['callers'] = callers
+
+            # Callees
+            callees = []
+            for succ in nx_graph.successors(node_addr):
+                name = nx_graph.nodes[succ].get('name', hex(succ))
+                callees.append(name)
+            nx_graph.nodes[node_addr]['callees'] = callees
+
+        return nx_graph
