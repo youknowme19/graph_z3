@@ -326,3 +326,331 @@ def get_precise_site(state) -> int:
             if 'ARM' in arch or 'AARCH64' in arch:
                 if hasattr(state.regs, 'lr'):
                     lr = state.solver.eval(state.regs.lr)
+                    if lr != 0:
+                        return lr - 4
+            elif 'AMD64' in arch or 'X86' in arch:
+                if hasattr(state.regs, 'rsp'):
+                    ret = state.solver.eval(state.memory.load(state.regs.rsp, 8, endness=state.arch.memory_endness))
+                    if ret != 0:
+                        return ret - 5
+    except Exception:
+        pass
+    return state.addr
+
+def is_unconstrained_parameter(state, addr) -> bool:
+    """
+    Returns True if addr is a symbolic variable representing an unconstrained function parameter,
+    rather than an attacker-controlled input (tainted) or a valid heap/stack pointer.
+    """
+    if isinstance(addr, int):
+        return False
+    if not hasattr(addr, 'symbolic') or not addr.symbolic:
+        return False
+        
+    tracker = getattr(state, 'vuln_tracker', None)
+    if tracker is not None and is_tainted(addr, tracker.taint_set):
+        return False
+        
+    try:
+        sp = state.regs.sp
+        if state.solver.max(addr) - state.solver.min(addr) < 0x1000000:
+            return False
+    except Exception:
+        pass
+
+    try:
+        # Use 0xf0000000 to be safe for both 32-bit and 64-bit architectures
+        if state.solver.max(addr) - state.solver.min(addr) > 0xf0000000:
+            return True
+    except Exception:
+        pass
+        
+    return False
+
+def get_pointer_origin(state, ptr) -> str:
+    """
+    Determines if a pointer points to the stack, heap, or global/static memory.
+    """
+    if is_unconstrained_parameter(state, ptr):
+        return 'global'
+        
+    if is_stack_address(state, ptr):
+        return 'stack'
+        
+    tracker = getattr(state, 'vuln_tracker', None)
+    if tracker is not None:
+        for alloc_id, obj in tracker.allocations.items():
+            cond = (ptr == obj.start_addr)
+            if state.solver.satisfiable(extra_constraints=[cond]):
+                return 'heap'
+        for alloc_id, obj in tracker.freed_allocations.items():
+            cond = (ptr == obj.start_addr)
+            if state.solver.satisfiable(extra_constraints=[cond]):
+                return 'heap'
+                
+    return 'global'
+
+def find_buffer_size(state, ptr) -> Optional[int]:
+    if is_unconstrained_parameter(state, ptr):
+        return None
+        
+    tracker = getattr(state, 'vuln_tracker', None)
+    if tracker is not None:
+        for alloc_id, obj in tracker.allocations.items():
+            cond = (ptr >= obj.start_addr) & (ptr < obj.start_addr + obj.size)
+            if state.solver.satisfiable(extra_constraints=[cond]):
+                try:
+                    offset = state.solver.eval(ptr - obj.start_addr)
+                    size_val = state.solver.eval(obj.size)
+                    if 0 <= offset < size_val:
+                        return size_val - offset
+                except Exception:
+                    try:
+                        return state.solver.eval(obj.size)
+                    except Exception:
+                        pass
+                        
+    if is_stack_address(state, ptr):
+        try:
+            current_frame = state.callstack.top
+            if current_frame is not None and current_frame.stack_ptr is not None:
+                ptr_val = state.solver.eval(ptr)
+                sp_val = state.solver.eval(current_frame.stack_ptr)
+                if ptr_val >= sp_val:
+                    return int(ptr_val - sp_val)
+        except Exception:
+            pass
+            
+    return None
+
+def check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg=None) -> Tuple[bool, str, Optional[int]]:
+    dest_size = find_buffer_size(state, dest_ptr)
+    if dest_size is None:
+        return False, "", None
+        
+    if n_arg is not None:
+        try:
+            if state.solver.satisfiable(extra_constraints=[n_arg > dest_size]):
+                details = f"Buffer overflow in {clean_name}: size argument {n_arg} can exceed destination buffer size {dest_size}."
+                return True, details, dest_size
+        except Exception:
+            pass
+    else:
+        try:
+            constraints = []
+            for i in range(dest_size + 1):
+                char_val = state.memory.load(src_ptr + i, 1)
+                constraints.append(char_val != 0)
+            if state.solver.satisfiable(extra_constraints=constraints):
+                details = f"Buffer overflow in {clean_name}: source string can exceed destination buffer size {dest_size}."
+                return True, details, dest_size
+        except Exception:
+            pass
+            
+    return False, "", dest_size
+
+def verify_free_pointer(state, ptr, is_realloc=False):
+    if state.solver.is_true(ptr == 0):
+        return
+        
+    tracker = state.vuln_tracker
+    site = get_precise_site(state)
+    
+    # 1. Check if matches live allocation
+    matched_id = None
+    for alloc_id, obj in list(tracker.allocations.items()):
+        if state.solver.is_true(ptr == obj.start_addr):
+            matched_id = alloc_id
+            break
+            
+    if matched_id is not None:
+        tracker.free_allocation(matched_id, site)
+        return
+        
+    # 2. Check if Double Free (matches freed allocation)
+    for alloc_id, obj in list(tracker.freed_allocations.items()):
+        cond = (ptr == obj.start_addr)
+        if state.solver.satisfiable(extra_constraints=[cond]):
+            details = (
+                f"Double free invariant violated: pointer {ptr} can point to "
+                f"freed object {alloc_id} (allocated at {hex(obj.allocation_site)})."
+            )
+            report_finding(state, "DOUBLE_FREE", details, site, extra_constraints=[cond], relevant_objects=[obj])
+            return
+            
+    # 3. If pointer is not null and cannot match any active allocation, it is an invalid free
+    active_conds = [ptr != obj.start_addr for obj in tracker.allocations.values()]
+    if state.solver.satisfiable(extra_constraints=active_conds):
+        details = f"Invalid free invariant violated: pointer {ptr} does not match any active allocation."
+        report_finding(state, "INVALID_FREE", details, site, extra_constraints=active_conds)
+
+def verify_memory_safety(state, addr, size, is_write):
+    tracker = state.vuln_tracker
+    site = get_precise_site(state)
+    
+    try:
+        size_bytes = state.solver.eval(size)
+    except Exception:
+        size_bytes = 8  # fallback
+        
+    if is_unconstrained_parameter(state, addr):
+        return
+        
+    # 1. Null pointer dereference check
+    if state.solver.satisfiable(extra_constraints=[addr == 0]):
+        details = f"Null pointer dereference invariant violated: memory address {addr} can be NULL."
+        report_finding(state, "NULL_DEREF", details, site, extra_constraints=[addr == 0])
+        return
+        
+    # 2. Use-after-free check
+    for alloc_id, obj in list(tracker.freed_allocations.items()):
+        cond = (addr >= obj.start_addr) & (addr < obj.start_addr + obj.size)
+        if state.solver.satisfiable(extra_constraints=[cond]):
+            if is_stack_address(state, addr) and obj.origin == 'heap':
+                continue
+            details = (
+                f"Use-after-free invariant violated: access at {addr} "
+                f"points to freed object {alloc_id} (allocated at {hex(obj.allocation_site)})."
+            )
+            report_finding(state, "USE_AFTER_FREE", details, site, extra_constraints=[cond], relevant_objects=[obj])
+            return
+
+    # 3. Out-of-bounds check against active allocations
+    matched_any = False
+    for alloc_id, obj in list(tracker.allocations.items()):
+        neighborhood_cond = (addr >= obj.start_addr - 256) & (addr < obj.start_addr + obj.size + 256)
+        if state.solver.satisfiable(extra_constraints=[neighborhood_cond]):
+            if is_stack_address(state, addr) and obj.origin == 'heap':
+                continue
+                
+            matched_any = True
+            
+            # Check overflow
+            overflow_cond = (addr + size_bytes > obj.start_addr + obj.size)
+            base_in_bounds = (addr >= obj.start_addr) & (addr < obj.start_addr + obj.size)
+            if state.solver.satisfiable(extra_constraints=[base_in_bounds, overflow_cond]):
+                vuln_type = "OOB_WRITE" if is_write else "OOB_READ"
+                details = (
+                    f"Out-of-bounds boundary invariant violated: access at {addr} "
+                    f"can overflow object {alloc_id} (size {obj.size})!"
+                )
+                report_finding(state, vuln_type, details, site, extra_constraints=[base_in_bounds, overflow_cond], relevant_objects=[obj])
+                return
+                
+            # Check underflow
+            underflow_neighborhood = (addr >= obj.start_addr - 256) & (addr < obj.start_addr)
+            if state.solver.satisfiable(extra_constraints=[underflow_neighborhood]):
+                vuln_type = "OOB_WRITE" if is_write else "OOB_READ"
+                details = (
+                    f"Out-of-bounds boundary invariant violated: access at {addr} "
+                    f"can underflow object {alloc_id} (size {obj.size})!"
+                )
+                report_finding(state, vuln_type, details, site, extra_constraints=[underflow_neighborhood], relevant_objects=[obj])
+                return
+
+    # 4. Stack overflow frame-boundary checks
+    if is_stack_address(state, addr):
+        try:
+            current_frame = state.callstack.top
+            if current_frame is not None and current_frame.stack_ptr is not None:
+                stack_limit = current_frame.stack_ptr
+                overflow_cond = (addr + size_bytes > stack_limit)
+                is_stack_cond = (addr >= stack_limit - 0x10000) & (addr < stack_limit)
+                if state.solver.satisfiable(extra_constraints=[is_stack_cond, overflow_cond]):
+                    vuln_type = "STACK_OVERFLOW" if is_write else "OOB_READ"
+                    details = (
+                        f"Stack buffer safety invariant violated: access at {addr} "
+                        f"can overflow stack frame limit {hex(stack_limit)}!"
+                    )
+                    report_finding(state, vuln_type, details, site, extra_constraints=[is_stack_cond, overflow_cond])
+                    return
+        except Exception:
+            pass
+
+def verify_allocation_size(state, size):
+    site = get_precise_site(state)
+    try:
+        overflow_cond = (size > 0x7fffffff)
+        if state.solver.satisfiable(extra_constraints=[overflow_cond]):
+            details = f"Allocation arithmetic safety invariant violated: allocation size {size} can overflow integer boundaries."
+            report_finding(state, "INTEGER_OVERFLOW", details, site, extra_constraints=[overflow_cond])
+    except Exception:
+        pass
+
+def is_stack_address(state, addr):
+    try:
+        sp = state.regs.sp
+        cond = (addr >= sp - 0x100000) & (addr <= sp + 0x100000)
+        return state.solver.satisfiable(extra_constraints=[cond])
+    except Exception:
+        return False
+
+def get_return_value(state):
+    arch = state.arch.name
+    if 'AMD64' in arch or 'X86' in arch:
+        return state.regs.rax
+    elif 'ARM' in arch or 'AARCH64' in arch:
+        return state.regs.x0 if '64' in arch else state.regs.r0
+    elif 'MIPS' in arch:
+        return state.regs.v0
+    else:
+        try:
+            return state.regs.ret
+        except AttributeError:
+            return state.regs.rax
+
+def report_finding(state, vuln_type, details, site, extra_constraints=None, relevant_objects=None):
+    tracker = state.vuln_tracker
+    
+    if extra_constraints:
+        tracker.extra_constraints_map[(site, vuln_type)] = list(extra_constraints)
+        
+    solver_constraints = list(state.solver.constraints)
+    if extra_constraints:
+        solver_constraints.extend(extra_constraints)
+        
+    witness_model = {}
+    for name, var in tracker.symbolic_variables.items():
+        try:
+            val = state.solver.eval(var, cast_to=bytes)
+            witness_model[name] = val.decode('utf-8', errors='ignore')
+        except Exception:
+            try:
+                val = state.solver.eval(var, cast_to=bytes)
+                witness_model[name] = val.hex()
+            except Exception:
+                pass
+
+    call_stack = []
+    try:
+        for f in state.callstack:
+            call_stack.append(f"{hex(f.call_site_addr)} -> {hex(f.func_addr)}")
+    except Exception:
+        pass
+
+    registers = {}
+    try:
+        for reg in ['x0', 'x1', 'x2', 'x3', 'x29', 'x30', 'sp', 'ip', 'rax', 'rbx', 'rcx', 'rdx', 'rsp', 'rbp', 'rip']:
+            if hasattr(state.regs, reg):
+                val = getattr(state.regs, reg)
+                registers[reg] = str(val)
+    except Exception:
+        pass
+
+    finding = {
+        "vuln_type": vuln_type,
+        "details": details,
+        "instruction_address": site,
+        "call_stack": call_stack,
+        "witness_model": witness_model,
+        "constraints": [str(c) for c in solver_constraints],
+        "registers": registers,
+        "reasoning_trace": list(tracker.reasoning_trace),
+        "relevant_objects": [str(obj) for obj in (relevant_objects or [])],
+        "confidence": "HIGH",
+        "timestamp": time.time()
+    }
+    
+    if not any(f["instruction_address"] == site and f["vuln_type"] == vuln_type for f in tracker.findings):
+        tracker.findings.append(finding)
+        tracker.log(f"Safety violation proved: {vuln_type} at {hex(site)}")
