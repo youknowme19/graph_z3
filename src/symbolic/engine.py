@@ -115,3 +115,121 @@ class SymbolicEngine:
                 buf_len_sym = claripy.BVS(f"buf_len_arg_{i}", 32)
                 self.state.solver.add(buf_len_sym >= 1)
                 self.state.solver.add(buf_len_sym <= buf_size_bytes)
+                self.state.memory.store(heap_cursor, buf_sym)
+                ptr = claripy.BVV(heap_cursor, 32)
+                self.state.memory.store(sp + 4 + i * 4, ptr, endness=self.project.arch.memory_endness)
+                tracker.allocations[f"heap_arg_{i}"] = type(
+                    'HeapObj', (), {
+                        'start_addr': heap_cursor,
+                        'size': buf_size_bytes,
+                        'origin': 'heap',
+                    }
+                )()
+                sym_vars[f"arg_{i}"] = ptr
+                sym_vars[f"buf_arg_{i}"] = buf_sym
+                sym_vars[f"buf_len_arg_{i}"] = buf_len_sym
+                tracker.symbolic_variables[f"buf_arg_{i}"] = buf_sym
+                tracker.symbolic_variables[f"buf_len_arg_{i}"] = buf_len_sym
+                heap_cursor += buf_size_bytes + 8
+
+        self.state.register_plugin('vuln_tracker', tracker)
+        instrument_state(self.state)
+        self.simgr = self.project.factory.simulation_manager(self.state, save_unsat=True)
+        return sym_vars
+
+    def inject_symbolic_input(self, name="stdin_input", size_bytes=32):
+        """
+        Injects a symbolic variable as standard input using a SimFile wrapper,
+        along with symbolic argv[1] and environment variable INPUT.
+        """
+        sym_var = claripy.BVS(name, size_bytes * 8)
+        sim_stdin = angr.SimFile(name="stdin", content=sym_var, size=size_bytes)
+        
+        # Add symbolic argument argv[1]
+        argv1_sym = claripy.BVS("argv1", 64 * 8)
+        
+        # Add symbolic environment variable
+        env_val_sym = claripy.BVS("env_var", 64 * 8)
+        
+        self.state = self.project.factory.entry_state(
+            args=[self.project.filename, argv1_sym],
+            env={"INPUT": env_val_sym},
+            stdin=sim_stdin
+        )
+        
+        # Register plugin and instrument
+        from core.vuln_plugin import VulnerabilityTrackerPlugin
+        from core.property_engine import instrument_state
+        tracker = VulnerabilityTrackerPlugin()
+        tracker.symbolic_variables["stdin_input"] = sym_var
+        tracker.symbolic_variables["argv1"] = argv1_sym
+        tracker.symbolic_variables["env_var"] = env_val_sym
+        
+        self.state.register_plugin('vuln_tracker', tracker)
+        instrument_state(self.state)
+        
+        self.simgr = self.project.factory.simulation_manager(self.state, save_unsat=True)
+        return sym_var
+
+    def step(self):
+        """
+        Advances the symbolic execution by one step (typically a basic block)
+        and records the path constraints for educational visualization.
+        """
+        if not self.simgr.active:
+            return False
+
+        # Step all active paths forward
+        self.simgr.step()
+        self.step_count += 1
+        
+        step_data = {
+            'step': self.step_count,
+            'active_states': [],
+            'deadended_states': len(self.simgr.deadended)
+        }
+
+        # Extract educational data from every active path (state)
+        for idx, state in enumerate(self.simgr.active):
+            addr = state.addr
+            
+            # Extract the mathematical path constraints generated so far
+            constraints = state.solver.constraints
+            constraint_strings = [str(c) for c in constraints]
+            
+            state_info = {
+                'state_id': idx,
+                'address': hex(addr),
+                'constraints': constraint_strings,
+                'is_satisfiable': state.solver.satisfiable()
+            }
+            step_data['active_states'].append(state_info)
+            
+        self.execution_trace.append(step_data)
+        return True
+
+    def explore(self, max_steps=50):
+        """
+        Explores paths up to a maximum depth to prevent path explosion,
+        returning the trace of constraints and states.
+        """
+        steps = 0
+        while self.simgr.active and steps < max_steps:
+            self.step()
+            steps += 1
+            
+        return self.execution_trace
+
+    def print_trace(self):
+        """
+        Utility to print the recorded execution trace to the terminal.
+        """
+        print(f"--- Symbolic Execution Trace ({self.step_count} steps) ---")
+        for step in self.execution_trace:
+            print(f"\nStep {step['step']}:")
+            print(f"  Active Paths: {len(step['active_states'])}")
+            print(f"  Deadended Paths: {step['deadended_states']}")
+            for st in step['active_states']:
+                print(f"    -> Path {st['state_id']} @ {st['address']}")
+                print(f"       Constraints: {st['constraints']}")
+                print(f"       Satisfiable: {st['is_satisfiable']}")
