@@ -313,3 +313,319 @@ def train_model(
             data = torch.load(file_path, weights_only=False)
             # Store binary name
             data.binary_name = file_path.stem
+            if hasattr(data, 'y') and data.y is not None:
+                dataset.append(data)
+            else:
+                print(f"[!] Skipping {file_path.name}: no labels")
+        except Exception as e:
+            print(f"[-] Error loading {file_path.name}: {e}")
+    
+    if not dataset:
+        print("[-] No valid graphs found in dataset directory. Cannot train.")
+        return
+    
+    print(f"[+] Loaded {len(dataset)} graphs from {len(set(_get_binary_name_from_graph(d) for d in dataset))} binaries")
+    
+    # Print feature dimension
+    sample = dataset[0]
+    print(f"[+] Feature dimension: {sample.x.shape[1]} (expected: {len(FEATURE_NAMES)})")
+    assert sample.x.shape[1] == len(FEATURE_NAMES), \
+        f"Feature dim mismatch: {sample.x.shape[1]} vs {len(FEATURE_NAMES)}"
+    
+    # 2. Split by binary (no data leakage!)
+    train_data, val_data, test_data = _split_by_binary(dataset, seed=seed)
+    print(f"[+] Split: Train={len(train_data)}, Val={len(val_data)}, Test={len(test_data)}")
+    
+    # DataLoaders
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
+    
+    # 3. Initialize Model, Loss, Optimizer
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[+] Training on device: {device}")
+    
+    model = create_model(
+        input_dim=len(FEATURE_NAMES),
+        hidden_dim=hidden_dim,
+        num_layers=num_layers,
+        encoder=encoder,
+        dropout=dropout
+    ).to(device)
+    
+    # Class weights
+    weight = _compute_class_weights(train_data, device)
+    criterion = nn.CrossEntropyLoss(weight=weight)
+    
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=5, verbose=True
+    )
+    
+    # Training state
+    best_val_loss = float('inf')
+    best_epoch = 0
+    epochs_no_improve = 0
+    history = {
+        'train_loss': [], 'val_loss': [],
+        'train_f1': [], 'val_f1': [],
+        'val_roc_auc': [], 'val_avg_prec': [],
+        'lr': []
+    }
+    
+    print(f"[+] Starting training for {epochs} epochs...")
+    print(f"[+] Early stopping patience: {patience}")
+    print(f"[+] Model config: hidden_dim={hidden_dim}, layers={num_layers}, encoder={encoder}, dropout={dropout}")
+    
+    # 4. Training Loop
+    for epoch in range(1, epochs + 1):
+        model.train()
+        total_loss = 0
+        all_preds = []
+        all_targets = []
+        
+        for batch in train_loader:
+            batch = batch.to(device)
+            optimizer.zero_grad()
+            
+            out = model(batch.x, batch.edge_index)
+            loss = criterion(out, batch.y)
+            
+            loss.backward()
+            # Gradient clipping for stability
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
+            
+            total_loss += loss.item() * batch.num_graphs
+            preds = out.argmax(dim=1)
+            all_preds.extend(preds.cpu().numpy())
+            all_targets.extend(batch.y.cpu().numpy())
+        
+        avg_train_loss = total_loss / len(train_data)
+        
+        train_precision, train_recall, train_f1, _ = precision_recall_fscore_support(
+            all_targets, all_preds, average='binary', zero_division=0
+        )
+        
+        # Validation
+        val_metrics = _evaluate_model(model, val_loader, criterion, device)
+        avg_val_loss = val_metrics['loss']
+        val_f1 = val_metrics['f1']
+        val_roc_auc = val_metrics['roc_auc']
+        val_avg_prec = val_metrics['avg_precision']
+        
+        # Learning rate scheduling
+        scheduler.step(avg_val_loss)
+        current_lr = optimizer.param_groups[0]['lr']
+        
+        # Record history
+        history['train_loss'].append(avg_train_loss)
+        history['val_loss'].append(avg_val_loss)
+        history['train_f1'].append(train_f1)
+        history['val_f1'].append(val_f1)
+        history['val_roc_auc'].append(val_roc_auc)
+        history['val_avg_prec'].append(val_avg_prec)
+        history['lr'].append(current_lr)
+        
+        # Logging
+        if epoch % 5 == 0 or epoch == 1 or epoch == epochs:
+            print(f"Epoch {epoch:03d}/{epochs:03d} | "
+                  f"Train Loss: {avg_train_loss:.4f} | Train F1: {train_f1:.4f} | "
+                  f"Val Loss: {avg_val_loss:.4f} | Val F1: {val_f1:.4f} | "
+                  f"Val ROC-AUC: {val_roc_auc:.4f} | Val AP: {val_avg_prec:.4f} | "
+                  f"LR: {current_lr:.2e}")
+        
+        # Checkpoint best model
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            best_epoch = epoch
+            epochs_no_improve = 0
+            
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'best_val_loss': best_val_loss,
+                'config': {
+                    'input_dim': len(FEATURE_NAMES),
+                    'hidden_dim': hidden_dim,
+                    'num_layers': num_layers,
+                    'encoder': encoder,
+                    'dropout': dropout,
+                },
+                'history': history,
+                'feature_names': FEATURE_NAMES,
+            }, model_path)
+        else:
+            epochs_no_improve += 1
+        
+        # Early stopping
+        if epochs_no_improve >= patience:
+            print(f"[+] Early stopping at epoch {epoch} (best epoch: {best_epoch})")
+            break
+    
+    print(f"\n[+] Training completed. Best epoch: {best_epoch}, Best val loss: {best_val_loss:.4f}")
+    print(f"[+] Best model checkpoint saved to {model_path}")
+    
+    # 5. Temperature Scaling on validation set
+    print("[+] Finding optimal temperature for calibration...")
+    checkpoint = torch.load(model_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimal_temp = _find_optimal_temperature(model, val_loader, device)
+    model.set_temperature(optimal_temp)
+    
+    # Save temperature
+    temp_path = model_path.replace('.pt', '_temperature.json')
+    with open(temp_path, 'w') as f:
+        json.dump({'temperature': optimal_temp}, f)
+    print(f"[+] Temperature saved to {temp_path}")
+    
+    # 6. Final evaluation on test set
+    print("\n[+] Final evaluation on TEST set...")
+    test_metrics = _evaluate_model(model, test_loader, criterion, device, temperature=optimal_temp)
+    
+    print(f"Test Loss: {test_metrics['loss']:.4f}")
+    print(f"Test Precision: {test_metrics['precision']:.4f}")
+    print(f"Test Recall: {test_metrics['recall']:.4f}")
+    print(f"Test F1: {test_metrics['f1']:.4f}")
+    print(f"Test ROC-AUC: {test_metrics['roc_auc']:.4f}")
+    print(f"Test Avg Precision: {test_metrics['avg_precision']:.4f}")
+    print(f"Confusion Matrix:\n{np.array(test_metrics['confusion_matrix'])}")
+    
+    # Per-graph statistics
+    pg = test_metrics['per_graph']
+    if pg:
+        print(f"\nPer-graph stats (n={len(pg)}):")
+        print(f"  Avg nodes per graph: {np.mean([g['num_nodes'] for g in pg]):.1f}")
+        print(f"  Avg vuln nodes per graph: {np.mean([g['num_vuln'] for g in pg]):.2f}")
+        print(f"  Avg graph accuracy: {np.mean([g['accuracy'] for g in pg]):.4f}")
+        print(f"  Avg graph AUC: {np.mean([g['auc'] for g in pg]):.4f}")
+        print(f"  Avg graph AP: {np.mean([g['ap'] for g in pg]):.4f}")
+    
+    # Save detailed results
+    results_path = model_path.replace('.pt', '_results.json')
+    with open(results_path, 'w') as f:
+        json.dump({
+            'best_epoch': best_epoch,
+            'best_val_loss': best_val_loss,
+            'temperature': optimal_temp,
+            'test_metrics': test_metrics,
+            'history': history,
+            'config': checkpoint['config']
+        }, f, indent=2)
+    print(f"[+] Detailed results saved to {results_path}")
+    
+    # 7. Find optimal classification threshold on validation set
+    print("[+] Finding optimal classification threshold...")
+    optimal_threshold = _find_optimal_threshold(model, val_loader, device, optimal_temp)
+    thresh_path = model_path.replace('.pt', '_threshold.json')
+    with open(thresh_path, 'w') as f:
+        json.dump({'threshold': optimal_threshold}, f)
+    print(f"[+] Optimal threshold: {optimal_threshold:.3f} (saved to {thresh_path})")
+    
+    # Print classification report
+    if test_metrics['targets']:
+        print("\n[+] Test Set Classification Report:")
+        print(classification_report(
+            test_metrics['targets'], 
+            test_metrics['predictions'], 
+            target_names=["Safe", "Vulnerable"], 
+            zero_division=0
+        ))
+    
+    return model, test_metrics
+
+
+def evaluate_model(model_path, dataset_dir, temperature_path=None):
+    """Evaluate a trained model on a dataset."""
+    if torch is None:
+        raise ImportError("PyTorch required.")
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Load model
+    checkpoint = torch.load(model_path, map_location=device)
+    config = checkpoint['config']
+    
+    model = create_model(**config).to(device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    
+    # Load temperature if available
+    if temperature_path and os.path.exists(temperature_path):
+        with open(temperature_path) as f:
+            temp_data = json.load(f)
+        model.set_temperature(temp_data['temperature'])
+        print(f"[+] Loaded temperature: {temp_data['temperature']:.3f}")
+    
+    # Load dataset
+    dataset = []
+    for file_path in Path(dataset_dir).glob("*.pt"):
+        try:
+            data = torch.load(file_path, weights_only=False)
+            data.binary_name = file_path.stem
+            if hasattr(data, 'y') and data.y is not None:
+                dataset.append(data)
+        except Exception as e:
+            print(f"[-] Error loading {file_path.name}: {e}")
+    
+    if not dataset:
+        print("[-] No valid graphs found.")
+        return
+    
+    # Evaluate
+    loader = DataLoader(dataset, batch_size=8, shuffle=False)
+    criterion = nn.CrossEntropyLoss()
+    
+    metrics = _evaluate_model(model, loader, criterion, device, temperature=model.get_temperature())
+    
+    print(f"Loss: {metrics['loss']:.4f}")
+    print(f"Precision: {metrics['precision']:.4f}")
+    print(f"Recall: {metrics['recall']:.4f}")
+    print(f"F1: {metrics['f1']:.4f}")
+    print(f"ROC-AUC: {metrics['roc_auc']:.4f}")
+    print(f"Avg Precision: {metrics['avg_precision']:.4f}")
+    print(f"Confusion Matrix:\n{np.array(metrics['confusion_matrix'])}")
+    
+    return metrics
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train the GNN vulnerability detector model.")
+    parser.add_argument("--dataset-dir", type=str, required=True, help="Directory containing .pt graphs")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of training epochs")
+    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+    parser.add_argument("--model-path", type=str, default="model.pt", help="Path to save the trained model (.pt)")
+    parser.add_argument("--hidden-dim", type=int, default=128, help="Hidden dimension")
+    parser.add_argument("--num-layers", type=int, default=3, help="Number of GNN layers")
+    parser.add_argument("--encoder", type=str, default='sage', choices=['sage', 'gat'], help="Encoder type")
+    parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate")
+    parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
+    parser.add_argument("--patience", type=int, default=15, help="Early stopping patience")
+    parser.add_argument("--weight-decay", type=float, default=1e-4, help="Weight decay")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--eval-only", action="store_true", help="Only evaluate existing model")
+    parser.add_argument("--temperature-path", type=str, help="Path to temperature file for eval")
+    
+    args = parser.parse_args()
+    
+    if args.eval_only:
+        if not os.path.exists(args.model_path):
+            print(f"[-] Model not found at {args.model_path}")
+            sys.exit(1)
+        evaluate_model(args.model_path, args.dataset_dir, args.temperature_path)
+    else:
+        train_model(
+            dataset_dir=args.dataset_dir,
+            epochs=args.epochs,
+            lr=args.lr,
+            model_path=args.model_path,
+            hidden_dim=args.hidden_dim,
+            num_layers=args.num_layers,
+            encoder=args.encoder,
+            dropout=args.dropout,
+            batch_size=args.batch_size,
+            patience=args.patience,
+            weight_decay=args.weight_decay,
+            seed=args.seed
+        )
