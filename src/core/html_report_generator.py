@@ -271,3 +271,276 @@ def generate_enterprise_html_report(
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }}
+
+        .summary-grid {{
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }}
+
+        .card {{
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }}
+
+        .risk-score-box {{
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }}
+
+        .score-number {{
+            font-size: 56px;
+            font-weight: 900;
+            line-height: 1;
+            margin: 10px 0;
+        }}
+
+        .risk-label {{
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 1.5px;
+        }}
+
+        .mit-badge {{
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }}
+
+        .mit-enabled {{ background-color: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }}
+        .mit-disabled {{ background-color: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }}
+
+        .table-container {{
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }}
+
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+        }}
+
+        th, td {{
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }}
+
+        th {{
+            background-color: #0f172a;
+            color: var(--text-muted);
+            font-size: 13px;
+            text-transform: uppercase;
+        }}
+
+        tr:hover {{
+            background-color: var(--bg-card-hover);
+            cursor: pointer;
+        }}
+
+        .sev-badge {{
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            color: #fff;
+        }}
+
+        .vuln-card {{
+            margin-bottom: 20px;
+        }}
+
+        .card-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }}
+
+        .card-title {{
+            font-size: 18px;
+            font-weight: 700;
+            margin-left: 10px;
+        }}
+
+        .card-meta {{
+            color: var(--text-muted);
+            font-size: 13px;
+        }}
+
+        .flow-container {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            background-color: #0f172a;
+            padding: 14px;
+            border-radius: 8px;
+            margin: 14px 0;
+        }}
+
+        .flow-step {{
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            min-width: 140px;
+            text-align: center;
+        }}
+
+        .flow-node {{ font-weight: bold; font-size: 13px; color: var(--accent-primary); }}
+        .flow-desc {{ font-size: 11px; color: var(--text-muted); margin-top: 4px; }}
+        .flow-arrow {{ font-size: 18px; color: var(--text-muted); }}
+
+        .explanation-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }}
+
+        .exp-box {{
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }}
+
+        details summary {{
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--accent-primary);
+            padding: 8px 0;
+        }}
+
+        pre {{
+            background-color: #090d16;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            color: #38bdf8;
+            font-size: 13px;
+        }}
+
+        .badge-success {{
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }}
+
+        @media print {{
+            body {{ background-color: #fff; color: #000; }}
+            .card {{ border: 1px solid #ccc; background-color: #fff; color: #000; }}
+            pre {{ background-color: #f4f4f4; color: #000; }}
+        }}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-bar">
+        <div class="header-title">
+            <span>🛡️ Neuro-Symbolic Security Report</span>
+            <span class="badge-brand">Commercial Grade</span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 13px;">
+            Target: <code>{filename}</code> | Generated: {now_str}
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="card risk-score-box">
+            <div class="risk-label" style="color: {risk_color}">{risk_label}</div>
+            <div class="score-number" style="color: {risk_color}">{risk_score} <span style="font-size: 20px; color: var(--text-muted)">/ 10</span></div>
+            <div style="font-size: 13px; color: var(--text-muted)">Total Findings: <strong>{total_vulns}</strong> ({crit_count} Critical, {high_count} High)</div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top: 0; font-size: 16px;">📋 Target Binary Metadata & Mitigations</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                <strong>Architecture:</strong> {arch} | <strong>File Size:</strong> {size_str}
+            </p>
+            <div>
+                <strong>Binary Protections:</strong><br>
+                <div style="margin-top: 8px;">{mitigation_pills}</div>
+            </div>
+        </div>
+    </div>
+
+    <h2>📊 Vulnerability Findings Summary</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Function</th>
+                    <th>Address</th>
+                    <th>Can it be Hacked?</th>
+                    <th>CWE</th>
+                    <th>CVSS</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {table_rows_str}
+            </tbody>
+        </table>
+    </div>
+
+    <h2>⚡ Vulnerability Deep-Dive & Proofs of Reachability</h2>
+    {vuln_cards_str}
+
+    <h2>⚙️ Engine Execution Metrics</h2>
+    <div class="card" style="margin-bottom: 40px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; text-align: center;">
+            <div>
+                <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">{cfg_nodes}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">CFG Basic Blocks</div>
+            </div>
+            <div>
+                <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">{cfg_edges}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">CFG Control Edges</div>
+            </div>
+            <div>
+                <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">{active_states}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Active Symbolic States</div>
+            </div>
+            <div>
+                <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">{total_sym_vars}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Symbolic Variables</div>
+            </div>
+            <div>
+                <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">{max_solver_time}s</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Max SMT Solver Time</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+"""
+
+    with open(output_filename, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    return output_filename
