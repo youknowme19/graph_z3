@@ -63,3 +63,69 @@ This builds a highly customized training dataset matched exactly to your tool's 
 
 Each node (basic block) in the GNN input graph is represented by a feature vector $X_i \in \mathbb{R}^d$. We extract these features using angr's VEX IR and symbolic state information:
 
+```python
+node_features = [
+    # ── Structural/Topological Features ──
+    in_degree,                  # Number of incoming jump edges
+    out_degree,                 # Number of outgoing jump branches
+    depth_from_entry,           # Distance in blocks from entry point
+    is_loop_header,             # 1.0 if block is head of a loop, 0.0 otherwise
+    is_library_call,            # 1.0 if block points to PLT/SimProcedure, 0.0 otherwise
+    
+    # ── Instruction-Level Features ──
+    num_instructions,           # Count of assembly/IR instructions in block
+    has_unsafe_call,            # 1.0 if contains string ops (strcpy, sprintf, etc.)
+    has_memory_write,           # 1.0 if VEX contains store statements (Ist_Store)
+    
+    # ── Symbolic Execution Features (from Z3/angr state) ──
+    num_symbolic_variables,     # Count of symbolic variables active in this block
+    num_path_constraints,       # Count of path conditions accumulated to reach here
+    has_symbolic_store_addr,    # 1.0 if memory write destination is symbolic
+]
+```
+
+---
+
+## 4. GNN Model Architecture (PyTorch Geometric)
+
+We recommend using **GraphSAGE** (Graph Sample and Aggregate) or a **GAT** (Graph Attention Network) because they generalize well to unseen graph structures (inductive learning).
+
+### Python Code Scaffold (`gnn_model.py`)
+```python
+import torch
+import torch.nn.functional as F
+from torch_geometric.nn import SAGEConv, global_mean_pool
+
+class VulnGNN(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim=64):
+        super(VulnGNN, self).__init__()
+        # GraphSAGE layers
+        self.conv1 = SAGEConv(input_dim, hidden_dim)
+        self.conv2 = SAGEConv(hidden_dim, hidden_dim)
+        
+        # Classification head for each block (Node Classification)
+        self.classifier = torch.nn.Linear(hidden_dim, 2)  # [0: Safe, 1: Vulnerable]
+
+    def forward(self, x, edge_index, batch=None):
+        # 1. Graph Convolution
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+        
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        
+        # 2. Block-level classification
+        logits = self.classifier(x)
+        return logits
+```
+
+---
+
+## 5. Implementation Roadmap: Next Steps
+
+To implement this pipeline in the future:
+1. **Feature Extractor:** Write `src/graph/feature_extractor.py` to compile the `node_features` array for every basic block in the `GraphBuilder`.
+2. **Dataset Builder:** Write `src/ml/dataset_builder.py` to parse CFG files and Z3 reports, saving them as `.pt` graph objects in PyTorch Geometric format (`torch_geometric.data.Data`).
+3. **Training Loop:** Write `src/ml/trainer.py` to train `VulnGNN` using Binary Cross-Entropy Loss on labeled node targets.
+4. **Model Integration:** Load the trained model (`model.pt`) into the Dash app. When a binary is uploaded, render the GNN vulnerability heatmap overlay on the CFG immediately, before symbolic execution finishes.
