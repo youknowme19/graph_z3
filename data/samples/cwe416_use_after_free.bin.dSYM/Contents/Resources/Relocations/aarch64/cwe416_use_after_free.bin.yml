@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     'data/samples/cwe416_use_after_free.bin'
+relocations:     []
+...
