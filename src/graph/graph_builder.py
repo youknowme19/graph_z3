@@ -17,12 +17,41 @@ class GraphBuilder:
         if not angr_cfg:
             return nx_graph
 
+        functions = self.loader.get_functions()
         node_map = {}
+
         for node in angr_cfg.graph.nodes():
-            if node.name:
+            # Resolve meaningful function name and block offset
+            func_name = None
+            offset_str = ""
+            try:
+                func = functions.floor_func(node.addr) if functions else None
+                if func:
+                    func_name = func.name
+                    diff = node.addr - func.addr
+                    if diff > 0:
+                        offset_str = f"+{hex(diff)}"
+            except Exception:
+                pass
+
+            if not func_name:
+                # Check symbol table
+                try:
+                    sym = self.loader.project.loader.find_symbol(node.addr)
+                    if sym:
+                        func_name = sym.name
+                except Exception:
+                    pass
+
+            if func_name:
+                clean_name = f"{func_name}{offset_str}"
+                label = f"{clean_name}\n{hex(node.addr)}"
+            elif node.name:
                 label = f"{node.name}\n{hex(node.addr)}"
+                clean_name = node.name
             else:
-                label = f"Block\n{hex(node.addr)}"
+                clean_name = f"loc_{hex(node.addr)}"
+                label = f"{clean_name}\n{hex(node.addr)}"
 
             instr_count = (
                 len(node.instruction_addrs)
@@ -41,10 +70,20 @@ class GraphBuilder:
             except Exception:
                 pass
 
+            # Extract disassembly
+            disasm_lines = []
+            try:
+                blk = self.loader.project.factory.block(node.addr)
+                if blk and blk.capstone:
+                    for insn in blk.capstone.insns:
+                        disasm_lines.append(f"{hex(insn.address)}:  {insn.mnemonic:7s} {insn.op_str}")
+            except Exception:
+                pass
+
             nx_graph.add_node(
                 node.addr,
                 label=label,
-                name=node.name if node.name else f"sub_{hex(node.addr)}",
+                name=clean_name,
                 addr=hex(node.addr),
                 size=getattr(node, 'size', 0),
                 type="block",
@@ -52,6 +91,7 @@ class GraphBuilder:
                 node_class=node_class,
                 is_loop_header=False,
                 binary_section=section_name,
+                disasm=disasm_lines,
             )
             node_map[node.addr] = node
 
@@ -149,9 +189,11 @@ class GraphBuilder:
             except Exception:
                 pass
 
+            func_label = func.name if func.name and not func.name.startswith("sub_") else f"{func.name} ({hex(func.addr)})"
+
             nx_graph.add_node(
                 node_addr,
-                label=func.name,
+                label=func_label,
                 name=func.name,
                 addr=hex(func.addr),
                 size=getattr(func, 'size', 0),
@@ -160,10 +202,10 @@ class GraphBuilder:
                 instruction_count=instr_count,
                 cyclomatic_complexity=cyclomatic,
                 is_library_call=is_lib,
-                is_loop_header=False,  # filled below
+                is_loop_header=False,
                 node_class=node_class,
                 binary_section=section_name,
-                is_recursive=False,   # filled below
+                is_recursive=False,
                 callers=[],
                 callees=[],
                 block_addrs=set(func.block_addrs) if hasattr(func, 'block_addrs') else set(),
@@ -180,41 +222,10 @@ class GraphBuilder:
                 if len(scc) > 1:
                     for node in scc:
                         nx_graph.nodes[node]['is_recursive'] = True
-            # Also check self-loops
             for node in nx_graph.nodes():
                 if nx_graph.has_edge(node, node):
                     nx_graph.nodes[node]['is_recursive'] = True
         except Exception:
             pass
-
-        # Loop detection for the function's own internal CFG (not call graph)
-        for node_addr in nx_graph.nodes():
-            func = functions.function(node_addr)
-            if func:
-                try:
-                    fg = func.graph
-                    if fg is not None and not nx.is_directed_acyclic_graph(fg):
-                        nx_graph.nodes[node_addr]['is_loop_header'] = True
-                except Exception:
-                    pass
-
-        # Second pass: degree, callers, callees
-        for node_addr in nx_graph.nodes():
-            nx_graph.nodes[node_addr]['incoming_edges'] = nx_graph.in_degree(node_addr)
-            nx_graph.nodes[node_addr]['outgoing_edges'] = nx_graph.out_degree(node_addr)
-
-            # Callers
-            callers = []
-            for pred in nx_graph.predecessors(node_addr):
-                name = nx_graph.nodes[pred].get('name', hex(pred))
-                callers.append(name)
-            nx_graph.nodes[node_addr]['callers'] = callers
-
-            # Callees
-            callees = []
-            for succ in nx_graph.successors(node_addr):
-                name = nx_graph.nodes[succ].get('name', hex(succ))
-                callees.append(name)
-            nx_graph.nodes[node_addr]['callees'] = callees
 
         return nx_graph

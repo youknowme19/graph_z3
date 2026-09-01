@@ -90,13 +90,15 @@ class SymbolicEngine:
             setattr(self.state.regs, reg_name, concrete_ptr)
 
             # Register heap allocation so property_engine can bound-check it
-            tracker.allocations[f"heap_arg_{i}"] = type(
-                'HeapObj', (), {
-                    'start_addr': heap_cursor,
-                    'size': buf_size_bytes,
-                    'origin': 'heap',
-                }
-            )()
+            from core.vuln_plugin import MemoryObject
+            tracker.allocations[f"heap_arg_{i}"] = MemoryObject(
+                id=f"heap_arg_{i}",
+                start_addr=heap_cursor,
+                size=buf_size_bytes,
+                origin="heap",
+                allocation_site=func_addr,
+                allocation_constraints=[],
+            )
 
             sym_vars[f"buf_arg_{i}"] = buf_sym
             sym_vars[f"buf_len_arg_{i}"] = buf_len_sym
@@ -109,6 +111,7 @@ class SymbolicEngine:
         # x86 cdecl: push symbolic args onto the fake stack
         if 'X86' in arch:
             sp = self.state.solver.eval(self.state.regs.esp)
+            from core.vuln_plugin import MemoryObject
             for i in range(n_args):
                 arg_sym = claripy.BVS(f"arg_{i}", 32)
                 buf_sym = claripy.BVS(f"buf_arg_{i}", buf_size_bytes * 8)
@@ -118,13 +121,14 @@ class SymbolicEngine:
                 self.state.memory.store(heap_cursor, buf_sym)
                 ptr = claripy.BVV(heap_cursor, 32)
                 self.state.memory.store(sp + 4 + i * 4, ptr, endness=self.project.arch.memory_endness)
-                tracker.allocations[f"heap_arg_{i}"] = type(
-                    'HeapObj', (), {
-                        'start_addr': heap_cursor,
-                        'size': buf_size_bytes,
-                        'origin': 'heap',
-                    }
-                )()
+                tracker.allocations[f"heap_arg_{i}"] = MemoryObject(
+                    id=f"heap_arg_{i}",
+                    start_addr=heap_cursor,
+                    size=buf_size_bytes,
+                    origin="heap",
+                    allocation_site=func_addr,
+                    allocation_constraints=[],
+                )
                 sym_vars[f"arg_{i}"] = ptr
                 sym_vars[f"buf_arg_{i}"] = buf_sym
                 sym_vars[f"buf_len_arg_{i}"] = buf_len_sym
@@ -151,7 +155,20 @@ class SymbolicEngine:
         # Add symbolic environment variable
         env_val_sym = claripy.BVS("env_var", 64 * 8)
         
+        def _resolve_sym(name):
+            try:
+                s = self.project.loader.main_object.get_symbol(name) or self.project.loader.find_symbol(name)
+                if isinstance(s, list) and s:
+                    return s[0]
+                return s
+            except Exception:
+                return None
+
+        main_sym = _resolve_sym("_main") or _resolve_sym("main")
+        start_addr = getattr(main_sym, "rebased_addr", None)
+
         self.state = self.project.factory.entry_state(
+            addr=start_addr,
             args=[self.project.filename, argv1_sym],
             env={"INPUT": env_val_sym},
             stdin=sim_stdin

@@ -3,9 +3,13 @@ __pycache__/
 .env
 venv/
 node_modules/
+dist/
 reports/
 ._*
 .DS_Store
 *.DS_Store
 build_*
 run_*
+*.log
+*.zip
+cwe120_scan_result.json

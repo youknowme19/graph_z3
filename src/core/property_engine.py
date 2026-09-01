@@ -159,34 +159,30 @@ def track_simproc_before(state):
         except Exception:
             args.append(None)
 
-    sink_hit: Optional[TaintSinkHit] = check_sink(state, clean_name, site, args)
-    if sink_hit is not None:
-        is_exploit = True
-        details = sink_hit.details
-        vuln_type = f"TAINT_{sink_hit.sink_category}"
+    if clean_name in ("strcpy", "strcat", "strncpy", "memcpy", "memmove"):
+        dest_ptr = args[0]
+        src_ptr = args[1]
+        n_arg = args[2] if clean_name in ("strncpy", "memcpy", "memmove") else None
         
-        # For copy sinks (strcpy, memcpy, etc.), check if they actually overflow!
-        if clean_name in ("strcpy", "strcat", "strncpy", "memcpy", "memmove"):
-            dest_ptr = args[0]
-            src_ptr = args[1]
-            n_arg = args[2] if clean_name in ("strncpy", "memcpy", "memmove") else None
-            
-            is_overflow, overflow_details, dest_size = check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg)
-            if not is_overflow:
-                is_exploit = False
-            else:
-                details = overflow_details
-                origin = get_pointer_origin(state, dest_ptr)
-                if origin == 'stack':
-                    vuln_type = "STACK_OVERFLOW"
-                else:
-                    vuln_type = "OOB_WRITE"
-                    
-        if is_exploit:
+        is_overflow, overflow_details, dest_size = check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg)
+        if is_overflow:
+            origin = get_pointer_origin(state, dest_ptr)
+            vuln_type = "STACK_OVERFLOW" if origin == 'stack' else "OOB_WRITE"
             report_finding(
                 state,
                 vuln_type,
-                details,
+                overflow_details,
+                site,
+            )
+            tracker.log(f"[EXPLOIT-COPY] {vuln_type} proved at {hex(site)} via '{clean_name}'")
+    else:
+        sink_hit: Optional[TaintSinkHit] = check_sink(state, clean_name, site, args)
+        if sink_hit is not None:
+            vuln_type = f"TAINT_{sink_hit.sink_category}"
+            report_finding(
+                state,
+                vuln_type,
+                sink_hit.details,
                 site,
             )
             tracker.log(f"[EXPLOIT-SINK] {vuln_type} proved at {hex(site)} via '{clean_name}'")
@@ -412,12 +408,19 @@ def find_buffer_size(state, ptr) -> Optional[int]:
                         
     if is_stack_address(state, ptr):
         try:
+            ptr_val = state.solver.eval(ptr)
+            arch = state.arch.name
+            fp_reg = 'x29' if 'AARCH64' in arch or 'ARM' in arch else ('rbp' if 'AMD64' in arch else 'ebp')
+            if hasattr(state.regs, fp_reg):
+                fp_val = state.solver.eval(getattr(state.regs, fp_reg))
+                if fp_val > ptr_val:
+                    return int(fp_val - ptr_val)
+            # Fallback to callstack frame
             current_frame = state.callstack.top
             if current_frame is not None and current_frame.stack_ptr is not None:
-                ptr_val = state.solver.eval(ptr)
                 sp_val = state.solver.eval(current_frame.stack_ptr)
-                if ptr_val >= sp_val:
-                    return int(ptr_val - sp_val)
+                if ptr_val > sp_val:
+                    return int(ptr_val - sp_val + 64)
         except Exception:
             pass
             
@@ -425,25 +428,37 @@ def find_buffer_size(state, ptr) -> Optional[int]:
 
 def check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg=None) -> Tuple[bool, str, Optional[int]]:
     dest_size = find_buffer_size(state, dest_ptr)
-    if dest_size is None:
-        return False, "", None
-        
+    effective_dest_size = dest_size if dest_size is not None else 16
+    tracker = getattr(state, 'vuln_tracker', None)
+    taint_set = getattr(tracker, 'taint_set', set()) if tracker else set()
+    
     if n_arg is not None:
         try:
-            if state.solver.satisfiable(extra_constraints=[n_arg > dest_size]):
+            if dest_size is not None and state.solver.satisfiable(extra_constraints=[n_arg > dest_size]):
                 details = f"Buffer overflow in {clean_name}: size argument {n_arg} can exceed destination buffer size {dest_size}."
                 return True, details, dest_size
         except Exception:
             pass
     else:
         try:
+            is_src_tainted = is_tainted(src_ptr, taint_set)
+            if not is_src_tainted and src_ptr is not None:
+                try:
+                    loaded = state.memory.load(src_ptr, 8)
+                    is_src_tainted = is_tainted(loaded, taint_set)
+                except Exception:
+                    pass
+            if is_src_tainted:
+                details = f"Buffer overflow in {clean_name}: tainted source string can exceed destination buffer size {effective_dest_size}."
+                return True, details, effective_dest_size
+
             constraints = []
-            for i in range(dest_size + 1):
+            for i in range(effective_dest_size + 1):
                 char_val = state.memory.load(src_ptr + i, 1)
                 constraints.append(char_val != 0)
             if state.solver.satisfiable(extra_constraints=constraints):
-                details = f"Buffer overflow in {clean_name}: source string can exceed destination buffer size {dest_size}."
-                return True, details, dest_size
+                details = f"Buffer overflow in {clean_name}: source string can exceed destination buffer size {effective_dest_size}."
+                return True, details, effective_dest_size
         except Exception:
             pass
             
@@ -497,10 +512,24 @@ def verify_memory_safety(state, addr, size, is_write):
         return
         
     # 1. Null pointer dereference check
-    if state.solver.satisfiable(extra_constraints=[addr == 0]):
-        details = f"Null pointer dereference invariant violated: memory address {addr} can be NULL."
-        report_finding(state, "NULL_DEREF", details, site, extra_constraints=[addr == 0])
-        return
+    try:
+        if not getattr(addr, 'symbolic', False):
+            c_val = state.solver.eval(addr)
+            if c_val == 0:
+                details = f"Null pointer dereference invariant violated: memory address is NULL (0x0)."
+                report_finding(state, "NULL_DEREF", details, site, extra_constraints=[addr == 0])
+                return
+        else:
+            # Symbolic address check: must be satisfiable as NULL and not pointing to stack/heap
+            if not is_stack_address(state, addr):
+                if state.solver.satisfiable(extra_constraints=[addr == 0]):
+                    # Ensure it's not a generic filler register by checking if it's tainted or constrained
+                    if is_tainted(state, addr) or len(state.solver.constraints) > 0:
+                        details = f"Null pointer dereference invariant violated: pointer {addr} can be NULL (0x0)."
+                        report_finding(state, "NULL_DEREF", details, site, extra_constraints=[addr == 0])
+                        return
+    except Exception:
+        pass
         
     # 2. Use-after-free check
     for alloc_id, obj in list(tracker.freed_allocations.items()):
@@ -516,19 +545,15 @@ def verify_memory_safety(state, addr, size, is_write):
             return
 
     # 3. Out-of-bounds check against active allocations
-    matched_any = False
     for alloc_id, obj in list(tracker.allocations.items()):
-        neighborhood_cond = (addr >= obj.start_addr - 256) & (addr < obj.start_addr + obj.size + 256)
-        if state.solver.satisfiable(extra_constraints=[neighborhood_cond]):
-            if is_stack_address(state, addr) and obj.origin == 'heap':
-                continue
-                
-            matched_any = True
+        if is_stack_address(state, addr) and obj.origin == 'heap':
+            continue
             
-            # Check overflow
-            overflow_cond = (addr + size_bytes > obj.start_addr + obj.size)
-            base_in_bounds = (addr >= obj.start_addr) & (addr < obj.start_addr + obj.size)
-            if state.solver.satisfiable(extra_constraints=[base_in_bounds, overflow_cond]):
+        # Check overflow
+        overflow_cond = (addr + size_bytes > obj.start_addr + obj.size)
+        base_in_bounds = (addr >= obj.start_addr) & (addr < obj.start_addr + obj.size)
+        if state.solver.satisfiable(extra_constraints=[base_in_bounds, overflow_cond]):
+            if is_tainted(state, addr) or is_write:
                 vuln_type = "OOB_WRITE" if is_write else "OOB_READ"
                 details = (
                     f"Out-of-bounds boundary invariant violated: access at {addr} "
@@ -536,8 +561,9 @@ def verify_memory_safety(state, addr, size, is_write):
                 )
                 report_finding(state, vuln_type, details, site, extra_constraints=[base_in_bounds, overflow_cond], relevant_objects=[obj])
                 return
-                
-            # Check underflow
+            
+        # Check underflow (only for tainted/user-controlled pointers)
+        if getattr(addr, 'symbolic', False) and is_tainted(state, addr):
             underflow_neighborhood = (addr >= obj.start_addr - 256) & (addr < obj.start_addr)
             if state.solver.satisfiable(extra_constraints=[underflow_neighborhood]):
                 vuln_type = "OOB_WRITE" if is_write else "OOB_READ"
@@ -570,10 +596,13 @@ def verify_memory_safety(state, addr, size, is_write):
 def verify_allocation_size(state, size):
     site = get_precise_site(state)
     try:
-        overflow_cond = (size > 0x7fffffff)
-        if state.solver.satisfiable(extra_constraints=[overflow_cond]):
-            details = f"Allocation arithmetic safety invariant violated: allocation size {size} can overflow integer boundaries."
-            report_finding(state, "INTEGER_OVERFLOW", details, site, extra_constraints=[overflow_cond])
+        if getattr(size, 'symbolic', False) and is_tainted(state, size):
+            bits = size.size()
+            max_val = (1 << (bits - 1)) - 1
+            overflow_cond = (size > max_val) | (size < 0)
+            if state.solver.satisfiable(extra_constraints=[overflow_cond]):
+                details = f"Allocation arithmetic safety invariant violated: tainted allocation size {size} can overflow integer boundaries."
+                report_finding(state, "INTEGER_OVERFLOW", details, site, extra_constraints=[overflow_cond])
     except Exception:
         pass
 
