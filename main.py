@@ -13,7 +13,7 @@ if src_dir not in sys.path:
 
 from core.interfaces import AnalysisBackendProvider
 from core.sarif_exporter import findings_to_sarif
-from ui.app import create_app
+from api.server import create_api_app
 
 _DEBUG_MODE = os.environ.get("NSF_DEBUG", "0").strip() == "1"
 _PORT       = int(os.environ.get("NSF_PORT", "8050"))
@@ -73,7 +73,9 @@ def cli_main():
     parser.add_argument("--output-json", type=str, help="Path to save JSON report file")
     parser.add_argument("--output-sarif", type=str, help="Path to save SARIF report file")
     parser.add_argument("--max-steps", type=int, default=300, help="Maximum execution trace depth (default: 300)")
-    parser.add_argument("--server", action="store_true", help="Explicitly start interactive Dash server (default behavior if no args)")
+    parser.add_argument("--port", type=int, default=_PORT, help=f"Server port (default: {_PORT})")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Server host (default: 127.0.0.1)")
+    parser.add_argument("--dash", action="store_true", help="Launch legacy Dash UI instead of React Web UI")
 
     args = parser.parse_args()
 
@@ -86,18 +88,27 @@ def cli_main():
             max_steps=args.max_steps
         ))
 
-    # Otherwise run Dash server
-    print("========================================")
-    print("Neuro-Symbolic Fuzzer UI Initialization")
-    print("========================================")
-    if _DEBUG_MODE:
-        print("⚠  DEBUG MODE ENABLED  (NSF_DEBUG=1) — do NOT expose to the internet")
-    print(f"Starting interactive viewer on port {_PORT}...")
-    print(f"Please open your web browser to http://127.0.0.1:{_PORT}")
-    print("You can upload your binary directly from the web portal.\n")
+    port = args.port
+    host = args.host
 
-    app = create_app()
-    app.run(debug=_DEBUG_MODE, port=_PORT, host="127.0.0.1")
+    if args.dash:
+        from ui.app import create_app
+        print("========================================")
+        print("Neuro-Symbolic Fuzzer (Legacy Dash UI)")
+        print("========================================")
+        print(f"Starting Dash server on http://{host}:{port}")
+        app = create_app()
+        app.run(debug=_DEBUG_MODE, port=port, host=host)
+    else:
+        print("=========================================================")
+        print("  GRAPH_Z3 — Neuro-Symbolic Vulnerability Fuzzer UI")
+        print("=========================================================")
+        print(f"[*] Engine: angr + Z3 SMT Solver + SageConv GNN")
+        print(f"[*] Serving React TypeScript UI on http://{host}:{port}")
+        print(f"[*] REST API active on http://{host}:{port}/api\n")
+
+        app = create_api_app()
+        app.run(debug=_DEBUG_MODE, port=port, host=host)
 
 if __name__ == "__main__":
     cli_main()
