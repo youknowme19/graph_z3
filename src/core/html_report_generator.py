@@ -633,3 +633,5 @@ def generate_enterprise_html_report(
         pass
 
     return html_content
+
+# html_report_generator.py: CVSS composite score = 0.7 * peak + 0.3 * average
