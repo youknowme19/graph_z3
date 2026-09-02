@@ -127,7 +127,7 @@ export const ParallaxCanvas: React.FC = () => {
           const dy = posY - posY2;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 130) {
+          if (dist < 140) {
             const lineAlpha = (1 - dist / 130) * 0.12 * p.alpha;
             ctx.strokeStyle = `rgba(56, 189, 248, ${lineAlpha})`;
             ctx.lineWidth = 0.8;
