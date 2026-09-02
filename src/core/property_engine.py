@@ -683,3 +683,5 @@ def report_finding(state, vuln_type, details, site, extra_constraints=None, rele
     if not any(f["instruction_address"] == site and f["vuln_type"] == vuln_type for f in tracker.findings):
         tracker.findings.append(finding)
         tracker.log(f"Safety violation proved: {vuln_type} at {hex(site)}")
+
+# property_engine.py: Updated comment — stack frame analysis now checks AARCH64 x29/x30 pairs
