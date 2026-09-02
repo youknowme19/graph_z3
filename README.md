@@ -35,3 +35,9 @@ The landing page (`/`) features a MetaMask-inspired parallax storytelling design
 - **Color palette**: Slate-950 base, Cyan/Teal accents, Purple/Pink for proofs, Amber for exploits
 - **Animations**: float-gentle, float-tilt, float-orbit, hero-glow-pulse, fade-up, text-shimmer
 - **Components**: HoloSticker (3D tilt), ParallaxCanvas (CFG particles), metamask-card (glassmorphism)
+
+## Z3 Crash Payloads
+When a vulnerability is confirmed SAT by Z3, the payload is available as:
+1. **Decimal integer array** in the vulnerability card UI: `[32, 4, 4, 1, 1, 8, ...]`
+2. **JSON export**: `crash_payload`, `crash_length`, `reproduce_cmd` fields
+3. **Python reproducer**: `python3 -c "import sys; sys.stdout.buffer.write(bytes([...]))" | ./target.bin`
