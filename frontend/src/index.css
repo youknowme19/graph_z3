@@ -250,3 +250,12 @@ code, pre, .font-mono {
   animation: pulse-subtle 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+
+/* ── Radial hero glow pulse ─────────────────────────────────────────────── */
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+.animate-hero-glow {
+  animation: hero-glow-pulse 8s ease-in-out infinite;
+}
