@@ -41,3 +41,9 @@ When a vulnerability is confirmed SAT by Z3, the payload is available as:
 1. **Decimal integer array** in the vulnerability card UI: `[32, 4, 4, 1, 1, 8, ...]`
 2. **JSON export**: `crash_payload`, `crash_length`, `reproduce_cmd` fields
 3. **Python reproducer**: `python3 -c "import sys; sys.stdout.buffer.write(bytes([...]))" | ./target.bin`
+
+## CVSS Scoring
+- **Peak CVSS**: Highest individual severity across all proved vulnerabilities
+- **Average CVSS**: Mean score weighted by path reachability probability
+- **Composite Risk Score**: 0.7 × Peak + 0.3 × Average
+- **Risk Tiers**: LOW (0–3.9 / cyan), MEDIUM (4.0–6.4 / amber), HIGH (6.5–8.4 / orange), CRITICAL (8.5–10 / red)
