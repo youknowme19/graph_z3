@@ -50,7 +50,7 @@ export const ParallaxCanvas: React.FC = () => {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.4,
+        vx: (Math.random() - 0.5) * 0.35,
         vy: (Math.random() - 0.5) * 0.4,
         radius: Math.random() * 1.6 + 0.8,
         alpha: Math.random() * 0.45 + 0.15,
