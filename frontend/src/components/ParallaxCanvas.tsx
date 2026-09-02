@@ -43,7 +43,7 @@ export const ParallaxCanvas: React.FC = () => {
       layer: number;
     }
 
-    const particleCount = Math.min(65, Math.floor(width / 22));
+    const particleCount = Math.min(80, Math.floor(width / 22));
     const particles: Particle[] = [];
 
     for (let i = 0; i < particleCount; i++) {
