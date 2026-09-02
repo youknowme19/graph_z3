@@ -68,6 +68,25 @@ export const ParallaxCanvas: React.FC = () => {
       const offsetX = (mouseX - width / 2) * 0.03;
       const offsetY = (mouseY - height / 2) * 0.03;
 
+      // Draw atmospheric chromatic glow orbs
+      const glow1X = width * 0.25 + offsetX * 0.5;
+      const glow1Y = height * 0.3 + offsetY * 0.5;
+      const grad1 = ctx.createRadialGradient(glow1X, glow1Y, 10, glow1X, glow1Y, width * 0.35);
+      grad1.addColorStop(0, 'rgba(6, 182, 212, 0.08)');
+      grad1.addColorStop(0.5, 'rgba(99, 102, 241, 0.04)');
+      grad1.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad1;
+      ctx.fillRect(0, 0, width, height);
+
+      const glow2X = width * 0.75 - offsetX * 0.4;
+      const glow2Y = height * 0.65 - offsetY * 0.4;
+      const grad2 = ctx.createRadialGradient(glow2X, glow2Y, 10, glow2X, glow2Y, width * 0.4);
+      grad2.addColorStop(0, 'rgba(168, 85, 247, 0.07)');
+      grad2.addColorStop(0.5, 'rgba(236, 72, 153, 0.03)');
+      grad2.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad2;
+      ctx.fillRect(0, 0, width, height);
+
       // Draw subtle grid
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.025)';
       ctx.lineWidth = 1;
@@ -124,6 +143,15 @@ export const ParallaxCanvas: React.FC = () => {
         ctx.beginPath();
         ctx.arc(posX, posY, p.radius, 0, Math.PI * 2);
         ctx.fill();
+
+        // Highlight key focal nodes with pulse aura
+        if (i % 7 === 0) {
+          ctx.strokeStyle = `rgba(6, 182, 212, ${p.alpha * 0.6})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(posX, posY, p.radius + 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
       }
 
       animationFrameId = requestAnimationFrame(render);
@@ -141,7 +169,7 @@ export const ParallaxCanvas: React.FC = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0 opacity-80"
+      className="fixed inset-0 pointer-events-none z-0 opacity-90"
     />
   );
 };
