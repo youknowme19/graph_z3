@@ -200,3 +200,5 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartIntake, onSelec
     </section>
   );
 };
+
+// Parallax scroll layers: heroOpacity fades content out as user scrolls into first chapter
