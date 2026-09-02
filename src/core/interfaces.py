@@ -1568,3 +1568,5 @@ class PatchVerifier:
             "original_count": len(orig_reports),
             "patched_count": len(patched_reports),
         }
+
+# interfaces.py: crash_payload now always returns decimal int list, never raw bytes repr
