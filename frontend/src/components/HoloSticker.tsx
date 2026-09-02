@@ -74,7 +74,7 @@ export const HoloSticker: React.FC<HoloStickerProps> = ({
     '--sticker-rot': `${rotation}deg`,
     animationDelay: `${floatDelay}s`,
     transform: isHovered
-      ? `perspective(600px) rotateX(${-mousePos.y * 24}deg) rotateY(${mousePos.x * 24}deg) scale3d(1.1, 1.1, 1.1) rotate(${rotation}deg)`
+      ? `perspective(800px) rotateX(${-mousePos.y * 24}deg) rotateY(${mousePos.x * 24}deg) scale3d(1.1, 1.1, 1.1) rotate(${rotation}deg)`
       : `rotate(${rotation}deg)`,
   } as React.CSSProperties;
 
