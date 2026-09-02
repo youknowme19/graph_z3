@@ -11,6 +11,44 @@ body {
   color: #e2e8f0;
   margin: 0;
   padding: 0;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── MetaMask-style section gradient divider ──────────────────────────── */
+.section-divider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.3) 50%, transparent 100%);
+  margin: 0 auto;
+  width: 80%;
+  max-width: 800px;
+}
+.section-divider::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(56,189,248,0.8);
+  box-shadow: 0 0 12px 3px rgba(56,189,248,0.4);
+}
+
+/* ── Text gradient utility ──────────────────────────────────────────────── */
+.text-gradient-cyber {
+  background: linear-gradient(135deg, #22d3ee 0%, #818cf8 50%, #f472b6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Viewport height sections for sticky scrollytelling ─────────────────── */
+html {
+  scroll-behavior: smooth;
 }
 
 code, pre, .font-mono {
@@ -211,3 +249,4 @@ code, pre, .font-mono {
 .animate-pulse-subtle {
   animation: pulse-subtle 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
