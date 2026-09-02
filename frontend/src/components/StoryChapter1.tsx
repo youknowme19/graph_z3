@@ -39,7 +39,7 @@ export const StoryChapter1: React.FC = () => {
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 70% 50% at 30% 50%, rgba(6,182,212,0.06) 0%, transparent 70%)' }} />
 
-        <div className="relative z-10 flex flex-col h-full max-w-6xl mx-auto px-6 py-10 w-full gap-6">
+        <div className="relative z-10 flex flex-col h-full max-w-6xl mx-auto px-6 py-6 w-full gap-4">
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="flex justify-center">

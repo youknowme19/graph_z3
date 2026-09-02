@@ -42,9 +42,9 @@ export const StoryPrologue: React.FC = () => {
           }}
         />
 
-        <div className="relative z-10 flex flex-col h-full max-w-6xl mx-auto px-6 py-12 w-full">
+        <div className="relative z-10 flex flex-col h-full max-w-6xl mx-auto px-6 py-8 w-full">
           {/* ── Top header ───────────────────────────────────────────── */}
-          <div className="text-center mb-8 space-y-4">
+          <div className="text-center mb-4 space-y-3">
             <div className="flex justify-center">
               <HoloSticker
                 label="ACT I // THE CRISIS OF BLIND FUZZING"

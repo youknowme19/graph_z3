@@ -104,7 +104,7 @@ export const StoryChapter4: React.FC = () => {
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 70%, rgba(16,185,129,0.06) 0%, transparent 70%)' }} />
 
-        <div className="relative z-10 flex flex-col h-full max-w-6xl mx-auto px-6 py-10 w-full gap-5">
+        <div className="relative z-10 flex flex-col h-full max-w-6xl mx-auto px-6 py-6 w-full gap-4">
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="flex justify-center">

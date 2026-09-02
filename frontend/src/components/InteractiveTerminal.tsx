@@ -63,7 +63,7 @@ export const InteractiveTerminal: React.FC = () => {
   };
 
   return (
-    <section className="relative py-16 space-y-12">
+    <section className="relative py-8 space-y-6">
       <div className="flex justify-center">
         <HoloSticker
           label="LIVE TELEMETRY // CYBER TERMINAL SIMULATOR"
@@ -75,7 +75,7 @@ export const InteractiveTerminal: React.FC = () => {
         />
       </div>
 
-      <div className="text-center space-y-4 max-w-3xl mx-auto px-4">
+      <div className="text-center space-y-2 max-w-3xl mx-auto px-4">
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-100 tracking-tight">
           Under the Hood of the{' '}
           <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">

@@ -20,7 +20,7 @@ interface LandingPageProps {
 
 /** Glowing gradient divider between sections (MetaMask-style) */
 const SectionDivider: React.FC<{ glow?: string }> = ({ glow = 'rgba(56,189,248,0.4)' }) => (
-  <div className="py-4 px-6">
+  <div className="py-1 px-6">
     <div className="relative h-px mx-auto" style={{ maxWidth: '800px' }}>
       <div className="absolute inset-0" style={{
         background: `linear-gradient(90deg, transparent 0%, ${glow} 50%, transparent 100%)`,
@@ -75,7 +75,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <SectionDivider glow="rgba(99,102,241,0.4)" />
 
       {/* 7. Industry Benchmark Matrix */}
-      <div className="py-8 px-4 max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <BenchmarkComparison />
       </div>
 
@@ -83,7 +83,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <SectionDivider />
 
       {/* 8. Live Cyber Terminal Simulation */}
-      <div className="py-8 px-4 max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <InteractiveTerminal />
       </div>
 
@@ -91,7 +91,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <SectionDivider />
 
       {/* 9. Interactive Binary Sandbox */}
-      <div className="py-8 px-4 max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <InteractiveSandbox
           onStartIntake={onStartIntake}
           onSelectSample={onSelectSample}
@@ -103,7 +103,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <SectionDivider glow="rgba(52,211,153,0.4)" />
 
       {/* 10. Compliance & Standards Badges */}
-      <div className="py-8 px-4 max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <SecurityAuditorsBadge />
       </div>
 
