@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowRight, TerminalSquare, ShieldCheck, Cpu, Code2, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowRight, TerminalSquare, ShieldCheck, Cpu, Code2, Sparkles, Zap } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 interface HeroSectionProps {
@@ -7,174 +7,194 @@ interface HeroSectionProps {
   onSelectSample: (sampleId: string) => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({
-  onStartIntake,
-  onSelectSample,
-}) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ onStartIntake, onSelectSample }) => {
+  const [scrollY, setScrollY] = useState(0);
   const [mouseCoord, setMouseCoord] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
 
-  const handleHeroMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     setMouseCoord({ x, y });
   };
 
+  // Parallax coefficients for different layers
+  const parallax1 = scrollY * 0.4;
+  const parallax2 = scrollY * 0.25;
+  const parallax3 = scrollY * 0.15;
+  const heroOpacity = Math.max(0, 1 - scrollY / 600);
+  const heroScale = 1 - scrollY * 0.0003;
+
   return (
     <section
-      onMouseMove={handleHeroMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setMouseCoord({ x: 0, y: 0 });
-      }}
-      className="relative pt-6 pb-20 overflow-visible"
+      ref={heroRef}
+      onMouseMove={handleMouseMove}
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
+      style={{ perspective: '1200px' }}
     >
-      {/* ── Floating Decorative Stickers (MetaMask Style) ────────────────── */}
-      <div className="absolute -top-4 left-4 sm:left-12 z-20 pointer-events-auto">
-        <HoloSticker
-          label="Z3 SMT VERIFIED"
-          sublabel="Formal Invariant SAT"
-          variant="smt"
-          rotation={-6}
-          floatAnimation="tilt"
-          floatDelay={0.2}
-          icon={<ShieldCheck className="w-4 h-4 text-purple-300" />}
-        />
+      {/* ── LAYER 0: Radial atmosphere blobs (deep parallax) ──────────── */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ transform: `translateY(${parallax1}px)` }}
+      >
+        <div className="absolute top-[10%] left-[15%] w-[600px] h-[600px] rounded-full opacity-30"
+          style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.25) 0%, transparent 70%)' }} />
+        <div className="absolute top-[40%] right-[10%] w-[500px] h-[500px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.3) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-[5%] left-[30%] w-[400px] h-[400px] rounded-full opacity-15"
+          style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.25) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="absolute top-2 right-4 sm:right-16 z-20 pointer-events-auto">
-        <HoloSticker
-          label="0.0% FALSE POSITIVES"
-          sublabel="Mathematically Sound"
-          variant="secure"
-          rotation={5}
-          floatAnimation="gentle"
-          floatDelay={0.6}
-          icon={<Sparkles className="w-4 h-4 text-emerald-300" />}
-        />
+      {/* ── LAYER 1: Grid overlay (medium parallax) ───────────────────── */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          transform: `translateY(${parallax2}px) translateX(${mouseCoord.x * -12}px)`,
+          backgroundImage: `
+            linear-gradient(rgba(56,189,248,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(56,189,248,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: '64px 64px',
+        }}
+      />
+
+      {/* ── LAYER 2: Floating stickers (shallow parallax) ─────────────── */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ transform: `translateY(${parallax3}px)` }}
+      >
+        {/* Top-left sticker */}
+        <div className="absolute top-[18%] left-[8%] pointer-events-auto"
+          style={{ transform: `translateX(${mouseCoord.x * -18}px) translateY(${mouseCoord.y * -10}px)` }}>
+          <HoloSticker label="Z3 SMT VERIFIED" sublabel="Formal Invariant SAT" variant="smt"
+            rotation={-8} floatAnimation="tilt" floatDelay={0.2}
+            icon={<ShieldCheck className="w-4 h-4 text-purple-300" />} />
+        </div>
+
+        {/* Top-right sticker */}
+        <div className="absolute top-[22%] right-[8%] pointer-events-auto"
+          style={{ transform: `translateX(${mouseCoord.x * 20}px) translateY(${mouseCoord.y * -8}px)` }}>
+          <HoloSticker label="0.0% FALSE POSITIVES" sublabel="Mathematically Sound" variant="secure"
+            rotation={6} floatAnimation="gentle" floatDelay={0.5}
+            icon={<Sparkles className="w-4 h-4 text-emerald-300" />} />
+        </div>
+
+        {/* Bottom-left sticker */}
+        <div className="absolute bottom-[22%] left-[6%] pointer-events-auto hidden md:block"
+          style={{ transform: `translateX(${mouseCoord.x * -14}px) translateY(${mouseCoord.y * 12}px)` }}>
+          <HoloSticker label="SAGE-CONV GNN" sublabel="40-Dim CFG Embedding" variant="holographic"
+            rotation={-4} floatAnimation="orbit" floatDelay={1.0}
+            icon={<Cpu className="w-4 h-4 text-pink-300" />} />
+        </div>
+
+        {/* Bottom-right sticker */}
+        <div className="absolute bottom-[20%] right-[7%] pointer-events-auto hidden md:block"
+          style={{ transform: `translateX(${mouseCoord.x * 16}px) translateY(${mouseCoord.y * 10}px)` }}>
+          <HoloSticker label="EXPLOIT CHAIN GEN" sublabel="Concrete Byte Reproducers" variant="hazard"
+            rotation={5} floatAnimation="gentle" floatDelay={0.8}
+            icon={<Code2 className="w-4 h-4 text-slate-900" />} />
+        </div>
+
+        {/* Centre-left floating badge */}
+        <div className="absolute top-[50%] left-[3%] pointer-events-auto hidden lg:block"
+          style={{ transform: `translateX(${mouseCoord.x * -22}px) translateY(${mouseCoord.y * 5}px)` }}>
+          <HoloSticker label="angr + Z3" sublabel="Symbolic Co-Execution" variant="cyber"
+            rotation={-12} floatAnimation="tilt" floatDelay={1.4}
+            icon={<Zap className="w-4 h-4 text-cyan-300" />} />
+        </div>
       </div>
 
-      <div className="absolute -bottom-6 left-8 sm:left-24 z-20 pointer-events-auto hidden md:block">
-        <HoloSticker
-          label="SAGE-CONV GNN"
-          sublabel="40-Dim CFG Embedding"
-          variant="holographic"
-          rotation={-3}
-          floatAnimation="orbit"
-          floatDelay={1.2}
-          icon={<Cpu className="w-4 h-4 text-pink-300" />}
-        />
-      </div>
-
-      <div className="absolute -bottom-4 right-8 sm:right-28 z-20 pointer-events-auto hidden md:block">
-        <HoloSticker
-          label="EXPLOIT CHAIN GEN"
-          sublabel="Concrete Byte Reproducers"
-          variant="hazard"
-          rotation={4}
-          floatAnimation="gentle"
-          floatDelay={0.8}
-          icon={<Code2 className="w-4 h-4 text-slate-900" />}
-        />
-      </div>
-
-      {/* ── Main Hero Typography & Story Arc ──────────────────────────────── */}
-      <div className="text-center space-y-6 max-w-4xl mx-auto px-4">
+      {/* ── LAYER 3: Main hero content ─────────────────────────────────── */}
+      <div
+        className="relative z-10 text-center max-w-5xl mx-auto px-6 space-y-8"
+        style={{
+          opacity: heroOpacity,
+          transform: `scale(${heroScale}) translateY(${-parallax2 * 0.3}px) rotateX(${mouseCoord.y * 1.5}deg) rotateY(${mouseCoord.x * 1.5}deg)`,
+          transition: 'transform 0.15s ease-out',
+        }}
+      >
+        {/* Category pill */}
         <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 shadow-inner backdrop-blur-md">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-          <span className="text-xs font-mono font-bold tracking-wider text-cyan-300 uppercase">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+          </span>
+          <span className="text-xs font-mono font-bold tracking-widest text-cyan-300 uppercase">
             Next-Gen Neuro-Symbolic Binary Fuzzer
           </span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.08] font-sans">
-          Eliminate Blind Fuzzing.{' '}
-          <span className="bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
-            Mathematically Prove
-          </span>{' '}
-          Every Exploit.
+        {/* Giant headline — MetaMask style */}
+        <h1 className="text-5xl sm:text-7xl lg:text-[96px] font-black tracking-[-0.03em] text-white leading-[0.95] font-sans">
+          <span className="block">Eliminate</span>
+          <span className="block bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent pb-2">
+            Blind Fuzzing.
+          </span>
+          <span className="block text-slate-300">Prove Every</span>
+          <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 bg-clip-text text-transparent">
+            Exploit.
+          </span>
         </h1>
 
-        <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto font-sans font-normal">
-          Legacy fuzzers waste days mutating random inputs into dead ends. <strong className="text-white font-semibold">GRAPH_Z3</strong> pairs Graph Neural Networks with Z3 SMT constraint solving to hunt zero-days, prove reachability, and generate exact crash payloads in seconds.
+        {/* Sub-headline */}
+        <p className="text-base sm:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto font-sans font-normal">
+          Legacy fuzzers waste days mutating random bytes into dead ends.{' '}
+          <strong className="text-slate-200 font-semibold">GRAPH_Z3</strong> pairs SageConv Graph Neural Networks with Z3 SMT solving to hunt zero-days,
+          prove reachability, and generate exact crash payloads in <strong className="text-cyan-400">seconds</strong>.
         </p>
 
-        {/* Hero CTAs */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+        {/* CTA row */}
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <button
             onClick={onStartIntake}
-            className="group relative flex items-center gap-3 px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-sm tracking-wider uppercase transition-all shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02] active:scale-[0.98]"
+            className="group relative flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-sm tracking-wider uppercase transition-all shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-[1.04] active:scale-[0.97]"
           >
             <span>Analyze Target Binary</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+            {/* Glow ring */}
+            <span className="absolute inset-0 rounded-2xl ring-2 ring-cyan-400/0 group-hover:ring-cyan-400/60 transition-all" />
           </button>
 
           <button
             onClick={() => onSelectSample('cwe120_buffer_overflow')}
-            className="flex items-center gap-2.5 px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800/90 text-slate-200 hover:text-white border border-slate-700/80 hover:border-cyan-400/50 text-sm font-bold tracking-wide transition-all shadow-lg hover:scale-[1.01]"
+            className="flex items-center gap-2.5 px-7 py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 hover:border-cyan-400/40 text-sm font-bold tracking-wide transition-all shadow-lg backdrop-blur-sm hover:scale-[1.02]"
           >
             <TerminalSquare className="w-4 h-4 text-cyan-400" />
             <span>Launch Buffer Overflow Demo</span>
           </button>
         </div>
+
+        {/* Stats row */}
+        <div className="flex flex-wrap items-center justify-center gap-8 pt-4">
+          {[
+            { value: '0%', label: 'False Positives', color: 'text-emerald-400' },
+            { value: '<3s', label: 'To First Exploit', color: 'text-cyan-400' },
+            { value: '100%', label: 'Mathematically Sound', color: 'text-purple-400' },
+            { value: '85%', label: 'State Space Pruning', color: 'text-pink-400' },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center">
+              <div className={`text-3xl font-black font-mono ${stat.color}`}>{stat.value}</div>
+              <div className="text-xs text-slate-500 font-mono uppercase tracking-wider mt-0.5">{stat.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* ── 3D Perspective Interactive Showcase Card ───────────────────────── */}
-      <div className="mt-14 max-w-4xl mx-auto px-4">
-        <div
-          style={{
-            transform: isHovered
-              ? `perspective(1000px) rotateX(${-mouseCoord.y * 8}deg) rotateY(${mouseCoord.x * 12}deg) scale3d(1.01, 1.01, 1.01)`
-              : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-            transition: isHovered ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out',
-          }}
-          className="metamask-card rounded-3xl p-6 sm:p-8 relative overflow-hidden group"
-        >
-          {/* Subtle glowing reflection line across card */}
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[120%] h-48 bg-gradient-to-b from-cyan-400/10 via-purple-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
-
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4 mb-6 font-mono text-xs">
-            <div className="flex items-center gap-2 text-slate-300 font-bold">
-              <span className="w-3 h-3 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-              <span>LIVE_ENGINE // FORMAL_VERIFICATION_LAB</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-400">
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">AARCH64</span>
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-purple-300 border border-slate-700">Z3-SMT v4.12</span>
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-emerald-300 border border-slate-700">100% SOUND</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-            {/* Stage 1: CFG Extraction */}
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2">
-              <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">01. Neural Graph</span>
-              <div className="text-slate-200 font-bold text-sm">SageConv GNN</div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                Extracts 40-dim topological embeddings across 31 basic blocks to prioritize high-risk paths.
-              </p>
-            </div>
-
-            {/* Stage 2: SMT Theorem Prover */}
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2">
-              <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider block">02. Formal Solver</span>
-              <div className="text-slate-200 font-bold text-sm">Z3 Theorem Prover</div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                Evaluates path predicates & memory safety invariants. Returns mathematical proof of satisfiability.
-              </p>
-            </div>
-
-            {/* Stage 3: Exploit Synthesizer */}
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2">
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">03. Exact Payload</span>
-              <div className="text-slate-200 font-bold text-sm">Crash Vector Gen</div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                Generates precise decimal integer crash vectors `[32, 4, 4, ...]` that reproduce the breach 100% cleanly.
-              </p>
-            </div>
-          </div>
+      {/* ── Scroll indicator ──────────────────────────────────────────── */}
+      <div
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        style={{ opacity: heroOpacity }}
+      >
+        <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">Scroll to explore</span>
+        <div className="w-5 h-8 rounded-full border border-slate-700 flex items-start justify-center p-1">
+          <div className="w-1 h-2 bg-cyan-400 rounded-full animate-bounce" />
         </div>
       </div>
     </section>
