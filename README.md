@@ -47,3 +47,11 @@ When a vulnerability is confirmed SAT by Z3, the payload is available as:
 - **Average CVSS**: Mean score weighted by path reachability probability
 - **Composite Risk Score**: 0.7 × Peak + 0.3 × Average
 - **Risk Tiers**: LOW (0–3.9 / cyan), MEDIUM (4.0–6.4 / amber), HIGH (6.5–8.4 / orange), CRITICAL (8.5–10 / red)
+
+## Supported Binary Formats
+- ELF (x86-64, AArch64, ARM32)
+- Mach-O (x86-64, ARM64 / Apple Silicon)
+- PE (x86, x86-64)
+
+## Mitigations Detected
+PIE, NX, Stack Canary, FULL_RELRO, PARTIAL_RELRO, FORTIFY_SOURCE
