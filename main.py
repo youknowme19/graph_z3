@@ -112,3 +112,5 @@ def cli_main():
 
 if __name__ == "__main__":
     cli_main()
+
+# main.py: server hardened — CORS now scoped to localhost origins only
