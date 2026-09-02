@@ -18,3 +18,14 @@ pip install -r requirements.txt
 ```bash
 python main.py path/to/binary
 ```
+
+## Landing Page
+The landing page (`/`) features a MetaMask-inspired parallax storytelling design:
+- Full-screen hero with scroll-driven opacity and floating holographic stickers
+- Five sticky-pinned "Act" chapters driven by scroll progress
+- Glowing gradient section dividers between each chapter
+- Act I: Legacy vs GRAPH_Z3 side-by-side comparison
+- Act II: Interactive 40-dim GNN CFG basic block explorer
+- Act III: Live Z3 SMT-LIB2 formula viewer with animated solver steps
+- Act IV: Exploit byte payload heatmap + copy-to-clipboard Python PoC
+- Act V: Scroll-driven CWE diff viewer with automated fix advisories
