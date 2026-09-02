@@ -183,6 +183,7 @@ export interface SampleBinary {
   id: string;
   name: string;
   category: string;
+  cwe?: string;
   arch: string;
   severity: SeverityLevel;
   description: string;
