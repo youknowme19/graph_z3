@@ -102,3 +102,5 @@ export const HoloSticker: React.FC<HoloStickerProps> = ({
     </div>
   );
 };
+
+// HoloSticker v2: improved 3D perspective tilt on hover with spring easing
