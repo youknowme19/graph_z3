@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Shield, Terminal, ArrowRight, Sparkles, UploadCloud } from 'lucide-react';
+import { ArrowRight, Sparkles, UploadCloud } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 import type { SampleBinary } from '../types';
 
@@ -64,7 +64,7 @@ export const InteractiveSandbox: React.FC<InteractiveSandboxProps> = ({
                     {sample.severity}
                   </span>
                   <span className="text-xs font-mono text-cyan-400 font-bold">
-                    {sample.cwe}
+                    {sample.cwe || sample.category}
                   </span>
                 </div>
 

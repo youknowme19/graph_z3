@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Network, Cpu, ArrowRight, Layers, Sparkles } from 'lucide-react';
+import { Network, Layers } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 export const StoryChapter1: React.FC = () => {

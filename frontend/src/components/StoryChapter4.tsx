@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Code2, CheckCircle2, Shield, Wrench, FileDiff } from 'lucide-react';
+import { Wrench, FileDiff } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 export const StoryChapter4: React.FC = () => {

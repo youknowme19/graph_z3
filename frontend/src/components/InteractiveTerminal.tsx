@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Terminal, Play, RotateCcw, Copy, Check } from 'lucide-react';
+import { Terminal, Copy, Check } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 export const InteractiveTerminal: React.FC = () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TerminalSquare, ArrowRight, ShieldAlert, Zap, Cpu, Code2 } from 'lucide-react';
+import { TerminalSquare, Zap } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 export const StoryChapter3: React.FC = () => {

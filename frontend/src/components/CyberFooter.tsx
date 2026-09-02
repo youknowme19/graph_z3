@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Github, BookOpen, Terminal, Activity } from 'lucide-react';
+import { ShieldCheck, Code2 } from 'lucide-react';
 
 export const CyberFooter: React.FC = () => {
   return (
@@ -47,7 +47,7 @@ export const CyberFooter: React.FC = () => {
             rel="noreferrer"
             className="hover:text-cyan-400 transition-colors flex items-center gap-1.5"
           >
-            <Github className="w-3.5 h-3.5" />
+            <Code2 className="w-3.5 h-3.5" />
             <span>GitHub Repository</span>
           </a>
         </div>

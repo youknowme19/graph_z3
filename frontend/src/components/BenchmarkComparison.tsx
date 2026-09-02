@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, CheckCircle2, XCircle, Minus, Trophy, Sparkles } from 'lucide-react';
+import { Trophy, Sparkles } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 export const BenchmarkComparison: React.FC = () => {

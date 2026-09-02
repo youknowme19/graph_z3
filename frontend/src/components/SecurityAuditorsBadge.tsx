@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, FileCheck, Award, Lock, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, FileCheck, Award, Lock } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 export const SecurityAuditorsBadge: React.FC = () => {

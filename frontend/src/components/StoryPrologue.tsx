@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle2, XCircle, Flame, Target, Cpu } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Flame, Target } from 'lucide-react';
 import { HoloSticker } from './HoloSticker';
 
 export const StoryPrologue: React.FC = () => {
