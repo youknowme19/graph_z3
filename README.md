@@ -29,3 +29,9 @@ The landing page (`/`) features a MetaMask-inspired parallax storytelling design
 - Act III: Live Z3 SMT-LIB2 formula viewer with animated solver steps
 - Act IV: Exploit byte payload heatmap + copy-to-clipboard Python PoC
 - Act V: Scroll-driven CWE diff viewer with automated fix advisories
+
+## Design System
+- **Typography**: Inter (headings) + JetBrains Mono (code/terminal)
+- **Color palette**: Slate-950 base, Cyan/Teal accents, Purple/Pink for proofs, Amber for exploits
+- **Animations**: float-gentle, float-tilt, float-orbit, hero-glow-pulse, fade-up, text-shimmer
+- **Components**: HoloSticker (3D tilt), ParallaxCanvas (CFG particles), metamask-card (glassmorphism)
