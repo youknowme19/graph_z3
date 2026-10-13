@@ -11,10 +11,6 @@ src_dir = os.path.join(root_dir, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from core.interfaces import AnalysisBackendProvider
-from core.sarif_exporter import findings_to_sarif
-from api.server import create_api_app
-
 _DEBUG_MODE = os.environ.get("NSF_DEBUG", "0").strip() == "1"
 _PORT       = int(os.environ.get("NSF_PORT", "8050"))
 
@@ -28,6 +24,7 @@ def cli_scan(binary_path: str, output_json: str = None, output_sarif: str = None
     print("Analyzing binary with angr...")
 
     try:
+        from core.interfaces import AnalysisBackendProvider
         backend = AnalysisBackendProvider(binary_path, max_steps=max_steps)
         vulns = backend.scan_vulnerabilities()
     except Exception as e:
@@ -55,6 +52,7 @@ def cli_scan(binary_path: str, output_json: str = None, output_sarif: str = None
 
     if output_sarif:
         try:
+            from core.sarif_exporter import findings_to_sarif
             sarif = findings_to_sarif(vulns, os.path.basename(binary_path))
             with open(output_sarif, "w") as f:
                 json.dump(sarif, f, indent=2)
@@ -76,8 +74,22 @@ def cli_main():
     parser.add_argument("--port", type=int, default=_PORT, help=f"Server port (default: {_PORT})")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Server host (default: 127.0.0.1)")
     parser.add_argument("--dash", action="store_true", help="Launch legacy Dash UI instead of React Web UI")
+    parser.add_argument("--federated", action="store_true", help="Launch Flower federated learning training/simulation")
+    parser.add_argument("--fl-clients", type=int, default=3, help="Number of federated learning clients (default: 3)")
+    parser.add_argument("--fl-rounds", type=int, default=5, help="Number of FL communication rounds (default: 5)")
+    parser.add_argument("--fl-strategy", type=str, default="fedprox", choices=["fedavg", "fedprox"], help="FL aggregation strategy (default: fedprox)")
 
     args = parser.parse_args()
+
+    # If --federated is requested, run Flower federated training simulation
+    if args.federated:
+        from src.ml.federated.simulation import run_federated_simulation
+        res = run_federated_simulation(
+            num_clients=args.fl_clients,
+            num_rounds=args.fl_rounds,
+            strategy_name=args.fl_strategy
+        )
+        sys.exit(0 if res is not None else 1)
 
     # If --scan is requested, run headless
     if args.scan:
@@ -107,6 +119,7 @@ def cli_main():
         print(f"[*] Serving React TypeScript UI on http://{host}:{port}")
         print(f"[*] REST API active on http://{host}:{port}/api\n")
 
+        from api.server import create_api_app
         app = create_api_app()
         app.run(debug=_DEBUG_MODE, port=port, host=host)
 

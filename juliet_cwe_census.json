@@ -1,0 +1,828 @@
+{
+  "CWE114_Process_Control": {
+    "c_files": 672,
+    "cpp_files": 265,
+    "h_files": 49,
+    "total_src_files": 937,
+    "size_mb": 3.38
+  },
+  "CWE121_Stack_Based_Buffer_Overflow": {
+    "c_files": 5906,
+    "cpp_files": 1983,
+    "h_files": 315,
+    "total_src_files": 7889,
+    "size_mb": 25.84
+  },
+  "CWE122_Heap_Based_Buffer_Overflow": {
+    "c_files": 3656,
+    "cpp_files": 5996,
+    "h_files": 497,
+    "total_src_files": 9652,
+    "size_mb": 31.35
+  },
+  "CWE123_Write_What_Where_Condition": {
+    "c_files": 168,
+    "cpp_files": 68,
+    "h_files": 13,
+    "total_src_files": 236,
+    "size_mb": 1.19
+  },
+  "CWE124_Buffer_Underwrite": {
+    "c_files": 1896,
+    "cpp_files": 1423,
+    "h_files": 148,
+    "total_src_files": 3319,
+    "size_mb": 11.01
+  },
+  "CWE126_Buffer_Overread": {
+    "c_files": 1380,
+    "cpp_files": 917,
+    "h_files": 99,
+    "total_src_files": 2297,
+    "size_mb": 7.62
+  },
+  "CWE127_Buffer_Underread": {
+    "c_files": 1896,
+    "cpp_files": 1423,
+    "h_files": 148,
+    "total_src_files": 3319,
+    "size_mb": 10.75
+  },
+  "CWE134_Uncontrolled_Format_String": {
+    "c_files": 3360,
+    "cpp_files": 1569,
+    "h_files": 246,
+    "total_src_files": 4929,
+    "size_mb": 25.48
+  },
+  "CWE15_External_Control_of_System_or_Configuration_Setting": {
+    "c_files": 56,
+    "cpp_files": 23,
+    "h_files": 5,
+    "total_src_files": 79,
+    "size_mb": 0.32
+  },
+  "CWE176_Improper_Handling_of_Unicode_Encoding": {
+    "c_files": 56,
+    "cpp_files": 27,
+    "h_files": 5,
+    "total_src_files": 83,
+    "size_mb": 0.32
+  },
+  "CWE188_Reliance_on_Data_Memory_Layout": {
+    "c_files": 36,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 38,
+    "size_mb": 0.15
+  },
+  "CWE190_Integer_Overflow": {
+    "c_files": 5040,
+    "cpp_files": 1418,
+    "h_files": 223,
+    "total_src_files": 6458,
+    "size_mb": 23.31
+  },
+  "CWE191_Integer_Underflow": {
+    "c_files": 3864,
+    "cpp_files": 868,
+    "h_files": 137,
+    "total_src_files": 4732,
+    "size_mb": 17.51
+  },
+  "CWE194_Unexpected_Sign_Extension": {
+    "c_files": 1344,
+    "cpp_files": 532,
+    "h_files": 98,
+    "total_src_files": 1876,
+    "size_mb": 6.89
+  },
+  "CWE195_Signed_to_Unsigned_Conversion_Error": {
+    "c_files": 1344,
+    "cpp_files": 532,
+    "h_files": 98,
+    "total_src_files": 1876,
+    "size_mb": 6.99
+  },
+  "CWE196_Unsigned_to_Signed_Conversion_Error": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.07
+  },
+  "CWE197_Numeric_Truncation_Error": {
+    "c_files": 1008,
+    "cpp_files": 400,
+    "h_files": 74,
+    "total_src_files": 1408,
+    "size_mb": 4.42
+  },
+  "CWE222_Truncation_of_Security_Relevant_Information": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.2
+  },
+  "CWE223_Omission_of_Security_Relevant_Information": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.2
+  },
+  "CWE226_Sensitive_Information_Uncleared_Before_Release": {
+    "c_files": 72,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 73,
+    "size_mb": 0.47
+  },
+  "CWE23_Relative_Path_Traversal": {
+    "c_files": 0,
+    "cpp_files": 3907,
+    "h_files": 205,
+    "total_src_files": 3907,
+    "size_mb": 14.58
+  },
+  "CWE242_Use_of_Inherently_Dangerous_Function": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.08
+  },
+  "CWE244_Heap_Inspection": {
+    "c_files": 72,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 73,
+    "size_mb": 0.49
+  },
+  "CWE247_Reliance_on_DNS_Lookups_in_Security_Decision": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.17
+  },
+  "CWE252_Unchecked_Return_Value": {
+    "c_files": 630,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 632,
+    "size_mb": 2.02
+  },
+  "CWE253_Incorrect_Check_of_Function_Return_Value": {
+    "c_files": 684,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 686,
+    "size_mb": 2.57
+  },
+  "CWE256_Plaintext_Storage_of_Password": {
+    "c_files": 112,
+    "cpp_files": 53,
+    "h_files": 9,
+    "total_src_files": 165,
+    "size_mb": 1.26
+  },
+  "CWE259_Hard_Coded_Password": {
+    "c_files": 112,
+    "cpp_files": 45,
+    "h_files": 9,
+    "total_src_files": 157,
+    "size_mb": 0.54
+  },
+  "CWE272_Least_Privilege_Violation": {
+    "c_files": 252,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 253,
+    "size_mb": 1.19
+  },
+  "CWE273_Improper_Check_for_Dropped_Privileges": {
+    "c_files": 36,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 37,
+    "size_mb": 0.18
+  },
+  "CWE284_Improper_Access_Control": {
+    "c_files": 216,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 217,
+    "size_mb": 0.97
+  },
+  "CWE319_Cleartext_Tx_Sensitive_Info": {
+    "c_files": 224,
+    "cpp_files": 105,
+    "h_files": 17,
+    "total_src_files": 329,
+    "size_mb": 3.01
+  },
+  "CWE321_Hard_Coded_Cryptographic_Key": {
+    "c_files": 112,
+    "cpp_files": 45,
+    "h_files": 9,
+    "total_src_files": 157,
+    "size_mb": 0.93
+  },
+  "CWE325_Missing_Required_Cryptographic_Step": {
+    "c_files": 72,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 73,
+    "size_mb": 0.54
+  },
+  "CWE327_Use_Broken_Crypto": {
+    "c_files": 54,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 55,
+    "size_mb": 0.58
+  },
+  "CWE328_Reversible_One_Way_Hash": {
+    "c_files": 54,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 55,
+    "size_mb": 0.55
+  },
+  "CWE338_Weak_PRNG": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.06
+  },
+  "CWE364_Signal_Handler_Race_Condition": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.15
+  },
+  "CWE366_Race_Condition_Within_Thread": {
+    "c_files": 36,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 38,
+    "size_mb": 0.2
+  },
+  "CWE367_TOC_TOU": {
+    "c_files": 36,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 38,
+    "size_mb": 0.18
+  },
+  "CWE369_Divide_by_Zero": {
+    "c_files": 1008,
+    "cpp_files": 472,
+    "h_files": 74,
+    "total_src_files": 1480,
+    "size_mb": 5.74
+  },
+  "CWE36_Absolute_Path_Traversal": {
+    "c_files": 0,
+    "cpp_files": 3907,
+    "h_files": 205,
+    "total_src_files": 3907,
+    "size_mb": 14.81
+  },
+  "CWE377_Insecure_Temporary_File": {
+    "c_files": 144,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 146,
+    "size_mb": 0.66
+  },
+  "CWE390_Error_Without_Action": {
+    "c_files": 72,
+    "cpp_files": 20,
+    "h_files": 1,
+    "total_src_files": 92,
+    "size_mb": 0.33
+  },
+  "CWE391_Unchecked_Error_Condition": {
+    "c_files": 54,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 56,
+    "size_mb": 0.19
+  },
+  "CWE396_Catch_Generic_Exception": {
+    "c_files": 0,
+    "cpp_files": 56,
+    "h_files": 1,
+    "total_src_files": 56,
+    "size_mb": 0.22
+  },
+  "CWE397_Throw_Generic_Exception": {
+    "c_files": 0,
+    "cpp_files": 22,
+    "h_files": 1,
+    "total_src_files": 22,
+    "size_mb": 0.06
+  },
+  "CWE398_Poor_Code_Quality": {
+    "c_files": 181,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 183,
+    "size_mb": 0.53
+  },
+  "CWE400_Resource_Exhaustion": {
+    "c_files": 840,
+    "cpp_files": 394,
+    "h_files": 62,
+    "total_src_files": 1234,
+    "size_mb": 5.86
+  },
+  "CWE401_Memory_Leak": {
+    "c_files": 1228,
+    "cpp_files": 1482,
+    "h_files": 111,
+    "total_src_files": 2710,
+    "size_mb": 8.14
+  },
+  "CWE404_Improper_Resource_Shutdown": {
+    "c_files": 448,
+    "cpp_files": 178,
+    "h_files": 33,
+    "total_src_files": 626,
+    "size_mb": 1.63
+  },
+  "CWE415_Double_Free": {
+    "c_files": 336,
+    "cpp_files": 1312,
+    "h_files": 82,
+    "total_src_files": 1648,
+    "size_mb": 4.65
+  },
+  "CWE416_Use_After_Free": {
+    "c_files": 150,
+    "cpp_files": 372,
+    "h_files": 1,
+    "total_src_files": 522,
+    "size_mb": 2.41
+  },
+  "CWE426_Untrusted_Search_Path": {
+    "c_files": 224,
+    "cpp_files": 90,
+    "h_files": 17,
+    "total_src_files": 314,
+    "size_mb": 1.0
+  },
+  "CWE427_Uncontrolled_Search_Path_Element": {
+    "c_files": 560,
+    "cpp_files": 222,
+    "h_files": 41,
+    "total_src_files": 782,
+    "size_mb": 2.8
+  },
+  "CWE440_Expected_Behavior_Violation": {
+    "c_files": 0,
+    "cpp_files": 3,
+    "h_files": 1,
+    "total_src_files": 3,
+    "size_mb": 0.01
+  },
+  "CWE457_Use_of_Uninitialized_Variable": {
+    "c_files": 616,
+    "cpp_files": 467,
+    "h_files": 2,
+    "total_src_files": 1083,
+    "size_mb": 5.05
+  },
+  "CWE459_Incomplete_Cleanup": {
+    "c_files": 36,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 38,
+    "size_mb": 0.15
+  },
+  "CWE464_Addition_of_Data_Structure_Sentinel": {
+    "c_files": 56,
+    "cpp_files": 24,
+    "h_files": 5,
+    "total_src_files": 80,
+    "size_mb": 0.22
+  },
+  "CWE467_Use_of_sizeof_on_Pointer_Type": {
+    "c_files": 54,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 56,
+    "size_mb": 0.18
+  },
+  "CWE468_Incorrect_Pointer_Scaling": {
+    "c_files": 36,
+    "cpp_files": 3,
+    "h_files": 1,
+    "total_src_files": 39,
+    "size_mb": 0.13
+  },
+  "CWE469_Use_of_Pointer_Subtraction_to_Determine_Size": {
+    "c_files": 36,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 38,
+    "size_mb": 0.15
+  },
+  "CWE475_Undefined_Behavior_for_Input_to_API": {
+    "c_files": 36,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 38,
+    "size_mb": 0.12
+  },
+  "CWE476_NULL_Pointer_Dereference": {
+    "c_files": 372,
+    "cpp_files": 160,
+    "h_files": 15,
+    "total_src_files": 532,
+    "size_mb": 1.55
+  },
+  "CWE478_Missing_Default_Case_in_Switch": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.07
+  },
+  "CWE479_Signal_Handler_Use_of_Non_Reentrant_Function": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.07
+  },
+  "CWE480_Use_of_Incorrect_Operator": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.06
+  },
+  "CWE481_Assigning_Instead_of_Comparing": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.06
+  },
+  "CWE482_Comparing_Instead_of_Assigning": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.06
+  },
+  "CWE483_Incorrect_Block_Delimitation": {
+    "c_files": 20,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 22,
+    "size_mb": 0.07
+  },
+  "CWE484_Omitted_Break_Statement_in_Switch": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.07
+  },
+  "CWE500_Public_Static_Field_Not_Final": {
+    "c_files": 0,
+    "cpp_files": 4,
+    "h_files": 1,
+    "total_src_files": 4,
+    "size_mb": 0.01
+  },
+  "CWE506_Embedded_Malicious_Code": {
+    "c_files": 158,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 160,
+    "size_mb": 0.82
+  },
+  "CWE510_Trapdoor": {
+    "c_files": 70,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 72,
+    "size_mb": 0.43
+  },
+  "CWE511_Logic_Time_Bomb": {
+    "c_files": 72,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 74,
+    "size_mb": 0.27
+  },
+  "CWE526_Info_Exposure_Environment_Variables": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.05
+  },
+  "CWE534_Info_Exposure_Debug_Log": {
+    "c_files": 36,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 37,
+    "size_mb": 0.23
+  },
+  "CWE535_Info_Exposure_Shell_Error": {
+    "c_files": 36,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 37,
+    "size_mb": 0.22
+  },
+  "CWE546_Suspicious_Comment": {
+    "c_files": 90,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 92,
+    "size_mb": 0.24
+  },
+  "CWE561_Dead_Code": {
+    "c_files": 2,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 4,
+    "size_mb": 0.01
+  },
+  "CWE562_Return_of_Stack_Variable_Address": {
+    "c_files": 2,
+    "cpp_files": 3,
+    "h_files": 1,
+    "total_src_files": 5,
+    "size_mb": 0.01
+  },
+  "CWE563_Unused_Variable": {
+    "c_files": 366,
+    "cpp_files": 390,
+    "h_files": 73,
+    "total_src_files": 756,
+    "size_mb": 2.08
+  },
+  "CWE570_Expression_Always_False": {
+    "c_files": 16,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 18,
+    "size_mb": 0.04
+  },
+  "CWE571_Expression_Always_True": {
+    "c_files": 16,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 18,
+    "size_mb": 0.04
+  },
+  "CWE587_Assignment_of_Fixed_Address_to_Pointer": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.06
+  },
+  "CWE588_Attempt_to_Access_Child_of_Non_Structure_Pointer": {
+    "c_files": 50,
+    "cpp_files": 78,
+    "h_files": 5,
+    "total_src_files": 128,
+    "size_mb": 0.35
+  },
+  "CWE590_Free_Memory_Not_on_Heap": {
+    "c_files": 900,
+    "cpp_files": 3331,
+    "h_files": 139,
+    "total_src_files": 4231,
+    "size_mb": 11.91
+  },
+  "CWE591_Sensitive_Data_Storage_in_Improperly_Locked_Memory": {
+    "c_files": 112,
+    "cpp_files": 45,
+    "h_files": 9,
+    "total_src_files": 157,
+    "size_mb": 0.63
+  },
+  "CWE605_Multiple_Binds_Same_Port": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.19
+  },
+  "CWE606_Unchecked_Loop_Condition": {
+    "c_files": 560,
+    "cpp_files": 262,
+    "h_files": 41,
+    "total_src_files": 822,
+    "size_mb": 4.68
+  },
+  "CWE615_Info_Exposure_by_Comment": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.08
+  },
+  "CWE617_Reachable_Assertion": {
+    "c_files": 354,
+    "cpp_files": 134,
+    "h_files": 25,
+    "total_src_files": 488,
+    "size_mb": 1.42
+  },
+  "CWE620_Unverified_Password_Change": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.09
+  },
+  "CWE665_Improper_Initialization": {
+    "c_files": 224,
+    "cpp_files": 92,
+    "h_files": 17,
+    "total_src_files": 316,
+    "size_mb": 0.84
+  },
+  "CWE666_Operation_on_Resource_in_Wrong_Phase_of_Lifetime": {
+    "c_files": 90,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 92,
+    "size_mb": 0.95
+  },
+  "CWE667_Improper_Locking": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.07
+  },
+  "CWE672_Operation_on_Resource_After_Expiration_or_Release": {
+    "c_files": 0,
+    "cpp_files": 83,
+    "h_files": 5,
+    "total_src_files": 83,
+    "size_mb": 0.3
+  },
+  "CWE674_Uncontrolled_Recursion": {
+    "c_files": 2,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 4,
+    "size_mb": 0.01
+  },
+  "CWE675_Duplicate_Operations_on_Resource": {
+    "c_files": 224,
+    "cpp_files": 106,
+    "h_files": 17,
+    "total_src_files": 330,
+    "size_mb": 1.02
+  },
+  "CWE676_Use_of_Potentially_Dangerous_Function": {
+    "c_files": 0,
+    "cpp_files": 20,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.07
+  },
+  "CWE680_Integer_Overflow_to_Buffer_Overflow": {
+    "c_files": 336,
+    "cpp_files": 602,
+    "h_files": 49,
+    "total_src_files": 938,
+    "size_mb": 3.55
+  },
+  "CWE681_Incorrect_Conversion_Between_Numeric_Types": {
+    "c_files": 54,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 56,
+    "size_mb": 0.27
+  },
+  "CWE685_Function_Call_With_Incorrect_Number_of_Arguments": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.06
+  },
+  "CWE688_Function_Call_With_Incorrect_Variable_or_Reference_as_Argument": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.07
+  },
+  "CWE690_NULL_Deref_From_Return": {
+    "c_files": 1120,
+    "cpp_files": 444,
+    "h_files": 82,
+    "total_src_files": 1564,
+    "size_mb": 4.12
+  },
+  "CWE758_Undefined_Behavior": {
+    "c_files": 365,
+    "cpp_files": 218,
+    "h_files": 1,
+    "total_src_files": 583,
+    "size_mb": 1.98
+  },
+  "CWE761_Free_Pointer_Not_at_Start_of_Buffer": {
+    "c_files": 672,
+    "cpp_files": 266,
+    "h_files": 49,
+    "total_src_files": 938,
+    "size_mb": 4.29
+  },
+  "CWE762_Mismatched_Memory_Management_Routines": {
+    "c_files": 0,
+    "cpp_files": 6106,
+    "h_files": 303,
+    "total_src_files": 6106,
+    "size_mb": 19.33
+  },
+  "CWE773_Missing_Reference_to_Active_File_Descriptor_or_Handle": {
+    "c_files": 168,
+    "cpp_files": 68,
+    "h_files": 13,
+    "total_src_files": 236,
+    "size_mb": 0.78
+  },
+  "CWE775_Missing_Release_of_File_Descriptor_or_Handle": {
+    "c_files": 168,
+    "cpp_files": 68,
+    "h_files": 13,
+    "total_src_files": 236,
+    "size_mb": 0.67
+  },
+  "CWE780_Use_of_RSA_Algorithm_Without_OAEP": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.16
+  },
+  "CWE785_Path_Manipulation_Function_Without_Max_Sized_Buffer": {
+    "c_files": 18,
+    "cpp_files": 1,
+    "h_files": 1,
+    "total_src_files": 19,
+    "size_mb": 0.08
+  },
+  "CWE789_Uncontrolled_Mem_Alloc": {
+    "c_files": 560,
+    "cpp_files": 1084,
+    "h_files": 82,
+    "total_src_files": 1644,
+    "size_mb": 9.19
+  },
+  "CWE78_OS_Command_Injection": {
+    "c_files": 5600,
+    "cpp_files": 2213,
+    "h_files": 409,
+    "total_src_files": 7813,
+    "size_mb": 30.81
+  },
+  "CWE832_Unlock_of_Resource_That_is_Not_Locked": {
+    "c_files": 18,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 20,
+    "size_mb": 0.08
+  },
+  "CWE835_Infinite_Loop": {
+    "c_files": 6,
+    "cpp_files": 2,
+    "h_files": 1,
+    "total_src_files": 8,
+    "size_mb": 0.01
+  },
+  "CWE843_Type_Confusion": {
+    "c_files": 100,
+    "cpp_files": 28,
+    "h_files": 5,
+    "total_src_files": 128,
+    "size_mb": 0.28
+  },
+  "CWE90_LDAP_Injection": {
+    "c_files": 560,
+    "cpp_files": 221,
+    "h_files": 41,
+    "total_src_files": 781,
+    "size_mb": 4.28
+  }
+}

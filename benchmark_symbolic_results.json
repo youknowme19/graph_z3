@@ -1,0 +1,2169 @@
+{
+  "summary": {
+    "total_binaries": 37,
+    "successful_scans": 37,
+    "failed_scans": 0,
+    "total_analysis_time_s": 922.87,
+    "avg_analysis_time_per_binary_s": 24.943,
+    "total_cfg_nodes": 0,
+    "total_vulnerabilities_detected": 71,
+    "total_sat_proofs": 66,
+    "by_group": {
+      "samples": {
+        "count": 6,
+        "total_vulns": 8,
+        "total_sat": 4,
+        "avg_time_s": 0.409
+      },
+      "juliet_train": {
+        "count": 30,
+        "total_vulns": 61,
+        "total_sat": 61,
+        "avg_time_s": 30.661
+      },
+      "test_suite": {
+        "count": 1,
+        "total_vulns": 2,
+        "total_sat": 1,
+        "avg_time_s": 0.597
+      }
+    }
+  },
+  "binaries": [
+    {
+      "filename": "cwe120_buffer_overflow.bin",
+      "path": "/Volumes/SSD/graph_z3/data/samples/cwe120_buffer_overflow.bin",
+      "size_bytes": 34008,
+      "sha256": "bd8713c6860a061435ab8137dd8364dd3869870035941ddd167e081b0170f4e1",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 0.707,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "STACK_OVERFLOW",
+          "severity": "CRITICAL",
+          "address": "0x10000052c",
+          "function": "strcpy",
+          "details": "Buffer overflow in strcpy: tainted source string can exceed destination buffer size 40.",
+          "solver_status": "ERROR: 'method' object is not iterable",
+          "solver_time_ms": 9.634,
+          "crash_length": 40,
+          "exploit_title": "Stack Overflow \u2192 Return Address Overwrite (EIP/RIP control)",
+          "exploit_type": "STACK_SMASH_RIP",
+          "cvss": 7.9,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "STACK_OVERFLOW",
+          "severity": "CRITICAL",
+          "address": "0x10000051c",
+          "function": "main",
+          "details": "Buffer overflow in strcpy: tainted source string can exceed destination buffer size 40.",
+          "solver_status": "SAT",
+          "solver_time_ms": 24.252,
+          "crash_length": 40,
+          "exploit_title": "Stack Overflow \u2192 Return Address Overwrite (EIP/RIP control)",
+          "exploit_type": "STACK_SMASH_RIP",
+          "cvss": 7.9,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "STACK_OVERFLOW"
+      ],
+      "solver_sat_count": 1,
+      "avg_solver_time_ms": 16.943,
+      "peak_cvss": 7.9,
+      "composite_risk_score": 7.9,
+      "mitigations": [
+        "PIE",
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "STACK_SMASH_RIP"
+      ],
+      "group": "samples"
+    },
+    {
+      "filename": "cwe134_format_string.bin",
+      "path": "/Volumes/SSD/graph_z3/data/samples/cwe134_format_string.bin",
+      "size_bytes": 34072,
+      "sha256": "899d1d071bf4905b5aa2d10d36190a6b443d3a8c6784c3b9129191a0e8600fc4",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 0.231,
+      "trace_steps": 0,
+      "vulnerabilities": [],
+      "vuln_count": 0,
+      "vuln_types": [],
+      "solver_sat_count": 0,
+      "avg_solver_time_ms": 0.0,
+      "peak_cvss": 0.0,
+      "composite_risk_score": 0.0,
+      "mitigations": [],
+      "exploit_primitives": [],
+      "group": "samples"
+    },
+    {
+      "filename": "cwe416_use_after_free.bin",
+      "path": "/Volumes/SSD/graph_z3/data/samples/cwe416_use_after_free.bin",
+      "size_bytes": 34040,
+      "sha256": "880797ecd0a5b7244c66549f1ac71450fd47f6cec26c341dc9e29982290c1f58",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 0.445,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "OOB_WRITE",
+          "severity": "CRITICAL",
+          "address": "0x100000558",
+          "function": "strcpy",
+          "details": "Buffer overflow in strcpy: tainted source string can exceed destination buffer size 16.",
+          "solver_status": "ERROR: 'method' object is not iterable",
+          "solver_time_ms": 9.092,
+          "crash_length": 40,
+          "exploit_title": "Stack Overflow \u2192 Return Address Overwrite (EIP/RIP control)",
+          "exploit_type": "STACK_SMASH_RIP",
+          "cvss": 7.2,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "INVALID_FREE",
+          "severity": "HIGH",
+          "address": "0x100000564",
+          "function": "free",
+          "details": "Invalid free invariant violated: pointer <BV64 0x20> does not match any active allocation.",
+          "solver_status": "SAT",
+          "solver_time_ms": 20.557,
+          "crash_length": 25,
+          "exploit_title": "Invalid Free \u2192 Heap Allocator Metadata Corruption",
+          "exploit_type": "HEAP_METADATA_CORRUPT",
+          "cvss": 5.1,
+          "reliability": "LOW"
+        },
+        {
+          "vuln_type": "OOB_WRITE",
+          "severity": "CRITICAL",
+          "address": "0x100000548",
+          "function": "main",
+          "details": "Buffer overflow in strcpy: tainted source string can exceed destination buffer size 16.",
+          "solver_status": "SAT",
+          "solver_time_ms": 20.083,
+          "crash_length": 25,
+          "exploit_title": "Stack Overflow \u2192 Return Address Overwrite (EIP/RIP control)",
+          "exploit_type": "STACK_SMASH_RIP",
+          "cvss": 7.2,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 3,
+      "vuln_types": [
+        "INVALID_FREE",
+        "OOB_WRITE"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 16.577,
+      "peak_cvss": 7.2,
+      "composite_risk_score": 6.99,
+      "mitigations": [
+        "PIE",
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "HEAP_METADATA_CORRUPT",
+        "STACK_SMASH_RIP"
+      ],
+      "group": "samples"
+    },
+    {
+      "filename": "cwe476_null_deref.bin",
+      "path": "/Volumes/SSD/graph_z3/data/samples/cwe476_null_deref.bin",
+      "size_bytes": 33896,
+      "sha256": "766451e8edddd908e323c12ff3d96e649f84fc7838e848dcba086007596d7c0c",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 0.303,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x100000484",
+          "function": "vulnerable_null_dereference",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 12.342,
+          "crash_length": 1,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.2,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 1,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 1,
+      "avg_solver_time_ms": 12.342,
+      "peak_cvss": 4.2,
+      "composite_risk_score": 4.2,
+      "mitigations": [
+        "PIE",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "samples"
+    },
+    {
+      "filename": "cwe78_command_injection.bin",
+      "path": "/Volumes/SSD/graph_z3/data/samples/cwe78_command_injection.bin",
+      "size_bytes": 34152,
+      "sha256": "d67694134b4d47041c04921336b4dab8e11224585eba2f3aebd21fbebdad5b0f",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 0.295,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x1000005b8",
+          "function": "read",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "ERROR: 'method' object is not iterable",
+          "solver_time_ms": 8.95,
+          "crash_length": 40,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 3.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x1000005c4",
+          "function": "system",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "ERROR: 'method' object is not iterable",
+          "solver_time_ms": 9.09,
+          "crash_length": 40,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 3.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 0,
+      "avg_solver_time_ms": 9.02,
+      "peak_cvss": 3.6,
+      "composite_risk_score": 3.6,
+      "mitigations": [
+        "STACK_CANARY",
+        "PIE",
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "samples"
+    },
+    {
+      "filename": "secure_program.bin",
+      "path": "/Volumes/SSD/graph_z3/data/samples/secure_program.bin",
+      "size_bytes": 34112,
+      "sha256": "f5188c1d815a90c736de775ad5c48b6a4b30343eb68d70ce5ec26947fd874504",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 0.475,
+      "trace_steps": 0,
+      "vulnerabilities": [],
+      "vuln_count": 0,
+      "vuln_types": [],
+      "solver_sat_count": 0,
+      "avg_solver_time_ms": 0.0,
+      "peak_cvss": 0.0,
+      "composite_risk_score": 0.0,
+      "mitigations": [],
+      "exploit_primitives": [],
+      "group": "samples"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_01.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_01.out",
+      "size_bytes": 51598,
+      "sha256": "7d2012b6056cdfa45b48658942ce6388ab8e0e52d82aed1322ca6a88b70ec527",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.312,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401849",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.693,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401857",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.644,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.169,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_02.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_02.out",
+      "size_bytes": 52186,
+      "sha256": "66181461992799cd3a7bf3cb634a04f5ed08b91f7f5540a27a4be71a95cbadd5",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 30.843,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401a78",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.464,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401a86",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.073,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.268,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_03.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_03.out",
+      "size_bytes": 52186,
+      "sha256": "56bd61146dcc4451c4214d91a92c547c0aad11d309c2c6a8a9a29016214a75a4",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.185,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401a78",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.515,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401a86",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.054,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.284,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_04.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_04.out",
+      "size_bytes": 52261,
+      "sha256": "9c87a5abcf670daca600d4cd651ad1e66f2e34c9821dc2b22f3f6f4639abf4de",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 32.607,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401afe",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.946,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b0c",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 30.143,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 30.044,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_05.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_05.out",
+      "size_bytes": 52247,
+      "sha256": "34553b1ceed8887e7f0377bd502fc552cbff65848245338a4228f9200a88b458",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 32.065,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401afe",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.414,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b0c",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.414,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.414,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_06.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_06.out",
+      "size_bytes": 52223,
+      "sha256": "7434cfba5c7c5e0197eaa58abcb6a9ae51dbdfbc384e666f46b0db630beeb2a4",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.58,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b08",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.657,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b16",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.092,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.875,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_07.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_07.out",
+      "size_bytes": 52216,
+      "sha256": "76c21c5b64a8e1f231c23f5b7bb69be682ae91e1f4d4685f77be5b4b723e9846",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 32.53,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b08",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.677,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b16",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.623,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.65,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_08.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_08.out",
+      "size_bytes": 52261,
+      "sha256": "4dfb0d258a62846f20c68b28319120723d7b4f2a9112fb0728a634537f52cce3",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 32.073,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b12",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.892,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b20",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.814,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.853,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_09.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_09.out",
+      "size_bytes": 52186,
+      "sha256": "6b2f0b0a4657b330f792f50be3bb126596c48ea7243cc6eb8eab5cd36328d590",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.684,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401afe",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.301,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b0c",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.408,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.354,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_10.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_10.out",
+      "size_bytes": 52186,
+      "sha256": "d856f4d5672ebf959e483fc035e126644758788b867df5d7a9400d4be2974a00",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.98,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401afe",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 30.219,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b0c",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.937,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.578,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_11.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_11.out",
+      "size_bytes": 52186,
+      "sha256": "0ecc554547cc1cff9f9af878725e6fd4400679ea48255a0404e9f24b8b46b714",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 32.34,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401afe",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 30.363,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b0c",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.68,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 30.022,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_12.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_12.out",
+      "size_bytes": 52110,
+      "sha256": "f19392a4cb927e7df0615a94f384e9f8a1040d36baaf06fd980b1f1010444788",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 32.173,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401aff",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.882,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b0d",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.771,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.327,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_13.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_13.out",
+      "size_bytes": 52186,
+      "sha256": "9a8005650dc52eb8438ab15dca8cc1c27e1fb020e4c3dc7e541910862954d9c1",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.872,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b08",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.356,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b16",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.138,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.247,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_14.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_14.out",
+      "size_bytes": 52186,
+      "sha256": "d3eba942ab6f322b94efd8faed1cb5557a0c7118bc676273153d768282c08280",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 33.371,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b08",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.988,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401b16",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.926,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.957,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_15.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_15.out",
+      "size_bytes": 52186,
+      "sha256": "7f0367acc2281e8b815f26f571da9aec7b524da7f43f54f754236fcb21c6991e",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.35,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401a82",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.221,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401a90",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.795,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.008,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_16.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_16.out",
+      "size_bytes": 51598,
+      "sha256": "207d26e24b723591a3be2ab4af7808f678064a011cdf6e83fc734cfd25e38ff8",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.78,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40184f",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.149,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40185d",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.615,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.882,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_17.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_17.out",
+      "size_bytes": 51598,
+      "sha256": "dee8c4e8b42424cf3d5cc71c0ea5f377da4c4471eb247bbb49c5d7cebf5c03aa",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 30.664,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x4018c9",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 31.335,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x4018d7",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.284,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 30.31,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_18.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_18.out",
+      "size_bytes": 51598,
+      "sha256": "aa1bfa7c66ada8a181478cfcd4b57337e7e5eb4fbb9b9689cc78bd9a566de617",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.856,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40184f",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.731,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40185d",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.359,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.545,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_21.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_21.out",
+      "size_bytes": 52391,
+      "sha256": "e91642271230e6fdee5032d43374271addac453506a4385139942aa49bab5faa",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.19,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401a9b",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.202,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401aa9",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.44,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.821,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_22.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_22.out",
+      "size_bytes": 53223,
+      "sha256": "98cd3a7c40330532be743745c7678217fab16fd54956eb785b1a77a184361115",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.347,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x4018d9",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.813,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x4018e7",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.573,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.693,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_31.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_31.out",
+      "size_bytes": 51598,
+      "sha256": "634fcd9d62ab169ab08f3c30dee050f86be3f10d8d77597ba01942061a9f217b",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.075,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40186d",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.967,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40187b",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.651,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.809,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_32.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_32.out",
+      "size_bytes": 51598,
+      "sha256": "50158f3b8f1cae29979d8225fdcf8ae9622d7a6ff0db50d267f9d2fbd936f5c8",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.329,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x4018b5",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 33.594,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x4018c3",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 36.271,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 34.933,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_34.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_34.out",
+      "size_bytes": 51598,
+      "sha256": "4aa3d8c8e9b2407a68db3512034a04cbb1e800eb829955169eaf313ae930a72b",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 30.115,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40186d",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.613,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40187b",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.984,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.799,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_41.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_41.out",
+      "size_bytes": 51678,
+      "sha256": "86f434ae1102e96d9725550b1ddf652bdea6a50f6a3ea34980b0faea70d82291",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 31.576,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401875",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 31.898,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401883",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 31.766,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 31.832,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_42.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_42.out",
+      "size_bytes": 51693,
+      "sha256": "d7af34d30b1dc918b51d00d87196cf1382de992095adff2f1adbbf915f4e3701",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.706,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401881",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.622,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40188f",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.758,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.19,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_44.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_44.out",
+      "size_bytes": 51678,
+      "sha256": "c9d614fb71ae096bdc9c85d8deae9b9d8770fa3126eefb6b5df627e9e12f22ff",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.732,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40188a",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.327,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401898",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.29,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 29.309,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_45.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_45.out",
+      "size_bytes": 51950,
+      "sha256": "d548b406b7049f31876db22b956d60e1eb68caf03f531f0e9fdbbc37f8f05268",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 29.606,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401893",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 28.782,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x4018a1",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 29.184,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 28.983,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_51.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_51.out",
+      "size_bytes": 52208,
+      "sha256": "3068f42e42e492996a5c04c90ffec27dc0f6c84735f6a46e896ead185cf21ec8",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 28.026,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40174f",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 26.974,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40175d",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 26.808,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 26.891,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_52.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_52.out",
+      "size_bytes": 52781,
+      "sha256": "96a6c10946a17e324964a48973f7d94acd47185e5a62c4a730728d53596cedab",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 27.553,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40174f",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 27.328,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x40175d",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 26.822,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 2,
+      "avg_solver_time_ms": 27.075,
+      "peak_cvss": 4.6,
+      "composite_risk_score": 4.6,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "CWE121_Stack_Based_Buffer_Overflow__CWE193_char_alloca_cpy_52.out",
+      "path": "/Volumes/SSD/graph_z3/data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE193_char_alloca_cpy_52.out",
+      "size_bytes": 51413,
+      "sha256": "01f2c6407cd57c3e9399d24c6711d049245af3d813ddeeaceeaf8869ae38ebfc",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 25.3,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401566",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 27.062,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x401574",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: memory address is NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 26.679,
+          "crash_length": 64,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 4.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "OOB_READ",
+          "severity": "HIGH",
+          "address": "0x402751",
+          "function": "alloca",
+          "details": "Stack buffer safety invariant violated: access at <BV32 0x7ffefb40 - unconstrained_ret_ReturnUnconstrained_1708_32> can overflow stack frame limit 0x7ffefb3c!",
+          "solver_status": "SAT",
+          "solver_time_ms": 30.557,
+          "crash_length": 72,
+          "exploit_title": "Out-of-Bounds Read \u2192 Memory Disclosure / Info Leak",
+          "exploit_type": "INFO_LEAK",
+          "cvss": 6.1,
+          "reliability": "MEDIUM"
+        }
+      ],
+      "vuln_count": 3,
+      "vuln_types": [
+        "OOB_READ",
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 3,
+      "avg_solver_time_ms": 28.1,
+      "peak_cvss": 6.1,
+      "composite_risk_score": 5.8,
+      "mitigations": [
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "INFO_LEAK",
+        "DOS_CRASH"
+      ],
+      "group": "juliet_train"
+    },
+    {
+      "filename": "test_benchmarks_binary",
+      "path": "/Volumes/SSD/graph_z3/tests/test_benchmarks_binary",
+      "size_bytes": 34904,
+      "sha256": "2803c99bf6dee1f636b94ec341c617e3611df75d0f2a309a04d945811583119a",
+      "status": "SUCCESS",
+      "error": null,
+      "cfg_nodes": 0,
+      "cfg_edges": 0,
+      "num_functions": 0,
+      "analysis_time_s": 0.597,
+      "trace_steps": 0,
+      "vulnerabilities": [
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x100000818",
+          "function": "memcpy",
+          "details": "Null pointer dereference invariant violated: pointer <BV64 reg_x1_1798_64> can be NULL (0x0).",
+          "solver_status": "ERROR: 'method' object is not iterable",
+          "solver_time_ms": 8.653,
+          "crash_length": 40,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 3.6,
+          "reliability": "HIGH"
+        },
+        {
+          "vuln_type": "NULL_DEREF",
+          "severity": "HIGH",
+          "address": "0x100000808",
+          "function": "main",
+          "details": "Null pointer dereference invariant violated: pointer <BV64 reg_x1_1798_64> can be NULL (0x0).",
+          "solver_status": "SAT",
+          "solver_time_ms": 14.582,
+          "crash_length": 16,
+          "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
+          "exploit_type": "DOS_CRASH",
+          "cvss": 3.6,
+          "reliability": "HIGH"
+        }
+      ],
+      "vuln_count": 2,
+      "vuln_types": [
+        "NULL_DEREF"
+      ],
+      "solver_sat_count": 1,
+      "avg_solver_time_ms": 11.618,
+      "peak_cvss": 3.6,
+      "composite_risk_score": 3.6,
+      "mitigations": [
+        "STACK_CANARY",
+        "PIE",
+        "FORTIFY",
+        "NX"
+      ],
+      "exploit_primitives": [
+        "DOS_CRASH"
+      ],
+      "group": "test_suite"
+    }
+  ]
+}

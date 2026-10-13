@@ -44,7 +44,7 @@ except ImportError as e:
     print("Install: pip install torch torch-geometric scikit-learn scipy")
     sys.exit(1)
 
-from src.ml.gnn_model import VulnGNN, create_model, VulnGNNEnsemble
+from src.ml.gnn_model import VulnGNN, create_model, VulnGNNEnsemble, load_checkpoint_model
 from src.graph.feature_extractor import FEATURE_NAMES
 
 
@@ -53,18 +53,7 @@ def load_model_and_data(model_path, dataset_dir, temperature_path=None, threshol
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Load model
-    checkpoint = torch.load(model_path, map_location=device)
-    config = checkpoint.get('config', {
-        'input_dim': len(FEATURE_NAMES),
-        'hidden_dim': 128,
-        'num_layers': 3,
-        'encoder': 'sage',
-        'dropout': 0.3
-    })
-    
-    model = create_model(**config).to(device)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.eval()
+    model = load_checkpoint_model(model_path, device=device)
     
     # Load temperature
     temperature = 1.0
@@ -75,7 +64,8 @@ def load_model_and_data(model_path, dataset_dir, temperature_path=None, threshol
         with open(model_path.replace('.pt', '_temperature.json')) as f:
             temperature = json.load(f).get('temperature', 1.0)
     
-    model.set_temperature(temperature)
+    if hasattr(model, 'set_temperature'):
+        model.set_temperature(temperature)
     
     # Load threshold
     threshold = 0.5
@@ -88,10 +78,12 @@ def load_model_and_data(model_path, dataset_dir, temperature_path=None, threshol
     
     # Load dataset
     dataset = []
-    for file_path in Path(dataset_dir).glob("*.pt"):
+    for file_path in sorted(Path(dataset_dir).glob("*.pt")):
+        if file_path.name.startswith("._"):
+            continue
         try:
             data = torch.load(file_path, weights_only=False)
-            data.binary_name = file_path.stem
+            data.binary_name = file_path.stem.replace(".out", "")
             # Extract CWE from filename
             cwe = None
             for part in file_path.stem.split('_'):
@@ -108,63 +100,70 @@ def load_model_and_data(model_path, dataset_dir, temperature_path=None, threshol
 
 
 def evaluate_per_cwe(model, dataset, device, temperature, threshold):
-    """Compute metrics per CWE category."""
+    """Compute metrics per CWE category and per binary."""
     cwe_results = defaultdict(lambda: {
         'targets': [], 'probs': [], 'preds': [],
         'binaries': set()
     })
+    binary_results = {}
     
     all_targets = []
     all_probs = []
     all_preds = []
     
-    loader = DataLoader(dataset, batch_size=8, shuffle=False)
-    
     with torch.no_grad():
-        for batch in loader:
-            batch = batch.to(device)
-            out = model(batch.x, batch.edge_index)
+        for data in dataset:
+            cwe = data.cwe or 'UNKNOWN'
+            data = data.to(device)
+            
+            out = model(data.x, data.edge_index)
             out = out / temperature
-            probs = torch.softmax(out, dim=1)[:, 1].cpu().numpy()
-            targets = batch.y.cpu().numpy()
+            probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+            targets = data.y.detach().cpu().numpy()
             preds = (probs > threshold).astype(int)
             
-            # Aggregate by CWE
-            for i in range(batch.num_graphs):
-                mask = batch.batch == i
-                if not mask.any():
-                    continue
-                    
-                # Find the binary/CWE for this graph
-                idx = mask.nonzero(as_tuple=True)[0][0].item()
-                # Get the original data index
-                data_idx = batch.idx[i].item() if hasattr(batch, 'idx') else i
-                
-                # We need to map back to the dataset
-                # For simplicity, use the batch order
-                pass
+            cwe_results[cwe]['targets'].extend(targets)
+            cwe_results[cwe]['probs'].extend(probs)
+            cwe_results[cwe]['preds'].extend(preds)
+            cwe_results[cwe]['binaries'].add(data.binary_name)
+            
+            all_targets.extend(targets)
+            all_probs.extend(probs)
+            all_preds.extend(preds)
+
+            # Per binary ranking evaluation
+            vuln_indices = np.where(targets == 1)[0]
+            num_nodes = len(targets)
+            num_edges = data.edge_index.shape[1] if hasattr(data, 'edge_index') else 0
+            ranked_indices = np.argsort(-probs)
+            
+            top1_hit = False
+            top5_hit = False
+            top10_hit = False
+            best_rank = None
+
+            if len(vuln_indices) > 0:
+                ranks = []
+                for v_idx in vuln_indices:
+                    rank = int(np.where(ranked_indices == v_idx)[0][0]) + 1
+                    ranks.append(rank)
+                best_rank = min(ranks)
+                top1_hit = any(r <= 1 for r in ranks)
+                top5_hit = any(r <= 5 for r in ranks)
+                top10_hit = any(r <= 10 for r in ranks)
+            
+            m_bin = compute_metrics(targets, probs, preds)
+            m_bin['num_nodes'] = num_nodes
+            m_bin['num_edges'] = num_edges
+            m_bin['num_vuln_nodes'] = int(targets.sum())
+            m_bin['top1_hit'] = top1_hit
+            m_bin['top5_hit'] = top5_hit
+            m_bin['top10_hit'] = top10_hit
+            m_bin['best_rank'] = best_rank
+            m_bin['cwe'] = cwe
+            binary_results[data.binary_name] = m_bin
     
-    # Alternative: evaluate each graph individually for CWE attribution
-    for data in dataset:
-        cwe = data.cwe or 'UNKNOWN'
-        data = data.to(device)
-        
-        out = model(data.x, data.edge_index)
-        out = out / temperature
-        probs = torch.softmax(out, dim=1)[:, 1].cpu().numpy()
-        targets = data.y.cpu().numpy()
-        preds = (probs > threshold).astype(int)
-        
-        cwe_results[cwe]['targets'].extend(targets)
-        cwe_results[cwe]['probs'].extend(probs)
-        cwe_results[cwe]['preds'].extend(preds)
-        cwe_results[cwe]['binaries'].add(data.binary_name)
-        
-        all_targets.extend(targets)
-        all_probs.extend(probs)
-        all_preds.extend(preds)
-    
-    return cwe_results, all_targets, all_probs, all_preds
+    return cwe_results, binary_results, all_targets, all_probs, all_preds
 
 
 def compute_metrics(targets, probs, preds):
@@ -253,11 +252,6 @@ def compare_with_baseline(model, dataset, device, temperature, threshold):
     """Compare GNN with simple heuristic baselines."""
     print("\n[+] Comparing with heuristic baselines...")
     
-    # Baseline 1: High-degree nodes (nodes with many connections)
-    # Baseline 2: Blocks with memory writes
-    # Baseline 3: Loop headers
-    # Baseline 4: Library calls
-    
     baseline_results = {}
     
     # GNN predictions
@@ -265,33 +259,46 @@ def compare_with_baseline(model, dataset, device, temperature, threshold):
     gnn_preds = []
     all_targets = []
     
-    for data in dataset:
-        data = data.to(device)
-        out = model(data.x, data.edge_index)
-        out = out / temperature
-        probs = torch.softmax(out, dim=1)[:, 1].cpu().numpy()
-        gnn_probs.extend(probs)
-        gnn_preds.extend((probs > threshold).astype(int))
-        all_targets.extend(data.y.cpu().numpy())
+    with torch.no_grad():
+        for data in dataset:
+            data = data.to(device)
+            out = model(data.x, data.edge_index)
+            out = out / temperature
+            probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+            gnn_probs.extend(probs)
+            gnn_preds.extend((probs > threshold).astype(int))
+            all_targets.extend(data.y.detach().cpu().numpy())
     
     gnn_metrics = compute_metrics(all_targets, gnn_probs, gnn_preds)
     baseline_results['GNN'] = gnn_metrics
     
-    # Heuristic 1: High structural centrality (in_deg * out_deg)
-    # Feature 7 in our 40-dim vector is flow_centrality
     print("  Computing heuristic baselines...")
+    in_dim = dataset[0].x.shape[1] if dataset else 11
+    if in_dim == 11:
+        heuristics = [
+            (0, 'in_degree'),
+            (1, 'out_degree'),
+            (3, 'is_loop_header'),
+            (4, 'is_library_call'),
+            (5, 'num_instructions'),
+            (6, 'has_unsafe_call'),
+            (7, 'has_memory_write'),
+            (8, 'num_symbolic_variables'),
+            (9, 'num_path_constraints'),
+        ]
+    else:
+        heuristics = [
+            (7, 'flow_centrality'),
+            (25, 'has_memory_write'),
+            (3, 'is_loop_header'),
+            (14, 'is_library_call'),
+            (17, 'has_unsafe_string'),
+            (18, 'has_format_string'),
+            (26, 'num_symbolic_variables'),
+        ]
     
-    # Heuristic: threshold on feature 7 (flow_centrality)
-    for feat_idx, feat_name in [
-        (7, 'flow_centrality'),
-        (25, 'has_memory_write'),
-        (3, 'is_loop_header'),
-        (14, 'is_library_call'),
-        (17, 'has_unsafe_string'),
-        (18, 'has_format_string'),
-        (26, 'num_symbolic_variables'),
-    ]:
-        if feat_idx < 40:
+    for feat_idx, feat_name in heuristics:
+        if feat_idx < in_dim:
             probs = []
             targets = []
             for data in dataset:
@@ -299,7 +306,6 @@ def compare_with_baseline(model, dataset, device, temperature, threshold):
                 probs.extend(data.x[:, feat_idx].cpu().numpy())
             
             if len(set(targets)) > 1:
-                # Find best threshold for this feature
                 best_f1 = 0
                 best_thresh = 0
                 probs_arr = np.array(probs)
@@ -334,28 +340,26 @@ def statistical_significance(model, dataset, device, temperature, threshold, n_b
     """Bootstrap confidence intervals for metrics."""
     print(f"\n[+] Computing bootstrap confidence intervals (n={n_bootstrap})...")
     
-    # Collect all predictions
     all_data = []
-    for data in dataset:
-        data = data.to(device)
-        out = model(data.x, data.edge_index)
-        out = out / temperature
-        probs = torch.softmax(out, dim=1)[:, 1].cpu().numpy()
-        targets = data.y.cpu().numpy()
-        preds = (probs > threshold).astype(int)
-        all_data.append((targets, probs, preds))
+    with torch.no_grad():
+        for data in dataset:
+            data = data.to(device)
+            out = model(data.x, data.edge_index)
+            out = out / temperature
+            probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+            targets = data.y.detach().cpu().numpy()
+            preds = (probs > threshold).astype(int)
+            all_data.append((targets, probs, preds))
     
-    # Bootstrap
     f1_scores = []
     roc_aucs = []
     precisions = []
     recalls = []
     
-    n_samples = sum(len(d[0]) for d in all_data)
-    
     for _ in range(n_bootstrap):
         # Sample with replacement at the graph level
-        boot_data = np.random.choice(all_data, size=len(all_data), replace=True)
+        indices = np.random.choice(len(all_data), size=len(all_data), replace=True)
+        boot_data = [all_data[idx] for idx in indices]
         
         boot_targets = np.concatenate([d[0] for d in boot_data])
         boot_probs = np.concatenate([d[1] for d in boot_data])
@@ -381,72 +385,91 @@ def statistical_significance(model, dataset, device, temperature, threshold, n_b
     def ci(values):
         if not values:
             return (0, 0)
-        return (np.percentile(values, 2.5), np.percentile(values, 97.5))
+        return (float(np.percentile(values, 2.5)), float(np.percentile(values, 97.5)))
     
+    ci_results = {
+        'f1': {'mean': float(np.mean(f1_scores)), 'ci95': ci(f1_scores)},
+        'roc_auc': {'mean': float(np.mean(roc_aucs)), 'ci95': ci(roc_aucs)},
+        'precision': {'mean': float(np.mean(precisions)), 'ci95': ci(precisions)},
+        'recall': {'mean': float(np.mean(recalls)), 'ci95': ci(recalls)}
+    }
+
     print(f"\nBootstrap 95% Confidence Intervals:")
-    print(f"  F1:          {np.mean(f1_scores):.4f} [{ci(f1_scores)[0]:.4f}, {ci(f1_scores)[1]:.4f}]")
-    print(f"  ROC-AUC:     {np.mean(roc_aucs):.4f} [{ci(roc_aucs)[0]:.4f}, {ci(roc_aucs)[1]:.4f}]")
-    print(f"  Precision:   {np.mean(precisions):.4f} [{ci(precisions)[0]:.4f}, {ci(precisions)[1]:.4f}]")
-    print(f"  Recall:      {np.mean(recalls):.4f} [{ci(recalls)[0]:.4f}, {ci(recalls)[1]:.4f}]")
+    print(f"  F1:          {ci_results['f1']['mean']:.4f} [{ci_results['f1']['ci95'][0]:.4f}, {ci_results['f1']['ci95'][1]:.4f}]")
+    print(f"  ROC-AUC:     {ci_results['roc_auc']['mean']:.4f} [{ci_results['roc_auc']['ci95'][0]:.4f}, {ci_results['roc_auc']['ci95'][1]:.4f}]")
+    print(f"  Precision:   {ci_results['precision']['mean']:.4f} [{ci_results['precision']['ci95'][0]:.4f}, {ci_results['precision']['ci95'][1]:.4f}]")
+    print(f"  Recall:      {ci_results['recall']['mean']:.4f} [{ci_results['recall']['ci95'][0]:.4f}, {ci_results['recall']['ci95'][1]:.4f}]")
+    return ci_results
 
 
 def ablation_study(model, dataset, device, temperature, threshold):
     """Ablation: evaluate impact of each feature group."""
     print("\n[+] Running ablation study...")
     
-    # Feature groups from feature_extractor.py
-    feature_groups = {
-        'structural': list(range(0, 8)),
-        'instruction': list(range(8, 14)),
-        'semantic': list(range(14, 26)),
-        'dataflow': list(range(26, 34)),
-        'symbolic': list(range(34, 40)),
-    }
+    in_dim = dataset[0].x.shape[1] if dataset else 11
+    if in_dim == 11:
+        feature_groups = {
+            'structural': [0, 1, 2, 3],
+            'api_calls': [4, 6],
+            'instructions': [5, 7],
+            'symbolic_state': [8, 9, 10],
+        }
+    else:
+        feature_groups = {
+            'structural': list(range(0, 8)),
+            'instruction': list(range(8, 14)),
+            'semantic': list(range(14, 26)),
+            'dataflow': list(range(26, 34)),
+            'symbolic': list(range(34, 40)),
+        }
     
     # Full model
     all_targets = []
     all_probs = []
-    for data in dataset:
-        data = data.to(device)
-        out = model(data.x, data.edge_index)
-        out = out / temperature
-        probs = torch.softmax(out, dim=1)[:, 1].cpu().numpy()
-        all_probs.extend(probs)
-        all_targets.extend(data.y.cpu().numpy())
-    
-    full_preds = (np.array(all_probs) > threshold).astype(int)
-    full_metrics = compute_metrics(all_targets, all_probs, full_preds)
-    print(f"  Full model (40 features): F1={full_metrics['f1']:.4f}, AUC={full_metrics['roc_auc']:.4f}")
-    
-    # Ablate each group
-    print("  Note: Full ablation requires model retraining without feature groups.")
-    print("  For true ablation, retrain with masked feature groups.")
-    print("  Current approach: zero out feature groups at inference (approximate)")
-    
-    # Approximate ablation by zeroing features
-    for group_name, indices in feature_groups.items():
-        probs_list = []
-        targets_list = []
+    with torch.no_grad():
         for data in dataset:
-            # Create copy with zeroed features
-            x = data.x.clone()
-            x[:, indices] = 0.0
-            data_mod = data.clone()
-            data_mod.x = x
-            data_mod = data_mod.to(device)
-            
-            out = model(data_mod.x, data_mod.edge_index)
+            data = data.to(device)
+            out = model(data.x, data.edge_index)
             out = out / temperature
-            probs = torch.softmax(out, dim=1)[:, 1].cpu().numpy()
-            probs_list.extend(probs)
-            targets_list.extend(data.y.cpu().numpy())
+            probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+            all_probs.extend(probs)
+            all_targets.extend(data.y.detach().cpu().numpy())
         
-        preds = (np.array(probs_list) > threshold).astype(int)
-        metrics = compute_metrics(targets_list, probs_list, preds)
-        drop_f1 = full_metrics['f1'] - metrics['f1']
-        drop_auc = full_metrics['roc_auc'] - metrics['roc_auc']
-        print(f"  Without {group_name:12s}: F1={metrics['f1']:.4f} (Δ={drop_f1:+.4f}), "
-              f"AUC={metrics['roc_auc']:.4f} (Δ={drop_auc:+.4f})")
+        full_preds = (np.array(all_probs) > threshold).astype(int)
+        full_metrics = compute_metrics(all_targets, all_probs, full_preds)
+        print(f"  Full model ({in_dim} features): F1={full_metrics['f1']:.4f}, AUC={full_metrics['roc_auc']:.4f}")
+        
+        ablation_results = {'full': full_metrics, 'groups': {}}
+        
+        for group_name, indices in feature_groups.items():
+            probs_list = []
+            targets_list = []
+            for data in dataset:
+                x = data.x.clone()
+                x[:, indices] = 0.0
+                data_mod = data.clone()
+                data_mod.x = x
+                data_mod = data_mod.to(device)
+                
+                out = model(data_mod.x, data_mod.edge_index)
+                out = out / temperature
+                probs = torch.softmax(out, dim=1)[:, 1].detach().cpu().numpy()
+                probs_list.extend(probs)
+                targets_list.extend(data.y.detach().cpu().numpy())
+            
+            preds = (np.array(probs_list) > threshold).astype(int)
+            metrics = compute_metrics(targets_list, probs_list, preds)
+            drop_f1 = full_metrics['f1'] - metrics['f1']
+            drop_auc = full_metrics['roc_auc'] - metrics['roc_auc']
+            ablation_results['groups'][group_name] = {
+                'metrics': metrics,
+                'drop_f1': float(drop_f1),
+                'drop_auc': float(drop_auc)
+            }
+            print(f"  Without {group_name:14s}: F1={metrics['f1']:.4f} (Δ={drop_f1:+.4f}), "
+                  f"AUC={metrics['roc_auc']:.4f} (Δ={drop_auc:+.4f})")
+    
+    return ablation_results
 
 
 def main():
@@ -478,8 +501,8 @@ def main():
     print(f"[+] Threshold: {threshold:.3f}")
     print(f"[+] Device: {device}")
     
-    # Evaluate per CWE
-    cwe_results, all_targets, all_probs, all_preds = evaluate_per_cwe(
+    # Evaluate per CWE and per binary
+    cwe_results, binary_results, all_targets, all_probs, all_preds = evaluate_per_cwe(
         model, dataset, device, temperature, threshold
     )
     
@@ -488,6 +511,18 @@ def main():
     
     # Overall metrics
     overall = compute_metrics(all_targets, all_probs, all_preds)
+    top1_count = sum(1 for b in binary_results.values() if b.get('top1_hit'))
+    top5_count = sum(1 for b in binary_results.values() if b.get('top5_hit'))
+    top10_count = sum(1 for b in binary_results.values() if b.get('top10_hit'))
+    total_bins = len(binary_results)
+    
+    overall['top1_hit_rate'] = float(top1_count / total_bins) if total_bins > 0 else 0.0
+    overall['top5_hit_rate'] = float(top5_count / total_bins) if total_bins > 0 else 0.0
+    overall['top10_hit_rate'] = float(top10_count / total_bins) if total_bins > 0 else 0.0
+    overall['top1_count'] = top1_count
+    overall['top5_count'] = top5_count
+    overall['total_graphs'] = total_bins
+
     print("\n[+] Overall Metrics:")
     for k, v in overall.items():
         if isinstance(v, float):
@@ -497,29 +532,36 @@ def main():
         else:
             print(f"  {k}: {v}")
     
-    # Compare with baselines
+    print(f"\n[+] Path Prioritization Ranking Performance:")
+    print(f"  Top-1 Hit Rate:  {overall['top1_hit_rate']*100:.2f}% ({top1_count}/{total_bins})")
+    print(f"  Top-5 Hit Rate:  {overall['top5_hit_rate']*100:.2f}% ({top5_count}/{total_bins})")
+    print(f"  Top-10 Hit Rate: {overall['top10_hit_rate']*100:.2f}% ({top10_count}/{total_bins})")
+
+    baseline_results = None
     if args.compare_baseline:
-        compare_with_baseline(model, dataset, device, temperature, threshold)
+        baseline_results = compare_with_baseline(model, dataset, device, temperature, threshold)
     
-    # Bootstrap confidence intervals
+    ci_results = None
     if args.bootstrap:
-        statistical_significance(model, dataset, device, temperature, threshold)
+        ci_results = statistical_significance(model, dataset, device, temperature, threshold)
     
-    # Ablation study
+    ablation_results = None
     if args.ablation:
-        ablation_study(model, dataset, device, temperature, threshold)
+        ablation_results = ablation_study(model, dataset, device, temperature, threshold)
     
     # Save results
     if args.output:
         results = {
             'overall': overall,
             'per_cwe': {},
+            'per_binary': binary_results,
             'config': {
                 'model_path': args.model_path,
                 'dataset_dir': args.dataset_dir,
                 'temperature': temperature,
                 'threshold': threshold,
-                'num_graphs': len(dataset)
+                'num_graphs': len(dataset),
+                'feature_dim': dataset[0].x.shape[1] if dataset else 11
             }
         }
         
@@ -528,6 +570,13 @@ def main():
                 results['per_cwe'][cwe] = compute_metrics(r['targets'], r['probs'], r['preds'])
                 results['per_cwe'][cwe]['num_binaries'] = len(r['binaries'])
         
+        if baseline_results:
+            results['baselines'] = baseline_results
+        if ci_results:
+            results['bootstrap_ci'] = ci_results
+        if ablation_results:
+            results['ablation'] = ablation_results
+
         with open(args.output, 'w') as f:
             json.dump(results, f, indent=2)
         print(f"\n[+] Results saved to {args.output}")

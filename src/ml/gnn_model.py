@@ -221,6 +221,40 @@ class VulnGNNEnsemble(torch.nn.Module if torch is not None else object):
         return torch.stack(probs_list).mean(dim=0)
 
 
+class VulnGNNSimple(torch.nn.Module if torch is not None else object):
+    """
+    2-Layer GraphSAGE baseline model (compatible with model.pt).
+    Used for 11-dimensional feature vectors.
+    """
+    def __init__(self, input_dim=11, hidden_dim=64):
+        if torch is None:
+            raise ImportError("PyTorch and PyTorch Geometric must be installed to use VulnGNNSimple.")
+        super(VulnGNNSimple, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.conv1 = SAGEConv(input_dim, hidden_dim)
+        self.conv2 = SAGEConv(hidden_dim, hidden_dim)
+        self.classifier = torch.nn.Linear(hidden_dim, 2)
+        self.register_parameter('temperature', torch.nn.Parameter(torch.ones(1) * 1.0))
+
+    def forward(self, x, edge_index, batch=None):
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.relu(self.conv2(x, edge_index))
+        return self.classifier(x)
+
+    def predict_proba(self, x, edge_index, batch=None):
+        logits = self.forward(x, edge_index, batch)
+        calibrated_logits = logits / self.temperature.clamp(min=0.01)
+        return F.softmax(calibrated_logits, dim=1)
+
+    def set_temperature(self, temperature: float):
+        self.temperature.data.fill_(max(0.01, temperature))
+
+    def get_temperature(self) -> float:
+        return self.temperature.item()
+
+
 def create_model(input_dim=40, hidden_dim=128, num_layers=3, encoder='sage', **kwargs):
     """Factory function to create model with consistent defaults."""
     return VulnGNN(
@@ -230,3 +264,35 @@ def create_model(input_dim=40, hidden_dim=128, num_layers=3, encoder='sage', **k
         encoder=encoder,
         **kwargs
     )
+
+
+def load_checkpoint_model(model_path_or_dict, device='cpu'):
+    """Universal loader for VulnGNN and VulnGNNSimple models."""
+    if isinstance(model_path_or_dict, str):
+        ckpt = torch.load(model_path_or_dict, map_location=device)
+    else:
+        ckpt = model_path_or_dict
+
+    if isinstance(ckpt, dict) and 'model_state_dict' in ckpt:
+        config = ckpt.get('config', {
+            'input_dim': 40,
+            'hidden_dim': 128,
+            'num_layers': 3,
+            'encoder': 'sage',
+            'dropout': 0.3
+        })
+        model = create_model(**config).to(device)
+        model.load_state_dict(ckpt['model_state_dict'])
+    elif isinstance(ckpt, dict) and 'conv1.lin_l.weight' in ckpt:
+        in_dim = ckpt['conv1.lin_l.weight'].shape[1]
+        h_dim = ckpt['conv1.lin_l.weight'].shape[0]
+        model = VulnGNNSimple(input_dim=in_dim, hidden_dim=h_dim).to(device)
+        model.load_state_dict(ckpt, strict=False)
+    else:
+        # Fallback to create_model
+        model = create_model().to(device)
+        if isinstance(ckpt, dict):
+            model.load_state_dict(ckpt, strict=False)
+
+    model.eval()
+    return model

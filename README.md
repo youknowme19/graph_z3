@@ -7,7 +7,8 @@ Demonstrates Control Flow Graph (CFG) extraction, Call Graph generation, and ste
 - Ghidra-style interactive graph visualization using Dash and Cytoscape.
 - Step-by-step symbolic execution trace.
 - Z3 constraint extraction and educational plain-English explanations.
-- Rich node metadata for future Graph Neural Network (GNN) integration.
+- Inductive Graph Neural Network (GNN - GraphSAGE) for CFG basic block risk prioritization.
+- Privacy-preserving **Federated Learning** powered by the **Flower (`flwr`)** framework.
 
 ## Installation
 ```bash
@@ -15,8 +16,20 @@ pip install -r requirements.txt
 ```
 
 ## Usage
+### 1. Web UI & Scanner
 ```bash
-python main.py path/to/binary
+# Launch full web portal
+python main.py
+
+# Headless binary vulnerability scan
+python main.py --scan path/to/binary --output-json report.json
+```
+
+### 2. Federated Learning Training (Flower)
+Train the vulnerability GNN across distributed clients without exposing proprietary binaries:
+```bash
+# Multi-client federated training simulation
+python main.py --federated --fl-clients 3 --fl-rounds 5 --fl-strategy fedprox
 ```
 
 ## Landing Page
