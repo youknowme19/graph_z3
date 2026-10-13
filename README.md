@@ -1,17 +1,20 @@
-# GRAPH_Z3: Enterprise Neuro-Symbolic Binary Vulnerability Analysis Platform
+# NeuroZ3: Enterprise Neuro-Symbolic Binary Vulnerability Analysis Platform
+
+> **Codename**: `graph_z3` | **Release**: v2.4 Enterprise Production Grade
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/sandy191020/graph_z3)
 [![Engine](https://img.shields.io/badge/symbolic_engine-angr%20%7C%20Z3%20SMT-blue?style=flat-square)](https://github.com/sandy191020/graph_z3)
 [![Machine Learning](https://img.shields.io/badge/gnn-GraphSAGE%20%7C%20PyTorch-orange?style=flat-square)](https://github.com/sandy191020/graph_z3)
 [![Federated Learning](https://img.shields.io/badge/federated-Flower%20Framework-purple?style=flat-square)](https://flower.ai/)
 [![SARIF Standard](https://img.shields.io/badge/compliance-SARIF%202.1.0-darkgreen?style=flat-square)](https://sarifweb.azurewebsites.net/)
+[![Documentation](https://img.shields.io/badge/docs-complete-informational?style=flat-square)](docs/ARCHITECTURE.md)
 [![License](https://img.shields.io/badge/license-Proprietary%20%2F%20Research-lightgrey?style=flat-square)](LICENSE)
 
 ---
 
 ## Executive Overview
 
-GRAPH_Z3 is a dual-stage neuro-symbolic binary vulnerability discovery and automated exploit verification platform engineered for security operations centers, reverse engineering teams, and automated DevSecOps pipelines. 
+NeuroZ3 (formerly GRAPH_Z3) is a dual-stage neuro-symbolic binary vulnerability discovery and automated exploit verification platform engineered for security operations centers, reverse engineering teams, and automated DevSecOps pipelines. 
 
 Conventional static application security testing (SAST) tools generate false positive rates exceeding 85% on stripped binaries, while standard dynamic symbolic execution (DSE) engines suffer from exponential path explosion ($O(2^d)$). GRAPH_Z3 solves this dichotomy through a hybrid architectural paradigm:
 
@@ -68,48 +71,39 @@ flowchart TD
 GRAPH_Z3 enables distributed cross-enterprise model training via the **Flower (`flwr`)** federated learning framework. Organizations operating in regulated environments (aerospace, defense, finance, critical infrastructure) train a unified global vulnerability prediction model without exporting proprietary binaries or internal codebases.
 
 ```mermaid
-flowchart LR
-    subgraph FL_COORDINATOR["Federated Aggregation Server"]
-        STRAT["Federated Strategy Engine (FedProx / FedAvg)"]
-        AGG["Sample-Weighted Metric Aggregator (F1, Precision, Recall)"]
-        GLOBAL_MODEL["Global VulnGNN Parameters (W_global)"]
-        STRAT --> GLOBAL_MODEL
-        GLOBAL_MODEL --> AGG
+flowchart TD
+    subgraph SERVER["Federated Aggregation Server (Flower)"]
+        STRAT["Strategy Engine: FedProx / FedAvg"]
+        GLOBAL["Global VulnGNN Parameters: W_global"]
+        AGG["Sample-Weighted Aggregator: Loss, F1, Precision"]
+        STRAT --> GLOBAL
+        GLOBAL --> AGG
     end
 
-    subgraph CLIENT_A["Client Enclave A (Defense Contractor)"]
-        DATA_A["Private Mission Systems (x86-64 ELF)"]
-        TRAIN_A["Local PyTorch Geometric VulnGNN Training"]
-        EVAL_A["Local Validation Engine"]
-        DATA_A --> TRAIN_A
-        TRAIN_A --> EVAL_A
+    subgraph CLIENT_A["Client Node A: Defense Systems"]
+        BIN_A["Private x86-64 Binaries"] --> CFG_A["CFG Extraction"]
+        CFG_A --> LOCAL_TRAIN_A["Local GNN Training"]
     end
 
-    subgraph CLIENT_B["Client Enclave B (Enterprise Software)"]
-        DATA_B["Proprietary Commercial Binaries (PE32)"]
-        TRAIN_B["Local PyTorch Geometric VulnGNN Training"]
-        EVAL_B["Local Validation Engine"]
-        DATA_B --> TRAIN_B
-        TRAIN_B --> EVAL_B
+    subgraph CLIENT_B["Client Node B: Enterprise Software"]
+        BIN_B["Private PE32 Binaries"] --> CFG_B["CFG Extraction"]
+        CFG_B --> LOCAL_TRAIN_B["Local GNN Training"]
     end
 
-    subgraph CLIENT_C["Client Enclave C (Embedded / IoT Lab)"]
-        DATA_C["Firmware Binaries (ARM64 / MIPS)"]
-        TRAIN_C["Local PyTorch Geometric VulnGNN Training"]
-        EVAL_C["Local Validation Engine"]
-        DATA_C --> TRAIN_C
-        TRAIN_C --> EVAL_C
+    subgraph CLIENT_C["Client Node C: Embedded Firmware"]
+        BIN_C["Private ARM64 Binaries"] --> CFG_C["CFG Extraction"]
+        CFG_C --> LOCAL_TRAIN_C["Local GNN Training"]
     end
 
-    GLOBAL_MODEL -->|Distribute Parameters| TRAIN_A
-    GLOBAL_MODEL -->|Distribute Parameters| TRAIN_B
-    GLOBAL_MODEL -->|Distribute Parameters| TRAIN_C
+    GLOBAL -.->|"Distribute Parameters (Round t)"| LOCAL_TRAIN_A
+    GLOBAL -.->|"Distribute Parameters (Round t)"| LOCAL_TRAIN_B
+    GLOBAL -.->|"Distribute Parameters (Round t)"| LOCAL_TRAIN_C
 
-    TRAIN_A -->|Encrypted Model Updates (Delta W)| STRAT
-    TRAIN_B -->|Encrypted Model Updates (Delta W)| STRAT
-    TRAIN_C -->|Encrypted Model Updates (Delta W)| STRAT
+    LOCAL_TRAIN_A -->|"Local Weight Updates"| STRAT
+    LOCAL_TRAIN_B -->|"Local Weight Updates"| STRAT
+    LOCAL_TRAIN_C -->|"Local Weight Updates"| STRAT
 
-    style FL_COORDINATOR fill:#0f172a,stroke:#6366f1,stroke-width:2px,color:#ffffff
+    style SERVER fill:#0f172a,stroke:#6366f1,stroke-width:2px,color:#ffffff
     style CLIENT_A fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
     style CLIENT_B fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
     style CLIENT_C fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#ffffff
@@ -315,8 +309,19 @@ Empirical evaluations conducted across the NIST Juliet Test Suite v1.3 and multi
 
 ---
 
+## Documentation & Governance
+
+Comprehensive specifications and governance documents:
+- **System Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Federated Learning Architecture (Flower)**: [docs/FEDERATED_LEARNING.md](docs/FEDERATED_LEARNING.md)
+- **CLI Reference Guide**: [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
+- **Contribution Guidelines**: [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Security & Vulnerability Disclosure Policy**: [SECURITY.md](SECURITY.md)
+
+---
+
 ## Technical Support & Contributing
 
-For internal deployment guides, issue tracking, and contributions, submit requests via the project issue tracker.
+For deployment guides, issue tracking, and contributions, refer to [CONTRIBUTING.md](CONTRIBUTING.md).
 
-GRAPH_Z3 is developed and maintained for secure binary analysis, automated verification, and privacy-preserving machine learning research.
+NeuroZ3 is maintained for secure binary analysis, automated verification, and privacy-preserving machine learning research.
