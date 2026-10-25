@@ -1,308 +1,260 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+
+  --color-primary: var(--color-text-primary);
+  --color-secondary: var(--color-text-secondary);
+  --color-muted: var(--color-text-muted);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  --color-crimson: var(--color-accent-crimson);
+  --color-crimson-glow: var(--color-accent-glow);
+  --color-crimson-subtle: var(--color-accent-subtle);
+
+  /* Legacy & compatibility aliases */
+  --color-ink: var(--color-canvas);
+  --color-ink-2: var(--color-surface);
+  --color-ink-3: var(--color-surface-raised);
+  --color-paper: var(--color-text-primary);
+  --color-paper-dim: var(--color-text-secondary);
+  --color-mute: var(--color-text-muted);
+  --color-line: var(--color-border);
+  --color-line-strong: rgba(255, 255, 255, 0.18);
+  --color-signal: var(--color-accent-crimson);
+  --color-signal-ink: #ffffff;
+  --color-hazard: #f0273f;
+  --color-brass: #6366f1;
+  --color-safe: #10b981;
+}
+
+:root,
+.dark {
+  --color-canvas: #07080b;
+  --color-canvas-subtle: #101116;
+  --color-surface: #12141a;
+  --color-surface-hover: #181b23;
+  --color-surface-raised: #1d202a;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a2a6b1;
+  --color-text-muted: #6b7280;
+
+  --color-accent-crimson: #f0273f;
+  --color-accent-glow: #ff354b;
+  --color-accent-subtle: rgba(240, 39, 63, 0.14);
+
+  color-scheme: dark;
+}
+
+.light {
+  --color-canvas: #f8f9fa;
+  --color-canvas-subtle: #f1f3f5;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f3f4f6;
+  --color-surface-raised: #ffffff;
+  --color-border: rgba(0, 0, 0, 0.10);
+  --color-border-subtle: rgba(0, 0, 0, 0.05);
+
+  --color-text-primary: #111215;
+  --color-text-secondary: #5b606e;
+  --color-text-muted: #8e95a5;
+
+  --color-accent-crimson: #d91e36;
+  --color-accent-glow: #f0273f;
+  --color-accent-subtle: rgba(217, 30, 54, 0.10);
+
+  color-scheme: light;
+}
+
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --nav-h: 3.75rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-canvas);
+  color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {
-  font-family: var(--font-sans);
-  background-color: #080b11;
-  color: #e2e8f0;
   margin: 0;
-  padding: 0;
-  scroll-behavior: smooth;
+  font-family: var(--font-sans);
+  background: var(--color-canvas);
+  color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* ── MetaMask-style section gradient divider ──────────────────────────── */
-.section-divider {
-  position: relative;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.3) 50%, transparent 100%);
-  margin: 0 auto;
-  width: 80%;
-  max-width: 800px;
-}
-.section-divider::before {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(56,189,248,0.8);
-  box-shadow: 0 0 12px 3px rgba(56,189,248,0.4);
+::selection {
+  background: rgba(240, 39, 63, 0.35);
+  color: #ffffff;
 }
 
-/* ── Text gradient utility ──────────────────────────────────────────────── */
-.text-gradient-cyber {
-  background: linear-gradient(135deg, #22d3ee 0%, #818cf8 50%, #f472b6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* ── Viewport height sections for sticky scrollytelling ─────────────────── */
-html {
-  scroll-behavior: smooth;
-}
-
-code, pre, .font-mono {
+code,
+pre,
+.font-mono {
   font-family: var(--font-mono);
 }
 
-/* Custom Cyber Scrollbars */
+/* Subtle clean scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--color-border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--color-text-muted);
 }
 
-/* Glassmorphism panel styling */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+:focus-visible {
+  outline: 2px solid var(--color-accent-crimson);
+  outline-offset: 2px;
 }
 
-.glass-card {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(75, 85, 99, 0.25);
-}
-
-/* MetaMask-inspired Web3 glass card with dynamic gradient border */
-.metamask-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(10, 15, 29, 0.9) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.6), 0 0 30px -5px rgba(56, 189, 248, 0.08);
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.metamask-card:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8), 0 0 45px -5px rgba(56, 189, 248, 0.2);
-  transform: translateY(-4px);
-}
-
-/* 3D Sticker Physics & Holographic Stamp Styles */
-.sticker-badge {
-  position: relative;
+/* Button Utilities */
+.btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
-  user-select: none;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
-  cursor: pointer;
+  background-color: var(--color-accent-crimson);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.15rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 10px rgba(240, 39, 63, 0.3);
+}
+.btn-primary:hover {
+  background-color: var(--color-accent-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(240, 39, 63, 0.45);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-.sticker-badge:hover {
-  transform: scale(1.08) rotate(var(--sticker-rot, 2deg));
-  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7), inset 0 1px 2px 0 rgba(255, 255, 255, 0.4);
+.btn-signal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--color-accent-crimson);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.15rem;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 10px rgba(240, 39, 63, 0.3);
+}
+.btn-signal:hover {
+  background-color: var(--color-accent-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(240, 39, 63, 0.45);
+}
+.btn-signal:active {
+  transform: translateY(0);
+}
+.btn-signal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-/* Holographic Foil Tag */
-.sticker-holographic {
-  background: linear-gradient(
-    135deg,
-    rgba(6, 182, 212, 0.15) 0%,
-    rgba(168, 85, 247, 0.2) 50%,
-    rgba(236, 72, 153, 0.15) 100%
-  );
-  border: 1px solid rgba(244, 114, 182, 0.4);
-  color: #fdf2f8;
-  position: relative;
-  overflow: hidden;
+.btn-secondary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.15rem;
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover,
+.btn-ghost:hover {
+  background-color: var(--color-surface-hover);
+  border-color: rgba(240, 39, 63, 0.4);
+  color: var(--color-text-primary);
 }
 
-.sticker-holographic::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    60deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.25) 50%,
-    transparent 80%
-  );
-  transform: rotate(30deg);
-  animation: foil-shimmer 6s infinite linear;
+/* Card utilities */
+.card-vanta {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
 }
 
-/* Caution Hazard Tape Sticker */
-.sticker-hazard {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #0f172a;
-  border: 1px dashed rgba(0, 0, 0, 0.4);
-  font-weight: 900;
-  box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);
+.card-vanta-interactive {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-vanta-interactive:hover {
+  background-color: var(--color-surface-hover);
+  border-color: rgba(240, 39, 63, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
-/* Neon SMT Seal Sticker */
-.sticker-smt {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.3) 100%);
-  border: 1px solid rgba(167, 139, 250, 0.5);
-  color: #ddd6fe;
-  box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.3);
-}
-
-/* Zero-Day Emerald Shield Sticker */
-.sticker-secure {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.3) 100%);
-  border: 1px solid rgba(52, 211, 153, 0.5);
-  color: #a7f3d0;
-  box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.3);
-}
-
-/* Keyframes for Floating Parallax Effects */
-@keyframes foil-shimmer {
-  0% { transform: translateX(-100%) rotate(30deg); }
-  100% { transform: translateX(100%) rotate(30deg); }
-}
-
-@keyframes float-gentle {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(1.5deg); }
-}
-
-@keyframes float-tilt {
-  0%, 100% { transform: translateY(0px) rotate(-1.5deg); }
-  50% { transform: translateY(-12px) rotate(2deg); }
-}
-
-@keyframes float-orbit {
-  0% { transform: translate(0px, 0px); }
-  33% { transform: translate(6px, -10px); }
-  66% { transform: translate(-6px, -5px); }
-  100% { transform: translate(0px, 0px); }
-}
-
-.animate-float-gentle {
-  animation: float-gentle 6s ease-in-out infinite;
-}
-
-.animate-float-tilt {
-  animation: float-tilt 8s ease-in-out infinite;
-}
-
-.animate-float-orbit {
-  animation: float-orbit 10s ease-in-out infinite;
-}
-
-/* Glowing borders and gradients */
-.glow-border-cyan {
-  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.15);
-}
-
-.glow-border-crimson {
-  box-shadow: 0 0 25px -5px rgba(239, 68, 68, 0.25);
-}
-
-.glow-border-purple {
-  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.2);
-}
-
-/* Mesh cyber grid */
-.cyber-grid {
-  background-size: 40px 40px;
+/* Technical grid background */
+.tech-grid {
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-}
-
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.02); }
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-
-/* ── Radial hero glow pulse ─────────────────────────────────────────────── */
-@keyframes hero-glow-pulse {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.08); }
-}
-.animate-hero-glow {
-  animation: hero-glow-pulse 8s ease-in-out infinite;
-}
-
-/* ── Gradient text shimmer animation ────────────────────────────────────── */
-@keyframes text-shimmer {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-.animate-text-shimmer {
-  background-size: 200% 200%;
-  animation: text-shimmer 4s ease infinite;
-}
-
-/* ── Card entrance fade-up animation ────────────────────────────────────── */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-up {
-  animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ── Neon border glow ring ──────────────────────────────────────────────── */
-.neon-ring-cyan {
-  box-shadow:
-    0 0 0 1px rgba(34,211,238,0.4),
-    0 0 20px -4px rgba(34,211,238,0.3),
-    0 0 60px -10px rgba(34,211,238,0.2);
-}
-.neon-ring-purple {
-  box-shadow:
-    0 0 0 1px rgba(167,139,250,0.4),
-    0 0 20px -4px rgba(167,139,250,0.3),
-    0 0 60px -10px rgba(167,139,250,0.2);
-}
-
-/* ── Sticker holographic shimmer speed adjustment ───────────────────────── */
-.sticker-holographic::after {
-  animation-duration: 4s;
-}
-/* Sticker hazard pulse */
-.sticker-hazard {
-  animation: hazard-pulse 3s ease-in-out infinite;
-}
-@keyframes hazard-pulse {
-  0%, 100% { box-shadow: 0 10px 20px -5px rgba(245,158,11,0.4); }
-  50% { box-shadow: 0 10px 30px -5px rgba(245,158,11,0.7); }
+    linear-gradient(to right, var(--color-border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-border-subtle) 1px, transparent 1px);
+  background-size: 40px 40px;
 }

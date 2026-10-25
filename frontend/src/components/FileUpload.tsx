@@ -1,13 +1,5 @@
 import React, { useState, useRef } from 'react';
-import {
-  Upload,
-  Sliders,
-  Play,
-  CheckCircle2,
-  Cpu,
-  Hash,
-  AlertCircle,
-} from 'lucide-react';
+import { Upload, Sliders, Play, CheckCircle2, Cpu, Hash, AlertCircle, FileCode } from 'lucide-react';
 import type { SampleBinary } from '../types';
 
 interface FileUploadProps {
@@ -37,12 +29,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   } | null>(null);
   const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-
-  // Analysis Parameters
   const [maxSteps, setMaxSteps] = useState(300);
   const [symbolicSize, setSymbolicSize] = useState(32);
   const [enableGnn, setEnableGnn] = useState(true);
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleUploadFile = async (file: File) => {
@@ -70,8 +59,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         sha256: data.sha256,
         arch_hint: data.arch_hint,
       });
-    } catch (err: any) {
-      setUploadError(err.message || 'Failed to upload binary.');
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to upload binary.');
     }
   };
 
@@ -110,7 +99,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleLaunch = () => {
     if (!fileToken && !selectedSampleId) {
-      setUploadError('Please upload a binary file or select a sample benchmark.');
+      setUploadError('Please upload a binary file or select a benchmark target.');
       return;
     }
 
@@ -124,126 +113,121 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-100">
-          Target Intake & Engine Configuration
+    <div className="relative z-10 mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-6">
+      {/* Header */}
+      <div className="space-y-1.5">
+        <div className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-emerald-400 font-semibold">
+          <FileCode className="h-3.5 w-3.5" />
+          <span>Scan Intake & Solver Bounds</span>
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight text-zinc-100 sm:text-3xl">
+          Target Ingestion & Configuration
         </h2>
-        <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-          Drop an ELF, Mach-O, or PE binary, or choose from pre-configured verification suites.
+        <p className="max-w-xl text-xs text-zinc-400">
+          Upload any compiled executable (ELF, Mach-O, PE) or pick a test benchmark. Fine-tune symbolic depth limits and SageConv graph inference.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Drag & Drop Intake */}
-        <div className="lg:col-span-7 space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Left Column: Dropzone & Benchmark Picker */}
+        <div className="space-y-5 lg:col-span-7">
+          {/* Dropzone */}
           <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`relative rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[260px] ${
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
+            }}
+            role="button"
+            tabIndex={0}
+            className={`flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center transition-all ${
               dragActive
-                ? 'border-cyan-400 bg-cyan-950/30 shadow-lg shadow-cyan-500/10'
+                ? 'border-emerald-500 bg-emerald-500/10'
                 : selectedFile
-                ? 'border-emerald-500/60 bg-emerald-950/10'
-                : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/70'
+                  ? 'border-emerald-500/60 bg-emerald-500/5'
+                  : 'border-border bg-surface hover:border-border hover:bg-surface-hover'
             }`}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4">
-              <Upload className="w-7 h-7" />
+            <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" />
+            <div className="rounded-full bg-surface-raised p-3 text-emerald-500 dark:text-emerald-400 mb-3 border border-border">
+              <Upload className="h-5 w-5" />
             </div>
 
             {selectedFile ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2 text-emerald-400 font-semibold text-sm">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Target Loaded: {selectedFile.name}</span>
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-2 text-sm font-semibold text-emerald-500 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{selectedFile.name}</span>
                 </div>
-                <p className="text-xs font-mono text-slate-400">
-                  {(selectedFile.size / 1024).toFixed(1)} KB &bull;{' '}
-                  {fileInfo?.arch_hint || 'Native Executable'}
+                <p className="font-mono text-xs text-secondary">
+                  {(selectedFile.size / 1024).toFixed(1)} KB · {fileInfo?.arch_hint || 'Native Binary'}
                 </p>
               </div>
             ) : (
               <div className="space-y-1">
-                <p className="text-sm font-bold text-slate-200">
-                  Drop executable binary here, or{' '}
-                  <span className="text-cyan-400 underline underline-offset-4">browse</span>
+                <p className="text-sm font-medium text-primary">
+                  Drop target binary here, or <span className="text-emerald-500 dark:text-emerald-400 underline underline-offset-4">browse</span>
                 </p>
-                <p className="text-xs text-slate-400">
-                  Supports Linux x86_64 / ARM ELF, macOS Mach-O, Windows PE
-                </p>
+                <p className="text-xs text-muted">Supports Linux ELF, macOS Mach-O, Windows PE</p>
               </div>
             )}
           </div>
 
-          {/* Uploaded File Info Card */}
+          {/* Uploaded File Metadata card */}
           {fileInfo && (
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs font-mono">
-              <div className="flex items-center justify-between text-slate-300">
-                <span className="flex items-center gap-1.5 text-slate-400">
-                  <Cpu className="w-3.5 h-3.5 text-cyan-400" /> Arch
+            <div className="rounded-lg border border-border bg-surface-raised p-3.5 font-mono text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-secondary">
+                  <Cpu className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" /> Architecture
                 </span>
-                <span className="text-cyan-400 font-bold">{fileInfo.arch_hint}</span>
+                <span className="text-primary font-semibold">{fileInfo.arch_hint}</span>
               </div>
               {fileInfo.sha256 && (
-                <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <Hash className="w-3.5 h-3.5 text-blue-400" /> SHA-256
+                <div className="flex items-center justify-between gap-4">
+                  <span className="flex items-center gap-1.5 text-secondary">
+                    <Hash className="h-3.5 w-3.5 text-muted" /> SHA-256
                   </span>
-                  <span className="text-slate-400 truncate max-w-[280px]">
-                    {fileInfo.sha256}
-                  </span>
+                  <span className="max-w-[280px] truncate text-secondary">{fileInfo.sha256}</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Sample Selectors */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-semibold uppercase tracking-wider font-mono">
-                Or Select Benchmark Target
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* Benchmark Picker */}
+          <div className="space-y-2">
+            <span className="font-mono text-xs uppercase tracking-wider text-secondary font-medium">
+              Or Select A Research Benchmark
+            </span>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {samples.map((sample) => {
                 const isSelected = selectedSampleId === sample.id;
                 return (
                   <button
                     key={sample.id}
+                    type="button"
                     onClick={() => handleSelectSample(sample.id)}
-                    className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    className={`flex flex-col rounded-lg border p-3 text-left transition-colors ${
                       isSelected
-                        ? 'border-cyan-500 bg-cyan-950/20 text-slate-100 shadow-sm'
-                        : 'border-slate-800/80 bg-slate-900/40 hover:border-slate-700 text-slate-300'
+                        ? 'border-emerald-500/60 bg-emerald-500/10'
+                        : 'border-border bg-surface hover:border-border hover:bg-surface-hover'
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-[10px] font-mono text-cyan-400 font-semibold uppercase">
+                    <div className="flex w-full items-center justify-between">
+                      <span className="font-mono text-[10px] uppercase text-muted">
                         {sample.category}
                       </span>
                       <span
-                        className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
-                          sample.severity === 'CRITICAL'
-                            ? 'bg-red-500/10 text-red-400'
-                            : 'bg-orange-500/10 text-orange-400'
+                        className={`font-mono text-[10px] font-bold ${
+                          sample.severity === 'CRITICAL' ? 'text-rose-500 dark:text-rose-400' : 'text-amber-500 dark:text-amber-400'
                         }`}
                       >
                         {sample.severity}
                       </span>
                     </div>
-                    <span className="text-xs font-bold truncate">{sample.name}</span>
+                    <span className="mt-1 font-semibold text-xs text-primary truncate">{sample.name}</span>
                   </button>
                 );
               })}
@@ -251,28 +235,28 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           </div>
 
           {uploadError && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-500 dark:text-rose-300">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{uploadError}</span>
             </div>
           )}
         </div>
 
-        {/* Right Column: Engine Parameters & Launch */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-6">
-            <div className="flex items-center gap-2 border-b border-slate-800/80 pb-4">
-              <Sliders className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider font-mono">
-                Solver Engine Tuning
+        {/* Right Column: Solver Tuning Parameters */}
+        <div className="lg:col-span-5">
+          <div className="space-y-6 rounded-xl border border-border bg-surface p-6 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border pb-3">
+              <Sliders className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+              <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-primary">
+                Engine & Solver Parameters
               </h3>
             </div>
 
-            {/* Max Steps Slider */}
+            {/* Depth Slider */}
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-slate-300">Max Symbolic Depth</span>
-                <span className="text-cyan-400 font-bold">{maxSteps} steps</span>
+              <div className="flex justify-between font-mono text-xs">
+                <span className="text-secondary">Max Symbolic Depth</span>
+                <span className="font-bold text-emerald-500 dark:text-emerald-400">{maxSteps} steps</span>
               </div>
               <input
                 type="range"
@@ -281,18 +265,18 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 step={50}
                 value={maxSteps}
                 onChange={(e) => setMaxSteps(Number(e.target.value))}
-                className="w-full accent-cyan-400 bg-slate-800 rounded-lg h-1.5 cursor-pointer"
+                className="w-full cursor-pointer accent-emerald-500"
               />
-              <span className="text-[10px] text-slate-400 block">
-                Upper bound on basic block execution trace before path truncation.
+              <span className="block text-[11px] text-muted leading-tight">
+                Maximum basic block execution slice before timeout.
               </span>
             </div>
 
-            {/* Symbolic Input Buffer Size */}
+            {/* Symbolic Size Slider */}
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-slate-300">Symbolic Buffer Size</span>
-                <span className="text-cyan-400 font-bold">{symbolicSize} Bytes</span>
+              <div className="flex justify-between font-mono text-xs">
+                <span className="text-secondary">Symbolic Input Buffer</span>
+                <span className="font-bold text-emerald-500 dark:text-emerald-400">{symbolicSize} bytes</span>
               </div>
               <input
                 type="range"
@@ -301,41 +285,38 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 step={8}
                 value={symbolicSize}
                 onChange={(e) => setSymbolicSize(Number(e.target.value))}
-                className="w-full accent-cyan-400 bg-slate-800 rounded-lg h-1.5 cursor-pointer"
+                className="w-full cursor-pointer accent-emerald-500"
               />
-              <span className="text-[10px] text-slate-400 block">
-                Length of symbolic byte bitvectors injected into stdin and memory buffers.
+              <span className="block text-[11px] text-muted leading-tight">
+                Length of symbolic bitvector injected into stdin buffers.
               </span>
             </div>
 
-            {/* GNN Toggle */}
-            <div className="pt-2 border-t border-slate-800/80 space-y-4">
-              <label className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <span className="text-xs font-bold text-slate-200 block">
-                    GNN SageConv Pre-Filter
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Prioritize high-risk CFG functions to mitigate path explosion
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={enableGnn}
-                  onChange={(e) => setEnableGnn(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-cyan-500 focus:ring-0 focus:ring-offset-0 accent-cyan-400"
-                />
-              </label>
-            </div>
+            {/* GraphSAGE Toggle */}
+            <label className="flex cursor-pointer items-center justify-between border-t border-border pt-4">
+              <div className="space-y-0.5">
+                <span className="block text-xs font-semibold text-primary">GraphSAGE Pre-Filter</span>
+                <span className="block text-[11px] text-muted">
+                  Prunes 99.6% benign paths using SageConv risk scores.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={enableGnn}
+                onChange={(e) => setEnableGnn(e.target.checked)}
+                className="h-4 w-4 rounded accent-emerald-500"
+              />
+            </label>
 
-            {/* Launch CTA */}
+            {/* Execute Launch Button */}
             <button
+              type="button"
               onClick={handleLaunch}
               disabled={isUploading}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm tracking-wide transition-all shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-signal w-full py-2.5 text-xs font-bold"
             >
-              <Play className="w-4 h-4 fill-slate-950" />
-              <span>Execute Symbolic Fuzzing</span>
+              <Play className="h-4 w-4 fill-current" />
+              <span>{isUploading ? 'Engine Initializing…' : 'Execute Neuro-Symbolic Analysis'}</span>
             </button>
           </div>
         </div>

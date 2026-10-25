@@ -79,8 +79,8 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
           selector: 'node',
           style: {
             label: 'data(label)',
-            color: '#cbd5e1',
-            'font-family': 'JetBrains Mono, monospace',
+            color: '#ebe6dc',
+            'font-family': 'IBM Plex Mono, monospace',
             'font-size': '10px',
             'font-weight': 600,
             'text-valign': 'center',
@@ -90,74 +90,74 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
             width: 'label',
             height: 'label',
             padding: '10px 14px',
-            shape: 'round-rectangle',
-            'background-color': '#0d1322',
+            shape: 'rectangle',
+            'background-color': '#12110e',
             'border-width': 1.5,
-            'border-color': '#1e293b',
+            'border-color': '#433e36',
           },
         },
         {
           selector: '.entry',
           style: {
-            'border-color': '#10b981',
+            'border-color': '#7dcca0',
             'border-width': 2.5,
-            color: '#34d399',
-            'background-color': '#06231a',
+            color: '#7dcca0',
+            'background-color': '#0e1c16',
             shape: 'diamond',
           },
         },
         {
           selector: '.library',
           style: {
-            'border-color': '#a855f7',
+            'border-color': '#8a8378',
             'border-width': 1.5,
-            color: '#c084fc',
-            'background-color': '#1a0d2e',
-            shape: 'round-rectangle',
+            color: '#c9c2b4',
+            'background-color': '#1a1814',
+            shape: 'rectangle',
           },
         },
         {
           selector: '.loop-header',
           style: {
-            'border-color': '#06b6d4',
+            'border-color': '#c4a35a',
             'border-style': 'dashed',
             'border-width': 2.5,
-            'background-color': '#06202e',
+            'background-color': '#1a160e',
           },
         },
         {
           selector: '.gnn-vulnerable-node',
           style: {
-            'border-color': '#f97316',
+            'border-color': '#ff3b1f',
             'border-width': 2.5,
-            color: '#fdba74',
-            'background-color': '#301306',
+            color: '#ffb4a8',
+            'background-color': '#2a100c',
           },
         },
         {
           selector: '.active-node',
           style: {
-            'border-color': '#ef4444',
+            'border-color': '#d4ff4a',
             'border-width': 3,
-            color: '#fca5a5',
-            'background-color': '#450a0a',
+            color: '#d4ff4a',
+            'background-color': '#1a1e0a',
             'z-index': 999,
           },
         },
         {
           selector: 'node:selected',
           style: {
-            'border-color': '#38bdf8',
+            'border-color': '#d4ff4a',
             'border-width': 3,
-            'background-color': '#082f49',
+            'background-color': '#1a1e0a',
           },
         },
         {
           selector: 'edge',
           style: {
             width: 1.8,
-            'line-color': '#334155',
-            'target-arrow-color': '#334155',
+            'line-color': '#433e36',
+            'target-arrow-color': '#433e36',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 0.9,
@@ -168,8 +168,8 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
           selector: '.active-edge',
           style: {
             width: 3,
-            'line-color': '#ef4444',
-            'target-arrow-color': '#ef4444',
+            'line-color': '#d4ff4a',
+            'target-arrow-color': '#d4ff4a',
             'line-style': 'dashed',
             opacity: 1,
             'z-index': 999,
@@ -245,39 +245,34 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[640px] rounded-2xl bg-[#06080e] border border-slate-800/90 shadow-2xl flex flex-col overflow-hidden">
-      {/* Top Controls Toolbar */}
-      <div className="p-3.5 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 z-10">
-        {/* Graph Mode Toggles */}
-        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+    <div className="relative flex h-[640px] w-full flex-col overflow-hidden border border-line bg-ink">
+      <div className="z-10 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-ink-2 p-3.5">
+        <div className="flex items-center gap-px border border-line bg-line">
           <button
+            type="button"
             onClick={() => setGraphType('cfg')}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-              graphType === 'cfg'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                : 'text-slate-400 hover:text-slate-200'
+            className={`bg-ink px-3 py-1 font-mono text-xs ${
+              graphType === 'cfg' ? 'text-signal' : 'text-mute hover:text-paper'
             }`}
           >
             Control Flow Graph (CFG)
           </button>
           <button
+            type="button"
             onClick={() => setGraphType('cg')}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-              graphType === 'cg'
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                : 'text-slate-400 hover:text-slate-200'
+            className={`bg-ink px-3 py-1 font-mono text-xs ${
+              graphType === 'cg' ? 'text-signal' : 'text-mute hover:text-paper'
             }`}
           >
             Call Graph (CG)
           </button>
         </div>
 
-        {/* Layout Switcher & Search */}
         <div className="flex items-center gap-2">
           <select
             value={layoutName}
             onChange={(e) => setLayoutName(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono outline-none"
+            className="border border-line bg-ink px-2.5 py-1.5 font-mono text-xs text-paper-dim outline-none"
           >
             <option value="dagre">Hierarchical (Dagre)</option>
             <option value="cose">Force-Directed (CoSE)</option>
@@ -287,45 +282,28 @@ export const GraphViewer: React.FC<GraphViewerProps> = ({
           </select>
 
           <form onSubmit={handleSearch} className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-mute" />
             <input
               type="text"
               placeholder="Search function / address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 font-mono focus:border-cyan-500 outline-none w-44 sm:w-52"
+              className="w-44 border border-line bg-ink py-1.5 pr-3 pl-8 font-mono text-xs text-paper outline-none focus:border-signal sm:w-52"
             />
           </form>
 
-          {/* Zoom Buttons */}
-          <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
-            <button
-              onClick={handleZoomIn}
-              className="p-1.5 text-slate-400 hover:text-cyan-400"
-              title="Zoom In"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1 border border-line bg-ink p-1">
+            <button type="button" onClick={handleZoomIn} className="p-1.5 text-mute hover:text-signal" title="Zoom In">
+              <ZoomIn className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={handleZoomOut}
-              className="p-1.5 text-slate-400 hover:text-cyan-400"
-              title="Zoom Out"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
+            <button type="button" onClick={handleZoomOut} className="p-1.5 text-mute hover:text-signal" title="Zoom Out">
+              <ZoomOut className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={handleFit}
-              className="p-1.5 text-slate-400 hover:text-cyan-400"
-              title="Fit to Screen"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
+            <button type="button" onClick={handleFit} className="p-1.5 text-mute hover:text-signal" title="Fit to Screen">
+              <Maximize2 className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={handleReset}
-              className="p-1.5 text-slate-400 hover:text-cyan-400"
-              title="Reset View"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
+            <button type="button" onClick={handleReset} className="p-1.5 text-mute hover:text-signal" title="Reset View">
+              <RotateCcw className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
