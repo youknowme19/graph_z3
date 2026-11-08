@@ -1,11 +1,12 @@
 """
-End-to-End Federated Learning Simulation for GRAPH_Z3 using Flower.
+End-to-End Federated Learning Simulation for NeuroZ3 (GRAPH_Z3) using Flower.
 
 Simulates multiple independent security organizations collaborating to train
-VulnGNN under Non-IID vulnerability graph distributions.
+40-dimensional Bidirectional VulnGNN under Non-IID vulnerability and repository silos
+strictly over real compiled stripped binary CFGs.
 
 Usage:
-    python -m src.ml.federated.simulation --num-clients 3 --rounds 5 --strategy fedprox
+    python -m src.ml.federated.simulation --num-clients 5 --rounds 10 --strategy fedprox
 """
 
 import os
@@ -15,7 +16,6 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any
 
-# Ensure project root is in sys.path
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -27,166 +27,208 @@ except ImportError:
 
 try:
     from torch_geometric.loader import DataLoader
-    from torch_geometric.data import Data
 except ImportError:
     DataLoader = None
-    class Data:
-        def __init__(self, x=None, edge_index=None, y=None, **kwargs):
-            self.x = x
-            self.edge_index = edge_index
-            self.y = y
-            for k, v in kwargs.items():
-                setattr(self, k, v)
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 try:
     import flwr as fl
-    from flwr.simulation import start_simulation
     FLWR_AVAILABLE = True
 except ImportError:
     FLWR_AVAILABLE = False
 
 from src.ml.federated.client import FlowerVulnClient, create_client
-from src.ml.federated.server import create_federated_strategy, get_initial_parameters
+from src.ml.federated.server import (
+    create_federated_strategy,
+    get_initial_parameters,
+    aggregate_fit_metrics,
+    aggregate_eval_metrics,
+)
+from src.ml.trainer import load_pt_dataset, _extract_cwe, _split_by_binary
 
 
 def partition_dataset_non_iid(
-    dataset: List[Any], num_clients: int = 3
+    dataset: List[Any], num_clients: int = 5
 ) -> List[List[Any]]:
     """
-    Partitions graphs across clients in a Non-IID fashion by grouping
-    related binaries/CWEs together.
+    Partitions real binary CFG graphs across clients in a Non-IID fashion:
+      - When num_clients == 5, assigns the 5 canonical organizational silos:
+          Silo 0: Stack & Out-of-Bounds Memory Safety (CWE-121/124/126/127)
+          Silo 1: Heap & Pointer Lifecycle (CWE-122/415/416/476/590/690/761/789)
+          Silo 2: Arithmetic & Input-Taint (CWE-190/191/194/195/197/680/134/78/369)
+          Silo 3: Linux Kernel Real-World CVEs (PrimeVul linux repository)
+          Silo 4: User-Space OSS Daemons & Libraries Real-World CVEs (openssl, FFmpeg, etc.)
+      - For arbitrary num_clients, maps each canonical silo modulo num_clients.
     """
+    silos: List[List[Any]] = [[] for _ in range(5)]
+    for d in dataset:
+        cwe = _extract_cwe(d)
+        src = str(getattr(d, "corpus_source", ""))
+        proj = str(getattr(d, "project", "")).lower()
+        if src == "primevul_real_cve":
+            if proj == "linux":
+                silos[3].append(d)
+            else:
+                silos[4].append(d)
+        elif cwe in ("CWE121", "CWE124", "CWE126", "CWE127"):
+            silos[0].append(d)
+        elif cwe in ("CWE122", "CWE415", "CWE416", "CWE476", "CWE590", "CWE690", "CWE761", "CWE789"):
+            silos[1].append(d)
+        else:
+            silos[2].append(d)
+
+    if num_clients == 5:
+        return silos
+
     clients_data: List[List[Any]] = [[] for _ in range(num_clients)]
-    for idx, data in enumerate(dataset):
-        # Distribute into client buckets
-        client_idx = idx % num_clients
-        clients_data[client_idx].append(data)
+    for s_idx, silo_items in enumerate(silos):
+        for item_idx, item in enumerate(silo_items):
+            target_c = (s_idx if num_clients <= 5 else (s_idx + item_idx)) % num_clients
+            clients_data[target_c].append(item)
+
+    for c_i in range(num_clients):
+        if not clients_data[c_i] and dataset:
+            clients_data[c_i].append(dataset[c_i % len(dataset)])
     return clients_data
 
 
-def generate_synthetic_cfgs(num_graphs: int = 60, num_nodes: int = 25, feat_dim: int = 11):
-    """Fallback generator for synthetic CFG data if dataset is empty."""
-    dataset = []
-    for g_i in range(num_graphs):
-        x = torch.randn((num_nodes, feat_dim), dtype=torch.float)
-        # Create a simple DAG / CFG edge structure
-        edges_src = list(range(num_nodes - 1))
-        edges_dst = list(range(1, num_nodes))
-        # Add a few cross branches
-        for b in range(0, num_nodes - 4, 4):
-            edges_src.append(b)
-            edges_dst.append(b + 3)
-        edge_index = torch.tensor([edges_src, edges_dst], dtype=torch.long)
-        
-        # 0 = safe basic block, 1 = vulnerable block (rare, ~10%)
-        y = torch.zeros(num_nodes, dtype=torch.long)
-        vuln_nodes = [num_nodes // 2, num_nodes - 2]
-        for vn in vuln_nodes:
-            y[vn] = 1
-            # Correlate features (e.g. store instruction, depth)
-            x[vn, 6] = 2.5  # store
-            x[vn, 10] = 3.0 # sym vars
-
-        data = Data(x=x, edge_index=edge_index, y=y)
-        dataset.append(data)
-    return dataset
-
-
 def run_federated_simulation(
-    num_clients: int = 3,
-    num_rounds: int = 5,
+    num_clients: int = 5,
+    num_rounds: int = 10,
     strategy_name: str = "fedprox",
-    local_epochs: int = 2,
+    local_epochs: int = 6,
+    proximal_mu: float = 0.002,
+    dataset_dir: str = "",
     output_path: str = "benchmark_federated_results.json",
 ):
-    """Executes the Flower federated learning simulation."""
+    """Executes the Flower federated learning simulation exclusively on real binary CFG graphs."""
     if not FLWR_AVAILABLE:
         print("[-] Flower (flwr) is not installed. To run this simulation, install:")
         print("    pip install 'flwr>=1.7.0'")
         return
 
-    print(f"==================================================")
-    print(f"  GRAPH_Z3 Federated Learning Simulation (Flower) ")
-    print(f"==================================================")
+    print("==================================================")
+    print("  NeuroZ3 Federated Learning Simulation (Flower)  ")
+    print("==================================================")
     print(f"[*] Participating Clients : {num_clients}")
     print(f"[*] Aggregation Rounds    : {num_rounds}")
-    print(f"[*] Strategy              : {strategy_name.upper()}")
+    print(f"[*] Strategy              : {strategy_name.upper()} (mu={proximal_mu if strategy_name=='fedprox' else 0.0})")
     print(f"[*] Local Epochs / Round  : {local_epochs}")
-    print(f"==================================================")
+    print("==================================================")
 
-    # 1. Load or synthesize dataset
-    graphs = []
-    try:
-        from src.ml.dataset_builder import JulietDatasetBuilder
-        dataset_builder = JulietDatasetBuilder()
-        graphs = dataset_builder.load_graphs() if hasattr(dataset_builder, "load_graphs") else []
-    except Exception as e:
-        print(f"[*] Note: Real binary dataset loader skipped ({e}).")
+    target_dirs = []
+    if dataset_dir:
+        target_dirs.append(dataset_dir)
+    else:
+        for sub in ("primevul_graphs", "processed_graphs"):
+            cand = os.path.join(root_dir, "data", sub)
+            if os.path.isdir(cand):
+                target_dirs.append(cand)
 
-    if not graphs or len(graphs) < 10:
-        print("[*] Generating synthetic Control Flow Graphs for federated benchmark...")
-        graphs = generate_synthetic_cfgs(num_graphs=90, num_nodes=30, feat_dim=11)
-    
-    print(f"[+] Total binary CFG graphs available: {len(graphs)}")
+    graphs = load_pt_dataset(target_dirs)
+    if not graphs:
+        raise RuntimeError(
+            "No real .pt binary CFG graphs found! Refusing to generate synthetic graphs. "
+            "Build the real binary corpus first via scripts/build_primevul_real_corpus.py or scripts/build_large_corpus.py."
+        )
 
-    # 2. Partition dataset into Non-IID client splits
+    feat_dim = int(graphs[0].x.shape[1])
+    print(f"[+] Total real binary CFG graphs loaded: {len(graphs)} (feature dim={feat_dim})")
+
     client_partitions = partition_dataset_non_iid(graphs, num_clients)
+    client_splits = []
     for c_id, part in enumerate(client_partitions):
-        print(f"[+] Client {c_id}: {len(part)} graphs assigned")
+        tr, va, _ = _split_by_binary(part, train_ratio=0.80, val_ratio=0.20, test_ratio=0.0, seed=42 + c_id)
+        if not va:
+            va = tr[-max(1, len(tr) // 5):]
+        client_splits.append((tr, va))
+        print(f"[+] Client {c_id}: {len(part)} real binary graphs assigned (train={len(tr)}, val={len(va)})")
 
-    # 3. Setup client factory function for Flower simulation
+    eff_mu = proximal_mu if strategy_name.lower() == "fedprox" else 0.0
+
     def client_fn(cid: str) -> FlowerVulnClient:
         client_idx = int(cid)
-        client_graphs = client_partitions[client_idx]
-        split_idx = int(len(client_graphs) * 0.8)
-        train_data = client_graphs[:split_idx]
-        val_data = client_graphs[split_idx:] if split_idx < len(client_graphs) else train_data
-
-        train_loader = DataLoader(train_data, batch_size=4, shuffle=True)
-        val_loader = DataLoader(val_data, batch_size=4, shuffle=False)
+        train_data, val_data = client_splits[client_idx]
+        train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_data, batch_size=32, shuffle=False)
 
         return create_client(
             client_id=f"client_{client_idx}",
             train_loader=train_loader,
             val_loader=val_loader,
-            input_dim=11,
+            input_dim=feat_dim,
             hidden_dim=128,
             num_layers=3,
             encoder="sage",
             local_epochs=local_epochs,
+            proximal_mu=eff_mu,
         )
 
-    # 4. Initialize strategy with initial parameters
-    init_params = get_initial_parameters(input_dim=11, hidden_dim=128, num_layers=3, encoder="sage")
-    strategy = create_federated_strategy(
-        strategy_name=strategy_name,
-        fraction_fit=1.0,
-        fraction_evaluate=1.0,
-        min_fit_clients=num_clients,
-        min_evaluate_clients=num_clients,
-        min_available_clients=num_clients,
-        initial_parameters=init_params,
-    )
-
-    # 5. Launch Flower simulation
     print("[*] Starting Flower federated orchestration...")
-    history = start_simulation(
-        client_fn=client_fn,
-        num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=num_rounds),
-        strategy=strategy,
-    )
+    clients = [client_fn(str(i)) for i in range(num_clients)]
+    global_params = clients[0].get_parameters(config={})
 
-    # 6. Save benchmark results
+    losses_distributed = []
+    metrics_distributed: Dict[str, List[float]] = {}
+
+    for rnd in range(1, num_rounds + 1):
+        fit_Outputs = []
+        total_train_examples = 0
+        fit_metrics_list = []
+
+        for c in clients:
+            updated_w, n_ex, f_metrics = c.fit(
+                global_params,
+                config={"server_round": rnd, "local_epochs": local_epochs, "proximal_mu": eff_mu},
+            )
+            fit_Outputs.append((updated_w, n_ex))
+            total_train_examples += n_ex
+            fit_metrics_list.append((n_ex, f_metrics))
+
+        # Sample-weighted FedAvg / FedProx server aggregation
+        global_params = [
+            sum(w_client[layer_idx] * (n_ex / max(total_train_examples, 1)) for w_client, n_ex in fit_Outputs)
+            for layer_idx in range(len(global_params))
+        ]
+        agg_fit = aggregate_fit_metrics(fit_metrics_list)
+
+        eval_metrics_list = []
+        total_val_examples = 0
+        weighted_val_loss = 0.0
+        for c in clients:
+            v_loss, n_val, e_metrics = c.evaluate(global_params, config={"server_round": rnd})
+            eval_metrics_list.append((n_val, e_metrics))
+            total_val_examples += n_val
+            weighted_val_loss += v_loss * n_val
+
+        agg_eval = aggregate_eval_metrics(eval_metrics_list)
+        round_loss = weighted_val_loss / max(total_val_examples, 1)
+        losses_distributed.append(float(round_loss))
+        for k, v in agg_eval.items():
+            metrics_distributed.setdefault(k, []).append(float(v))
+
+        print(
+            f"  [Round {rnd:02d}/{num_rounds:02d}] "
+            f"train_loss={agg_fit.get('train_loss', 0.0):.4f} | "
+            f"val_loss={round_loss:.4f} | "
+            f"roc_auc={agg_eval.get('roc_auc', 0.0):.4f} | "
+            f"top1={agg_eval.get('top1_hit_rate', 0.0)*100:.2f}% | "
+            f"top5={agg_eval.get('top5_hit_rate', 0.0)*100:.2f}%"
+        )
+
     results = {
         "num_clients": num_clients,
         "rounds": num_rounds,
         "strategy": strategy_name,
-        "losses_distributed": [float(x[1]) for x in history.losses_distributed] if history.losses_distributed else [],
-        "metrics_distributed": {
-            k: [float(v[1]) for v in vals]
-            for k, vals in (history.metrics_distributed or {}).items()
-        },
+        "proximal_mu": eff_mu,
+        "local_epochs": local_epochs,
+        "client_partition_sizes": [len(p) for p in client_partitions],
+        "losses_distributed": losses_distributed,
+        "metrics_distributed": metrics_distributed,
     }
 
     out_file = Path(root_dir) / output_path
@@ -199,11 +241,12 @@ def run_federated_simulation(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GRAPH_Z3 Flower Federated Simulation")
-    parser.add_argument("--num-clients", type=int, default=3, help="Number of simulated clients")
-    parser.add_argument("--rounds", type=int, default=5, help="Number of FL communication rounds")
+    parser = argparse.ArgumentParser(description="NeuroZ3 Flower Federated Simulation")
+    parser.add_argument("--num-clients", type=int, default=5, help="Number of simulated clients")
+    parser.add_argument("--rounds", type=int, default=10, help="Number of FL communication rounds")
     parser.add_argument("--strategy", type=str, default="fedprox", choices=["fedavg", "fedprox"], help="FL Strategy")
-    parser.add_argument("--epochs", type=int, default=2, help="Local epochs per round")
+    parser.add_argument("--epochs", type=int, default=6, help="Local epochs per round")
+    parser.add_argument("--mu", type=float, default=0.002, help="FedProx proximal weight mu")
     parser.add_argument("--out", type=str, default="benchmark_federated_results.json", help="Output file")
 
     args = parser.parse_args()
@@ -212,5 +255,6 @@ if __name__ == "__main__":
         num_rounds=args.rounds,
         strategy_name=args.strategy,
         local_epochs=args.epochs,
+        proximal_mu=args.mu,
         output_path=args.out,
     )

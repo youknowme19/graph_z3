@@ -23,3 +23,7 @@ where = ["src"]
 
 [project.scripts]
 nsf-scan = "main:cli_main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["frontend", "node_modules", ".git", ".pytest_cache"]

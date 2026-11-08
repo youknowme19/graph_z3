@@ -146,17 +146,27 @@ def background_analysis_task(analysis_id: str, binary_path: str, filename: str, 
                     x = torch.tensor(x_list, dtype=torch.float)
                     edge_index = torch.tensor([edge_sources, edge_targets], dtype=torch.long) if edge_sources else torch.empty((2, 0), dtype=torch.long)
 
-                    checkpoint = torch.load(model_path, map_location='cpu')
-                    config = checkpoint.get('config', {'input_dim': 40, 'hidden_dim': 128, 'num_layers': 3, 'encoder': 'sage', 'dropout': 0.3})
+                    checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+                    config = checkpoint.get('config', {'input_dim': 40, 'hidden_dim': 128, 'num_layers': 3, 'encoder': 'sage', 'dropout': 0.25})
                     model = create_model(**config)
                     model.load_state_dict(checkpoint['model_state_dict'])
+                    temp = float(checkpoint.get('temperature', 1.0))
+                    temp_path = os.path.join(project_root, "model_temperature.json")
+                    if os.path.exists(temp_path):
+                        with open(temp_path) as tf:
+                            temp = float(json.load(tf).get("temperature", temp))
+                    model.set_temperature(temp)
                     model.eval()
 
                     with torch.no_grad():
                         probs = model.predict_proba(x, edge_index)
                         vuln_probs = probs[:, 1].numpy()
 
-                    threshold = 0.4
+                    threshold = float(checkpoint.get('threshold', 0.5))
+                    thresh_path = os.path.join(project_root, "model_threshold.json")
+                    if os.path.exists(thresh_path):
+                        with open(thresh_path) as thf:
+                            threshold = float(json.load(thf).get("threshold", threshold))
                     bb_vuln_flags = vuln_probs > threshold
 
                     func_vuln_map = {}

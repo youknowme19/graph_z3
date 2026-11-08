@@ -1,7 +1,7 @@
 try:
     import torch
     import torch.nn.functional as F
-    from torch_geometric.nn import SAGEConv, GATConv, LayerNorm
+    from torch_geometric.nn import SAGEConv, GATConv, LayerNorm, global_mean_pool, global_max_pool
 except ImportError:
     # Fallback to avoid syntax errors if torch/PyG not installed yet
     torch = None
@@ -9,6 +9,8 @@ except ImportError:
     SAGEConv = object
     GATConv = object
     LayerNorm = object
+    global_mean_pool = None
+    global_max_pool = None
 
 
 class VulnGNN(torch.nn.Module if torch is not None else object):
@@ -50,17 +52,17 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
         self.encoder_type = encoder
         self.dropout = dropout
         
-        # Input projection to hidden_dim
+        # Input projection to hidden_dim (mode='node' guarantees exact batch vs single-graph equivalence)
         self.input_proj = torch.nn.Linear(input_dim, hidden_dim)
-        self.input_norm = LayerNorm(hidden_dim)
+        self.input_norm = LayerNorm(hidden_dim, mode='node')
         
-        # GNN layers
+        # GNN layers (bidirectional control-flow message passing: forward + backward CFG edges)
         self.convs = torch.nn.ModuleList()
+        self.rev_convs = torch.nn.ModuleList()
         self.norms = torch.nn.ModuleList()
         
         for i in range(num_layers):
             if encoder == 'gat':
-                # GAT with multi-head attention
                 conv = GATConv(
                     hidden_dim, 
                     hidden_dim // heads, 
@@ -69,12 +71,27 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
                     add_self_loops=True,
                     concat=True
                 )
+                rev_conv = GATConv(
+                    hidden_dim,
+                    hidden_dim // heads,
+                    heads=heads,
+                    dropout=dropout,
+                    add_self_loops=True,
+                    concat=True
+                )
             else:
-                # GraphSAGE (inductive, better for unseen graphs)
                 conv = SAGEConv(hidden_dim, hidden_dim, normalize=True)
+                rev_conv = SAGEConv(hidden_dim, hidden_dim, normalize=True)
             
             self.convs.append(conv)
-            self.norms.append(LayerNorm(hidden_dim))
+            self.rev_convs.append(rev_conv)
+            self.norms.append(LayerNorm(hidden_dim, mode='node'))
+
+        # Global binary/CFG context conditioning (captures whole-function guard vs sink balance)
+        self.global_ctx_proj = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim * 2, hidden_dim),
+            torch.nn.ReLU(),
+        )
         
         # Feature importance gating (learns which features matter)
         self.feature_gate = torch.nn.Sequential(
@@ -131,17 +148,28 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         
-        # GNN layers with residual connections
-        for i, (conv, norm) in enumerate(zip(self.convs, self.norms)):
+        rev_edge_index = edge_index.flip(0) if edge_index.numel() > 0 else edge_index
+
+        # Bidirectional CFG GNN layers (forward control-flow + backward dominator/guard flow) with residuals
+        for i, (conv, rconv, norm) in enumerate(zip(self.convs, self.rev_convs, self.norms)):
             residual = x
-            x = conv(x, edge_index)
+            x_fwd = conv(x, edge_index)
+            x_bwd = rconv(x, rev_edge_index)
+            x = 0.5 * (x_fwd + x_bwd)
             x = norm(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
             
-            # Residual connection (skip connection)
-            if i > 0:  # Skip first layer residual to allow feature transformation
+            if i > 0:
                 x = x + residual
+
+        # Condition node embeddings on global CFG summary
+        if batch is None:
+            batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+        g_mean = global_mean_pool(x, batch)
+        g_max = global_max_pool(x, batch)
+        g_ctx = self.global_ctx_proj(torch.cat([g_mean, g_max], dim=-1))
+        x = x + 0.25 * g_ctx[batch]
         
         # Feature gating - learn to weight important dimensions
         gate = self.feature_gate(x)
@@ -269,7 +297,7 @@ def create_model(input_dim=40, hidden_dim=128, num_layers=3, encoder='sage', **k
 def load_checkpoint_model(model_path_or_dict, device='cpu'):
     """Universal loader for VulnGNN and VulnGNNSimple models."""
     if isinstance(model_path_or_dict, str):
-        ckpt = torch.load(model_path_or_dict, map_location=device)
+        ckpt = torch.load(model_path_or_dict, map_location=device, weights_only=False)
     else:
         ckpt = model_path_or_dict
 

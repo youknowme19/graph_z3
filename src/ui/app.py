@@ -621,7 +621,7 @@ def run_analysis_worker(analysis_id: str, decoded_bytes: bytes, filename: str) -
                     edge_index = torch.empty((2, 0), dtype=torch.long)
 
                 # Load model with new architecture (40 input features, 128 hidden)
-                checkpoint = torch.load(model_path, map_location='cpu')
+                checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
                 config = checkpoint.get('config', {
                     'input_dim': 40,
                     'hidden_dim': 128,

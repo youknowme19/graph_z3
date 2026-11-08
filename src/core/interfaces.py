@@ -397,6 +397,10 @@ def _classify_angr_error(msg: str) -> Tuple[str, str, str]:
         return "DIVZERO", "HIGH", f"Division by zero: {msg}"
     if any(k in m for k in ("unconstrained", "symbolic pc", "unsat")):
         return "SYMBOLIC_PC", "CRITICAL", f"Unconstrained execution state: {msg}"
+    # Tool/framework exceptions (e.g. claripy type errors, unsupported instructions)
+    # should be classified as engine simulation errors, not false positive security vulnerabilities.
+    if any(k in m for k in ("claripy", "must have the same length", "not implemented", "unsupported", "keyerror", "attributeerror")):
+        return "SIMULATION_ERROR", "INFO", f"Analysis engine simulation error: {msg}"
     return "CRASH", "HIGH", f"Execution error: {msg}"
 
 
@@ -520,13 +524,20 @@ class AnalysisBackendProvider:
     ):
         self.binary_path = binary_path
         self.max_steps = max_steps
+        self.symbolic_size = symbolic_input_size
+        self._target_func_addr = target_func_addr
         self.original_filename = original_filename or binary_path.split('/')[-1]
         self.gnn_vulnerable_functions = gnn_vulnerable_functions or {}
+        self.enable_gnn = bool(self.gnn_vulnerable_functions)
         self.solver_events: List[Dict[str, Any]] = []
 
         self._emit("INIT", "Binary loader starting...")
-        self.loader = BinaryLoader(binary_path)
-        self.loader.analyze()
+        shared_loader = kwargs.get("_shared_loader")
+        if shared_loader is not None:
+            self.loader = shared_loader
+        else:
+            self.loader = BinaryLoader(binary_path)
+            self.loader.analyze()
         self._emit("INFO", f"Binary loaded: {binary_path.split('/')[-1]}")
 
         self._dynamic_stubs: Dict[str, Tuple[str, str, str]] = {}
@@ -612,12 +623,15 @@ class AnalysisBackendProvider:
         import claripy
         from graph.graph_builder import GraphBuilder
 
+        node_to_scc = {}
         try:
             nx_cfg = GraphBuilder(self.loader).build_networkx_cfg()
-            sccs = list(nx.strongly_connected_components(nx_cfg))
+            for scc in nx.strongly_connected_components(nx_cfg):
+                if len(scc) > 1:
+                    for n in scc:
+                        node_to_scc[n] = scc
         except Exception:
             nx_cfg = nx.DiGraph()
-            sccs = []
 
         loop_pre_states = {}
 
@@ -633,7 +647,7 @@ class AnalysisBackendProvider:
                     loop_pre_states[addr] = state.copy()
                 else:
                     pre_state = loop_pre_states[addr]
-                    loop_scc = next((scc for scc in sccs if addr in scc), set())
+                    loop_scc = node_to_scc.get(addr, set())
                     exit_nodes = [succ for succ in nx_cfg.successors(addr) if succ not in loop_scc]
                     if exit_nodes:
                         exit_addr = exit_nodes[0]
@@ -799,6 +813,7 @@ class AnalysisBackendProvider:
 
                     err_vt, err_vs, err_vd = _classify_angr_error(err_msg)
                     self._emit("ERROR", f"[{err_vs}] {err_vt} at {addr_hex} in '{func_name}': {str(e)[:80]}")
+                    is_real_vuln = err_vt != "SIMULATION_ERROR"
                     exec_state = ExecutionState(
                         function_name=func_name,
                         basic_block=addr_hex,
@@ -808,8 +823,8 @@ class AnalysisBackendProvider:
                         path_constraints="",
                         solver_status="UNSAT",
                         model_information=f"Execution error: {str(e)}",
-                        explanation=f"Execution failed/errored at {addr_hex}: {str(e)}",
-                        next_state="Errored (Crashed)",
+                        explanation=f"Execution stopped at {addr_hex}: {str(e)}",
+                        next_state="Errored (Simulation halted)",
                         is_library=is_lib,
                         is_branch=False,
                         raw_path_constraints="",
@@ -818,10 +833,10 @@ class AnalysisBackendProvider:
                         next_block="Errored",
                         transferred_function=transferred,
                         new_constraints_introduced=False,
-                        is_vulnerable=True,
-                        vuln_type=err_vt,
-                        vuln_severity=err_vs,
-                        vuln_details=err_vd,
+                        is_vulnerable=is_real_vuln,
+                        vuln_type=err_vt if is_real_vuln else "",
+                        vuln_severity=err_vs if is_real_vuln else "",
+                        vuln_details=err_vd if is_real_vuln else "",
                     )
                     states.append(exec_state)
                     continue
@@ -954,7 +969,16 @@ class AnalysisBackendProvider:
                 if depth >= min(self.max_steps, 1000):
                     active_stash.append(state)
                 else:
-                    for succ in reversed(flat_succs):
+                    ordered_succs = list(reversed(flat_succs))
+                    if self.gnn_vulnerable_functions and len(ordered_succs) > 1:
+                        def _gnn_priority(s_st):
+                            try:
+                                fn = self.loader.get_functions().floor_func(s_st.addr)
+                                return 1 if (fn and self.gnn_vulnerable_functions.get(fn.addr, False)) else 0
+                            except Exception:
+                                return 0
+                        ordered_succs.sort(key=_gnn_priority)
+                    for succ in ordered_succs:
                         if path_history.count(succ.addr) < 40:
                             stack.append((succ, exec_state, depth + 1, path_history + (succ.addr,)))
                         else:
@@ -1474,15 +1498,16 @@ class AnalysisBackendProvider:
                 f for f in self.loader.get_functions().values()
                 if not f.is_plt and not f.is_simprocedure and f.size > 20 and not f.name.startswith('_start')
             ]
+            if self.gnn_vulnerable_functions:
+                user_funcs = [f for f in user_funcs if self.gnn_vulnerable_functions.get(f.addr, False)]
             for ufunc in user_funcs:
                 try:
                     sub_provider = AnalysisBackendProvider(
                         self.binary_path,
                         target_func_addr=ufunc.addr,
                         max_steps=min(self.max_steps, 150),
-                        symbolic_size=self.symbolic_size,
-                        enable_gnn=self.enable_gnn,
-                        timeout_seconds=5,
+                        symbolic_input_size=self.symbolic_size,
+                        _shared_loader=self.loader,
                     )
                     sub_reports = sub_provider.scan_vulnerabilities()
                     for sr in sub_reports:

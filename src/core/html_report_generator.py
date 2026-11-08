@@ -626,11 +626,13 @@ def generate_enterprise_html_report(
 </body>
 </html>"""
 
-    try:
-        with open(output_filename, "w", encoding="utf-8") as f:
-            f.write(html_content)
-    except Exception:
-        pass
+    if output_filename:
+        try:
+            with open(output_filename, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            return output_filename
+        except Exception:
+            pass
 
     return html_content
 

@@ -1,10 +1,10 @@
 """
-Flower Server Strategies and Metric Aggregation for GRAPH_Z3.
+Flower Server Strategies and Metric Aggregation for NeuroZ3 (GRAPH_Z3).
 
 Supports:
 - FedAvg (Federated Averaging)
 - FedProx (Federated Proximal for handling Non-IID client heterogeneity)
-- Weighted metric aggregation (Precision, Recall, F1, Accuracy)
+- Sample-weighted metric aggregation (Precision, Recall, F1, ROC-AUC, PR-AUC, Top-1, Top-5)
 """
 
 from typing import Dict, List, Tuple, Optional, Any
@@ -22,15 +22,23 @@ except ImportError:
 from src.ml.gnn_model import create_model
 
 
+def aggregate_fit_metrics(metrics: List[Tuple[int, Dict[str, Any]]]) -> Dict[str, float]:
+    """
+    Weighted average of client training metrics (train_loss) based on sample counts.
+    """
+    total_examples = sum(num_examples for num_examples, _ in metrics)
+    if total_examples == 0:
+        return {}
+    train_loss = sum(
+        float(m.get("train_loss", 0.0)) * (num_examples / total_examples)
+        for num_examples, m in metrics
+    )
+    return {"train_loss": train_loss}
+
+
 def aggregate_eval_metrics(metrics: List[Tuple[int, Dict[str, Any]]]) -> Dict[str, float]:
     """
     Weighted average of client validation metrics based on sample counts.
-    
-    Args:
-        metrics: List of tuples (num_examples, client_metrics_dict)
-        
-    Returns:
-        Aggregated metrics dictionary.
     """
     total_examples = sum(num_examples for num_examples, _ in metrics)
     if total_examples == 0:
@@ -41,6 +49,10 @@ def aggregate_eval_metrics(metrics: List[Tuple[int, Dict[str, Any]]]) -> Dict[st
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
+        "roc_auc": 0.0,
+        "pr_auc": 0.0,
+        "top1_hit_rate": 0.0,
+        "top5_hit_rate": 0.0,
     }
 
     for num_examples, m in metrics:
@@ -59,24 +71,11 @@ def create_federated_strategy(
     min_fit_clients: int = 2,
     min_evaluate_clients: int = 2,
     min_available_clients: int = 2,
-    proximal_mu: float = 0.1,
+    proximal_mu: float = 0.002,
     initial_parameters: Optional[Any] = None,
 ) -> Any:
     """
-    Constructs a Flower federated learning strategy.
-    
-    Args:
-        strategy_name: 'fedavg' or 'fedprox' (recommended for non-IID CFGs).
-        fraction_fit: Fraction of clients selected for training each round.
-        fraction_evaluate: Fraction of clients selected for evaluation.
-        min_fit_clients: Minimum clients required for training.
-        min_evaluate_clients: Minimum clients required for evaluation.
-        min_available_clients: Minimum available clients before round starts.
-        proximal_mu: Proximal regularization weight for FedProx.
-        initial_parameters: Starting model weights (flwr.common.ndarrays_to_parameters).
-        
-    Returns:
-        Flower Strategy instance.
+    Constructs a Flower federated learning strategy (FedProx or FedAvg).
     """
     if not FLWR_AVAILABLE:
         raise ImportError(
@@ -89,6 +88,7 @@ def create_federated_strategy(
         "min_fit_clients": min_fit_clients,
         "min_evaluate_clients": min_evaluate_clients,
         "min_available_clients": min_available_clients,
+        "fit_metrics_aggregation_fn": aggregate_fit_metrics,
         "evaluate_metrics_aggregation_fn": aggregate_eval_metrics,
         "initial_parameters": initial_parameters,
     }
@@ -105,7 +105,7 @@ def create_federated_strategy(
 
 
 def get_initial_parameters(
-    input_dim: int = 11,
+    input_dim: int = 40,
     hidden_dim: int = 128,
     num_layers: int = 3,
     encoder: str = "sage",
@@ -114,12 +114,12 @@ def get_initial_parameters(
     if not FLWR_AVAILABLE:
         raise ImportError("Flower is required.")
     import flwr.common as fl_common
-    
+
     model = create_model(
         input_dim=input_dim,
         hidden_dim=hidden_dim,
         num_layers=num_layers,
         encoder=encoder,
     )
-    ndarrays = [val.cpu().numpy() for _, val in model.state_dict().items()]
+    ndarrays = [val.detach().cpu().numpy() for _, val in model.state_dict().items()]
     return fl_common.ndarrays_to_parameters(ndarrays)
