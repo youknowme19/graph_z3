@@ -712,7 +712,11 @@ class AnalysisBackendProvider:
         symbolic_input_size: int = 32,
         original_filename: Optional[str] = None,
         target_func_addr: Optional[int] = None,
-        gnn_vulnerable_functions: Optional[Dict[int, bool]] = None,
+        gnn_vulnerable_functions: Optional[Dict[int, Any]] = None,
+        gnn_node_scores: Optional[Dict[int, float]] = None,
+        scheduler_mode: Optional[str] = None,
+        depth_penalty_lambda: float = 0.02,
+        timeout_seconds: Optional[float] = None,
         **kwargs,
     ):
         self.binary_path = binary_path
@@ -721,7 +725,34 @@ class AnalysisBackendProvider:
         self._target_func_addr = target_func_addr
         self.original_filename = original_filename or binary_path.split('/')[-1]
         self.gnn_vulnerable_functions = gnn_vulnerable_functions or {}
-        self.enable_gnn = bool(self.gnn_vulnerable_functions)
+        self.gnn_node_scores: Dict[int, float] = {
+            int(k): float(v) for k, v in (gnn_node_scores or {}).items()
+        }
+        self.enable_gnn = bool(self.gnn_vulnerable_functions or self.gnn_node_scores)
+        if scheduler_mode is not None:
+            mode_norm = str(scheduler_mode).strip().lower()
+            if mode_norm not in ("dfs", "maxheap"):
+                raise ValueError(f"Unsupported scheduler_mode '{scheduler_mode}'; expected 'dfs' or 'maxheap'.")
+            self.scheduler_mode = mode_norm
+        else:
+            self.scheduler_mode = "maxheap" if self.enable_gnn else "dfs"
+        self.depth_penalty_lambda = float(depth_penalty_lambda)
+        self.timeout_seconds = float(timeout_seconds) if timeout_seconds is not None else None
+        self.scheduler_telemetry: Dict[str, Any] = {
+            "scheduler_mode": self.scheduler_mode,
+            "max_steps_budget": self.max_steps,
+            "timeout_seconds_budget": self.timeout_seconds,
+            "depth_penalty_lambda": self.depth_penalty_lambda,
+            "states_explored": 0,
+            "max_frontier_size": 0,
+            "elapsed_trace_ms": 0.0,
+            "timed_out": False,
+            "steps_to_first_vuln": None,
+            "time_to_first_vuln_ms": None,
+            "vulnerable_states_found": 0,
+            "solver_status_counts": {"SAT": 0, "UNSAT": 0, "UNKNOWN": 0, "TIMEOUT": 0, "ERROR": 0},
+            "verified_exploits_count": 0,
+        }
         self.solver_events: List[Dict[str, Any]] = []
 
         self._emit("INIT", "Binary loader starting...")
@@ -796,45 +827,204 @@ class AnalysisBackendProvider:
         except Exception:
             return "Unknown", False
 
+    def _get_base_node_risk(self, addr: int) -> float:
+        if addr in self.gnn_node_scores:
+            return float(self.gnn_node_scores[addr])
+        if addr in self.gnn_vulnerable_functions:
+            val = self.gnn_vulnerable_functions[addr]
+            if isinstance(val, (int, float)) and not isinstance(val, bool):
+                return float(val)
+            return 1.0 if val else 0.0
+        try:
+            functions = self.loader.get_functions()
+            fn = functions.floor_func(addr) if functions else None
+            if fn is not None:
+                if fn.addr in self.gnn_node_scores:
+                    return float(self.gnn_node_scores[fn.addr])
+                if fn.addr in self.gnn_vulnerable_functions:
+                    val = self.gnn_vulnerable_functions[fn.addr]
+                    if isinstance(val, (int, float)) and not isinstance(val, bool):
+                        return float(val)
+                    return 1.0 if val else 0.0
+                for b_addr in getattr(fn, "block_addrs", ()):
+                    if b_addr in self.gnn_node_scores and b_addr <= addr < b_addr + 256:
+                        return float(self.gnn_node_scores[b_addr])
+        except Exception:
+            pass
+        return 0.0
+
+    def _compute_reachable_risk_map(self, nx_cfg) -> Dict[int, float]:
+        """
+        Precompute context-valid reachable GNN risk:
+            R(u) = max_{v in Reachable(u)} P_GNN(v)
+        excluding return edges (Ijk_Ret) so unrealizable caller-return paths do not pollute reachability.
+        """
+        import networkx as nx
+        fwd_graph = nx.DiGraph()
+        angr_cfg = self.loader.get_cfg()
+        if angr_cfg is not None and getattr(angr_cfg, "graph", None) is not None:
+            for node in angr_cfg.graph.nodes():
+                if getattr(node, "addr", None) is not None:
+                    fwd_graph.add_node(int(node.addr))
+            for src, dst, data in angr_cfg.graph.edges(data=True):
+                jk = (data or {}).get("jumpkind", "")
+                if jk == "Ijk_Ret":
+                    continue
+                if getattr(src, "addr", None) is not None and getattr(dst, "addr", None) is not None:
+                    fwd_graph.add_edge(int(src.addr), int(dst.addr))
+        else:
+            fwd_graph = nx_cfg.copy() if nx_cfg is not None else nx.DiGraph()
+
+        base_risk: Dict[int, float] = {}
+        functions = self.loader.get_functions()
+        for u in fwd_graph.nodes():
+            if u in self.gnn_node_scores:
+                base_risk[u] = float(self.gnn_node_scores[u])
+                continue
+            if u in self.gnn_vulnerable_functions:
+                val = self.gnn_vulnerable_functions[u]
+                base_risk[u] = float(val) if isinstance(val, (int, float)) and not isinstance(val, bool) else (1.0 if val else 0.0)
+                continue
+            # If only function-level score is provided, do not assign the function's risk to a bare exit/return block
+            if fwd_graph.out_degree(u) == 0:
+                try:
+                    fn = functions.floor_func(u) if functions else None
+                    if fn is not None and int(fn.addr) != int(u):
+                        base_risk[u] = 0.0
+                        continue
+                except Exception:
+                    pass
+            base_risk[u] = self._get_base_node_risk(u)
+
+        reachable_risk: Dict[int, float] = {}
+        for u in fwd_graph.nodes():
+            best = base_risk.get(u, 0.0)
+            try:
+                for v in nx.descendants(fwd_graph, u):
+                    rv = base_risk.get(v, 0.0)
+                    if rv > best:
+                        best = rv
+            except Exception:
+                pass
+            reachable_risk[u] = best
+        return reachable_risk
+
+    def _score_state_priority(self, state: Any, depth: int, reachable_risk_map: Dict[int, float]) -> float:
+        """
+        Compute risk-prioritized state heuristic:
+            H(s) = max_{v in Reachable(s)} P_GNN(v) - lambda * Depth(s)
+        """
+        addr = int(state.addr)
+        if addr in reachable_risk_map:
+            risk = reachable_risk_map[addr]
+        else:
+            risk = self._get_base_node_risk(addr)
+            try:
+                functions = self.loader.get_functions()
+                fn = functions.floor_func(addr) if functions else None
+                if fn is not None and fn.addr in reachable_risk_map:
+                    risk = max(risk, reachable_risk_map[fn.addr])
+            except Exception:
+                pass
+        try:
+            for frame in getattr(state, "callstack", ()):
+                ret_addr = getattr(frame, "ret_addr", None)
+                if isinstance(ret_addr, int) and ret_addr > 0:
+                    r_ret = reachable_risk_map.get(ret_addr, 0.0)
+                    if r_ret > risk:
+                        risk = r_ret
+        except Exception:
+            pass
+        return float(risk) - (self.depth_penalty_lambda * float(depth))
+
     def get_execution_trace(self) -> List[ExecutionState]:
         if self._trace_cache is not None:
             return self._trace_cache
 
-        states: List[ExecutionState] = []
-        self.engine.simgr = self.engine.project.factory.simulation_manager(self.engine.state, save_unsat=True)
+        import heapq
+        import networkx as nx
+        import claripy
+        from graph.graph_builder import GraphBuilder
 
-        stack: List[Tuple[Any, Optional[ExecutionState], int, Tuple[int, ...]]] = [
-            (self.engine.state, None, 0, (self.engine.state.addr,))
-        ]
+        t_trace_start = time.perf_counter()
+        states: List[ExecutionState] = []
+        step_timestamps_ms: List[float] = []
+        self.engine.simgr = self.engine.project.factory.simulation_manager(self.engine.state, save_unsat=True)
 
         active_stash = []
         deadended_stash = []
         unsat_stash = []
         errored_stash = []
 
-        import networkx as nx
-        import claripy
-        from graph.graph_builder import GraphBuilder
-
         node_to_scc = {}
+        intra_loop_headers = set()
         try:
             nx_cfg = GraphBuilder(self.loader).build_networkx_cfg()
-            for scc in nx.strongly_connected_components(nx_cfg):
+            functions = self.loader.get_functions()
+            intra_cfg = nx.DiGraph()
+            for u, v in nx_cfg.edges():
+                if self.engine.project.is_hooked(u) or self.engine.project.is_hooked(v):
+                    continue
+                fn_u = functions.floor_func(u) if functions else None
+                fn_v = functions.floor_func(v) if functions else None
+                if fn_u is not None and fn_v is not None and fn_u.addr == fn_v.addr and not fn_u.is_plt and not fn_u.is_simprocedure:
+                    intra_cfg.add_edge(u, v)
+            for scc in nx.strongly_connected_components(intra_cfg):
                 if len(scc) > 1:
                     for n in scc:
                         node_to_scc[n] = scc
+                    for n in scc:
+                        if any(pred not in scc for pred in intra_cfg.predecessors(n)):
+                            intra_loop_headers.add(n)
+                            break
         except Exception:
             nx_cfg = nx.DiGraph()
 
+        reachable_risk_map: Dict[int, float] = (
+            self._compute_reachable_risk_map(nx_cfg) if self.scheduler_mode == "maxheap" else {}
+        )
+
+        dfs_stack: List[Tuple[Any, Optional[ExecutionState], int, Tuple[int, ...]]] = []
+        max_heap: List[Tuple[float, int, int, Any, Optional[ExecutionState], int, Tuple[int, ...]]] = []
+        heap_counter = 0
+        max_frontier_size = 0
+        timed_out_flag = False
+
+        def _frontier_len() -> int:
+            return len(max_heap) if self.scheduler_mode == "maxheap" else len(dfs_stack)
+
+        def _push_frontier(st_obj: Any, par_state: Optional[ExecutionState], d: int, hist: Tuple[int, ...]) -> None:
+            nonlocal heap_counter, max_frontier_size
+            if self.scheduler_mode == "maxheap":
+                prio = self._score_state_priority(st_obj, d, reachable_risk_map)
+                heap_counter += 1
+                heapq.heappush(max_heap, (-prio, int(st_obj.addr), heap_counter, st_obj, par_state, d, hist))
+            else:
+                dfs_stack.append((st_obj, par_state, d, hist))
+            curr_sz = _frontier_len()
+            if curr_sz > max_frontier_size:
+                max_frontier_size = curr_sz
+
+        def _pop_frontier() -> Tuple[Any, Optional[ExecutionState], int, Tuple[int, ...]]:
+            if self.scheduler_mode == "maxheap":
+                _, _, _, st_obj, par_state, d, hist = heapq.heappop(max_heap)
+                return st_obj, par_state, d, hist
+            return dfs_stack.pop()
+
+        _push_frontier(self.engine.state, None, 0, (self.engine.state.addr,))
         loop_pre_states = {}
 
-        while stack and len(states) < self.max_steps:
-            state, parent_state, depth, path_history = stack.pop()
+        while _frontier_len() > 0 and len(states) < self.max_steps:
+            if self.timeout_seconds is not None and (time.perf_counter() - t_trace_start) >= self.timeout_seconds:
+                timed_out_flag = True
+                self._emit("WARN", f"Trace exploration reached timeout ({self.timeout_seconds:.2f}s).")
+                break
+            state, parent_state, depth, path_history = _pop_frontier()
             addr = state.addr
             addr_hex = hex(addr)
 
-            # Loop Summarization
-            is_loop_hdr = nx_cfg.nodes.get(addr, {}).get('is_loop_header', False)
+            # Loop Summarization (only on genuine intra-procedural loops repeated along the current path)
+            is_loop_hdr = (addr in intra_loop_headers) and (path_history.count(addr) >= 2)
             if is_loop_hdr:
                 if addr not in loop_pre_states:
                     loop_pre_states[addr] = state.copy()
@@ -894,7 +1084,7 @@ class AnalysisBackendProvider:
                             state.regs.ip = exit_addr
                             self._emit("LOOP_SUMMARIZE", f"Abstracted loop at {addr_hex}. Jumping to exit {hex(exit_addr)}.")
                             del loop_pre_states[addr]
-                            stack.append((state, parent_state, depth + 1, path_history + (exit_addr,)))
+                            _push_frontier(state, parent_state, depth + 1, path_history + (exit_addr,))
                             continue
                         except Exception:
                             pass
@@ -949,16 +1139,24 @@ class AnalysisBackendProvider:
 
             flat_succs = []
             unsat_succs = []
+            step_new_findings = []
 
             if not is_vuln_halt:
                 try:
+                    parent_vt = getattr(state, "vuln_tracker", None)
+                    pre_finding_keys = set()
+                    if parent_vt is not None:
+                        pre_finding_keys = {
+                            (f["instruction_address"], f["vuln_type"], len(f.get("call_stack", ())), tuple(f.get("call_stack", ())))
+                            for f in getattr(parent_vt, "findings", [])
+                        }
+
                     successors = self.engine.project.factory.successors(state)
                     flat_succs = successors.flat_successors
                     unsat_succs = successors.unsat_successors
 
                     # Propagate findings, extra_constraints_map, and symbolic_variables recorded on successor states
                     # during block/SimProcedure execution back onto the pre-step state's vuln_tracker.
-                    parent_vt = getattr(state, "vuln_tracker", None)
                     if parent_vt is not None:
                         for succ_s in getattr(successors, "all_successors", flat_succs):
                             succ_vt = getattr(succ_s, "vuln_tracker", None)
@@ -968,14 +1166,17 @@ class AnalysisBackendProvider:
                                 if k not in parent_vt.symbolic_variables:
                                     parent_vt.symbolic_variables[k] = v
                             for k, v in getattr(succ_vt, "extra_constraints_map", {}).items():
-                                if k not in parent_vt.extra_constraints_map:
-                                    parent_vt.extra_constraints_map[k] = list(v)
+                                parent_vt.extra_constraints_map[k] = list(v)
                             for f in getattr(succ_vt, "findings", []):
-                                if not any(
-                                    ef["instruction_address"] == f["instruction_address"]
-                                    and ef["vuln_type"] == f["vuln_type"]
-                                    for ef in parent_vt.findings
-                                ):
+                                f_key_full = (
+                                    f["instruction_address"],
+                                    f["vuln_type"],
+                                    len(f.get("call_stack", ())),
+                                    tuple(f.get("call_stack", ())),
+                                )
+                                if f_key_full not in pre_finding_keys:
+                                    pre_finding_keys.add(f_key_full)
+                                    step_new_findings.append(f)
                                     parent_vt.findings.append(f)
 
                     unconstrained_succs = [
@@ -1023,6 +1224,7 @@ class AnalysisBackendProvider:
                             is_vulnerable=False,
                         )
                         states.append(exec_state)
+                        step_timestamps_ms.append((time.perf_counter() - t_trace_start) * 1000.0)
                         continue
 
                     err_vt, err_vs, err_vd = _classify_angr_error(err_msg)
@@ -1053,6 +1255,7 @@ class AnalysisBackendProvider:
                         vuln_details=err_vd if is_real_vuln else "",
                     )
                     states.append(exec_state)
+                    step_timestamps_ms.append((time.perf_counter() - t_trace_start) * 1000.0)
                     continue
 
             is_branch = len(flat_succs) > 1
@@ -1126,6 +1329,33 @@ class AnalysisBackendProvider:
                     project=self.engine.project,
                 )
 
+            if not is_vuln and step_new_findings:
+                local_f = min(
+                    step_new_findings,
+                    key=lambda f: 0 if f["vuln_type"] in ("OOB_WRITE", "STACK_OVERFLOW", "USE_AFTER_FREE", "DOUBLE_FREE") else 1,
+                )
+                is_vuln = True
+                vuln_type = local_f["vuln_type"]
+                vuln_severity = (
+                    "CRITICAL"
+                    if local_f["vuln_type"] in ("OOB_WRITE", "STACK_OVERFLOW", "USE_AFTER_FREE", "DOUBLE_FREE")
+                    else "HIGH"
+                )
+                vuln_details = local_f["details"]
+                parent_vt = getattr(state, "vuln_tracker", None)
+                if parent_vt is not None:
+                    f_extra = local_f.get("extra_constraints")
+                    if not f_extra:
+                        f_extra = parent_vt.extra_constraints_map.get(
+                            (local_f["instruction_address"], local_f["vuln_type"])
+                        )
+                    if f_extra:
+                        parent_vt.extra_constraints_map[(int(addr), local_f["vuln_type"])] = list(f_extra)
+                    f_copy = dict(local_f)
+                    f_copy["instruction_address"] = addr_hex
+                    parent_vt.findings.append(f_copy)
+                self._emit("VULN", f"[{vuln_severity}] {vuln_type} mapped to {addr_hex}!")
+
             exec_state = ExecutionState(
                 function_name=func_name,
                 basic_block=addr_hex,
@@ -1176,6 +1406,7 @@ class AnalysisBackendProvider:
                             self._evicted_findings.append(f)
 
             states.append(exec_state)
+            step_timestamps_ms.append((time.perf_counter() - t_trace_start) * 1000.0)
 
             if not succ_addrs:
                 deadended_stash.append(state)
@@ -1183,80 +1414,16 @@ class AnalysisBackendProvider:
                 if depth >= min(self.max_steps, 1000):
                     active_stash.append(state)
                 else:
-                    ordered_succs = list(reversed(flat_succs))
-                    if self.gnn_vulnerable_functions and len(ordered_succs) > 1:
-                        def _gnn_priority(s_st):
-                            try:
-                                fn = self.loader.get_functions().floor_func(s_st.addr)
-                                return 1 if (fn and self.gnn_vulnerable_functions.get(fn.addr, False)) else 0
-                            except Exception:
-                                return 0
-                        ordered_succs.sort(key=_gnn_priority)
+                    # Sort deterministically by address so DFS LIFO pops in ascending address order
+                    ordered_succs = sorted(flat_succs, key=lambda s_st: int(s_st.addr), reverse=True)
                     for succ in ordered_succs:
                         if path_history.count(succ.addr) < 40:
-                            stack.append((succ, exec_state, depth + 1, path_history + (succ.addr,)))
+                            _push_frontier(succ, exec_state, depth + 1, path_history + (succ.addr,))
                         else:
                             active_stash.append(succ)
 
             for succ in unsat_succs:
                 unsat_stash.append(succ)
-
-        # Map safety findings to instruction addresses
-        all_findings = list(self._evicted_findings)
-        seen_keys = set(self._evicted_findings_keys)
-        for entry in self._state_registry.values():
-            raw_state = entry[0]
-            if getattr(raw_state, "vuln_tracker", None):
-                for f in raw_state.vuln_tracker.findings:
-                    f_key = (f["instruction_address"], f["vuln_type"])
-                    if f_key not in seen_keys:
-                        seen_keys.add(f_key)
-                        all_findings.append(f)
-
-        for exec_state in states:
-            try:
-                addr_val = int(exec_state.instruction_address, 16)
-                blk = self.engine.project.factory.block(addr_val)
-                blk_size = blk.size if blk else 1
-            except Exception:
-                blk_size = 1
-                addr_val = 0
-            matches = [
-                f for f in all_findings
-                if addr_val <= f["instruction_address"] < addr_val + max(1, blk_size)
-            ]
-            if matches:
-                local_f = min(
-                    matches,
-                    key=lambda f: 0 if f["vuln_type"] in ("OOB_WRITE", "STACK_OVERFLOW", "USE_AFTER_FREE", "DOUBLE_FREE") else 1
-                )
-                exec_state.is_vulnerable = True
-                exec_state.vuln_type = local_f["vuln_type"]
-                exec_state.vuln_severity = (
-                    "CRITICAL" if local_f["vuln_type"] in ("OOB_WRITE", "STACK_OVERFLOW", "USE_AFTER_FREE", "DOUBLE_FREE") else "HIGH"
-                )
-                exec_state.vuln_details = local_f["details"]
-                reg_entry = self._state_registry.get(exec_state._registry_key)
-                if reg_entry is not None:
-                    raw_st = reg_entry[0]
-                    vt = getattr(raw_st, "vuln_tracker", None)
-                    if vt is not None:
-                        f_extra = local_f.get("extra_constraints")
-                        if not f_extra:
-                            f_extra = vt.extra_constraints_map.get(
-                                (local_f["instruction_address"], local_f["vuln_type"])
-                            )
-                        if f_extra:
-                            vt.extra_constraints_map[(addr_val, local_f["vuln_type"])] = list(f_extra)
-                        if not any(
-                            ef["instruction_address"] == exec_state.instruction_address
-                            and ef["vuln_type"] == local_f["vuln_type"]
-                            for ef in vt.findings
-                        ):
-                            f_copy = dict(local_f)
-                            f_copy["instruction_address"] = exec_state.instruction_address
-                            vt.findings.append(f_copy)
-                self._emit("VULN", f"[{exec_state.vuln_severity}] {exec_state.vuln_type} mapped to {exec_state.instruction_address}!")
 
         for i in range(len(states) - 1):
             states[i].next_state = states[i + 1].instruction_address
@@ -1275,6 +1442,20 @@ class AnalysisBackendProvider:
                 self.engine.simgr.errored.append(angr.sim_manager.ErrorRecord(s, Exception("Execution error"), None))
             except Exception:
                 pass
+
+        elapsed_trace_ms = round((time.perf_counter() - t_trace_start) * 1000.0, 2)
+        first_vuln_idx = next((i for i, s in enumerate(states) if s.is_vulnerable), None)
+        self.scheduler_telemetry["states_explored"] = len(states)
+        self.scheduler_telemetry["max_frontier_size"] = max_frontier_size
+        self.scheduler_telemetry["elapsed_trace_ms"] = elapsed_trace_ms
+        self.scheduler_telemetry["timed_out"] = timed_out_flag
+        self.scheduler_telemetry["vulnerable_states_found"] = sum(1 for s in states if s.is_vulnerable)
+        self.scheduler_telemetry["steps_to_first_vuln"] = (first_vuln_idx + 1) if first_vuln_idx is not None else None
+        self.scheduler_telemetry["time_to_first_vuln_ms"] = (
+            round(step_timestamps_ms[first_vuln_idx], 2)
+            if first_vuln_idx is not None and first_vuln_idx < len(step_timestamps_ms)
+            else None
+        )
 
         self._trace_cache = states
         return states
@@ -1432,9 +1613,10 @@ class AnalysisBackendProvider:
             if not state_obj.is_vulnerable:
                 continue
             addr = state_obj.instruction_address
-            if addr in seen_addrs:
+            dedup_key = (addr, state_obj.vuln_type, state_obj.previous_block)
+            if dedup_key in seen_addrs:
                 continue
-            seen_addrs.add(addr)
+            seen_addrs.add(dedup_key)
 
             self._emit("SOLVING", f"== Solving {addr} ({state_obj.vuln_type} / {state_obj.vuln_severity}) ==")
             entry = self._state_registry.get(state_obj._registry_key)
@@ -1757,23 +1939,76 @@ class AnalysisBackendProvider:
                 f for f in self.loader.get_functions().values()
                 if not f.is_plt and not f.is_simprocedure and f.size > 20 and not f.name.startswith('_start')
             ]
-            if self.gnn_vulnerable_functions:
-                user_funcs = [f for f in user_funcs if self.gnn_vulnerable_functions.get(f.addr, False)]
+            if self.scheduler_mode == "maxheap" and (self.gnn_node_scores or self.gnn_vulnerable_functions):
+                if self.gnn_vulnerable_functions and not self.gnn_node_scores:
+                    flagged = [f for f in user_funcs if self.gnn_vulnerable_functions.get(f.addr, False)]
+                    if flagged:
+                        user_funcs = flagged
+                user_funcs.sort(key=lambda f: (-self._get_base_node_risk(f.addr), int(f.addr)))
+            else:
+                user_funcs.sort(key=lambda f: int(f.addr))
+
+            total_steps_used = int(self.scheduler_telemetry.get("states_explored", len(trace)))
+            total_elapsed_ms = float(self.scheduler_telemetry.get("elapsed_trace_ms", 0.0))
+
             for ufunc in user_funcs:
+                remaining_steps = self.max_steps - total_steps_used
+                if remaining_steps <= 0:
+                    break
+                remaining_timeout = None
+                if self.timeout_seconds is not None:
+                    remaining_timeout = self.timeout_seconds - (total_elapsed_ms / 1000.0)
+                    if remaining_timeout <= 0:
+                        self.scheduler_telemetry["timed_out"] = True
+                        break
                 try:
                     sub_provider = AnalysisBackendProvider(
                         self.binary_path,
                         target_func_addr=ufunc.addr,
-                        max_steps=min(self.max_steps, 150),
+                        max_steps=min(remaining_steps, 150),
                         symbolic_input_size=self.symbolic_size,
+                        gnn_vulnerable_functions=self.gnn_vulnerable_functions,
+                        gnn_node_scores=self.gnn_node_scores,
+                        scheduler_mode=self.scheduler_mode,
+                        depth_penalty_lambda=self.depth_penalty_lambda,
+                        timeout_seconds=remaining_timeout,
                         _shared_loader=self.loader,
                     )
                     sub_reports = sub_provider.scan_vulnerabilities()
+                    sub_tel = sub_provider.scheduler_telemetry
+                    sub_steps = int(sub_tel.get("states_explored", 0))
+                    sub_ms = float(sub_tel.get("elapsed_trace_ms", 0.0))
+                    if self.scheduler_telemetry["steps_to_first_vuln"] is None and sub_tel.get("steps_to_first_vuln") is not None:
+                        self.scheduler_telemetry["steps_to_first_vuln"] = total_steps_used + int(sub_tel["steps_to_first_vuln"])
+                        self.scheduler_telemetry["time_to_first_vuln_ms"] = round(
+                            total_elapsed_ms + float(sub_tel.get("time_to_first_vuln_ms") or sub_ms), 2
+                        )
+                    total_steps_used += sub_steps
+                    total_elapsed_ms = round(total_elapsed_ms + sub_ms, 2)
+                    self.scheduler_telemetry["states_explored"] = total_steps_used
+                    self.scheduler_telemetry["elapsed_trace_ms"] = total_elapsed_ms
+                    self.scheduler_telemetry["max_frontier_size"] = max(
+                        int(self.scheduler_telemetry.get("max_frontier_size", 0)),
+                        int(sub_tel.get("max_frontier_size", 0)),
+                    )
+                    self.scheduler_telemetry["vulnerable_states_found"] += int(sub_tel.get("vulnerable_states_found", 0))
+                    if sub_tel.get("timed_out"):
+                        self.scheduler_telemetry["timed_out"] = True
                     for sr in sub_reports:
                         if not any(r["address"] == sr["address"] and r["vuln_type"] == sr["vuln_type"] for r in reports):
                             reports.append(sr)
                 except Exception:
                     pass
+
+        status_counts = {"SAT": 0, "UNSAT": 0, "UNKNOWN": 0, "TIMEOUT": 0, "ERROR": 0}
+        verified_count = 0
+        for rep in reports:
+            st = str(rep.get("solver_status", "UNKNOWN")).upper()
+            status_counts[st] = status_counts.get(st, 0) + 1
+            if rep.get("exploit_verified"):
+                verified_count += 1
+        self.scheduler_telemetry["solver_status_counts"] = status_counts
+        self.scheduler_telemetry["verified_exploits_count"] = verified_count
 
         self._emit("SUCCESS", f"--- Scan complete: {len(reports)} vulnerability report(s) generated ---")
         return reports

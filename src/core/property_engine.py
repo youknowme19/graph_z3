@@ -334,7 +334,11 @@ def track_simproc_after(state):
                     # gets() / getenv() — use a conservative bound
                     length = 256
                 if buf_ptr is not None and length > 0:
-                    inject_taint(state, clean_name, site, buf_ptr, int(length))
+                    if clean_name == "fgets" and int(length) > 1:
+                        inject_taint(state, clean_name, site, buf_ptr, int(length) - 1)
+                        state.memory.store(buf_ptr + int(length) - 1, b"\x00", inspect=False)
+                    else:
+                        inject_taint(state, clean_name, site, buf_ptr, int(length))
             else:
                 # Variadic sources (scanf) or return-value sources (getenv)
                 var_name = f"taint_{clean_name}_{hex(site)}_retval"

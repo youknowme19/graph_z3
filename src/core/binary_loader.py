@@ -126,6 +126,15 @@ class BinaryLoader:
                         stub_addr = sec.vaddr + idx * stub_size
                         clean = sym.name.lstrip('_')
                         proc = self._get_simprocedure_for_name(clean)
+                        if proc is None and clean not in (
+                            'stack_chk_fail', '_stack_chk_fail', 'stack_smashing_detected',
+                            'abort', 'assert_fail', '_assert_fail', 'assert_rtn', '_assert_rtn', 'raise'
+                        ):
+                            proc = angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=clean)
+                            try:
+                                proc.display_name = clean
+                            except Exception:
+                                pass
                         if proc is not None and not self.project.is_hooked(stub_addr):
                             try:
                                 self.project.hook(stub_addr, proc)
@@ -266,11 +275,46 @@ class BinaryLoader:
             return _with_name(TaintPropagatingPrintfBuf(display_name=n), n)
         if n in ('read', 'pread', 'recv', 'recvfrom'):
             return _with_name(angr.SIM_PROCEDURES['posix']['read'](display_name=n), n)
-        if n in ('fgets', 'gets', 'fread'):
+        if n in ('fgets', 'gets'):
+            is_gets = (n == 'gets')
+
+            class TaintFgetsSimProc(angr.SimProcedure):
+                def run(self, dst_ptr, size_arg=None, stream_ptr=None):
+                    try:
+                        st = self.state
+                        max_len = 64
+                        if not is_gets and size_arg is not None and not getattr(size_arg, 'symbolic', False):
+                            try:
+                                max_len = max(2, min(int(st.solver.eval(size_arg)), 256))
+                            except Exception:
+                                max_len = 64
+                        st.memory.store(dst_ptr + (max_len - 1), b'\x00', inspect=False)
+                        return dst_ptr
+                    except Exception:
+                        return dst_ptr
+
+            return _with_name(TaintFgetsSimProc(display_name=n), n)
+        if n == 'fread':
             if n in angr.SIM_PROCEDURES['libc']:
                 return _with_name(angr.SIM_PROCEDURES['libc'][n](display_name=n), n)
             return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n), n)
-        if n in ('printf', 'puts', 'fprintf', 'dprintf', 'vprintf', 'vfprintf'):
+        if n in ('strcspn', 'strspn'):
+            class SafeStrcspn(angr.SimProcedure):
+                def run(self, s_ptr, reject_ptr):
+                    return 15
+            return _with_name(SafeStrcspn(display_name=n), n)
+        if n in ('strcmp', 'strncmp', 'strlen', 'strchr', 'strstr', 'memcmp', 'atoi', 'atol', 'strtol'):
+            if n in angr.SIM_PROCEDURES['libc']:
+                return _with_name(angr.SIM_PROCEDURES['libc'][n](display_name=n), n)
+        if n in ('fflush', 'fclose', 'fseek', 'rewind', 'setvbuf', 'setbuf', 'perror', 'srand', 'sleep', 'usleep', 'close'):
+            return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n, resolves=0), n)
+        if n in ('time', 'rand', 'random', 'clock', 'getpid', 'getuid', 'geteuid', 'socket', 'connect', 'bind', 'listen', 'accept'):
+            return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n), n)
+        if n in ('scanf', 'fscanf', 'sscanf', 'swscanf', 'wscanf', 'fwscanf'):
+            if n in angr.SIM_PROCEDURES['libc']:
+                return _with_name(angr.SIM_PROCEDURES['libc'][n](display_name=n), n)
+            return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n), n)
+        if n in ('printf', 'puts', 'fprintf', 'dprintf', 'vprintf', 'vfprintf', 'fputs', 'putchar', 'putc', 'wprintf', 'fwprintf'):
             return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n, resolves=0), n)
         if n == 'malloc':
             return _with_name(angr.SIM_PROCEDURES['libc']['malloc'](), n)
