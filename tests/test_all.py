@@ -14,11 +14,10 @@ from symbolic.engine import SymbolicEngine
 from symbolic.z3_interface import Z3Interface
 from core.fix_advisor import FixAdvisor
 
-# Allow CI to override via env-var; default to the pre-built test binary
-# sitting next to the project root (one level above the tests/ directory).
-_test_vuln_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "test_vuln"))
+# Allow CI to override via env-var; default to the in-repository benchmark binary.
 _benchmark_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_benchmarks_binary"))
-_DEFAULT_BINARY = _test_vuln_path if os.path.exists(_test_vuln_path) else _benchmark_path
+_test_vuln_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "test_vuln"))
+_DEFAULT_BINARY = _benchmark_path if os.path.exists(_benchmark_path) else _test_vuln_path
 BINARY_PATH = os.environ.get("NSF_TEST_BINARY", _DEFAULT_BINARY)
 
 class TestBinaryLoader(unittest.TestCase):

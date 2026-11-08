@@ -206,23 +206,66 @@ def get_byte_status(state, sym_var) -> Tuple[List[int], List[int]]:
     return constrained_bytes, unconstrained_bytes
 
 
-def get_symbolic_variables_from_state(state, injected_vars) -> Dict[str, Any]:
-    vars_dict = dict(injected_vars)
+_INTERNAL_SYM_PREFIXES = (
+    "strlen_", "reg_", "mem_", "unconstrained_", "N_iter_", "loop_mem_", "sim_data_", "fs_"
+)
+
+
+def _is_attacker_controlled_var_name(name: str) -> bool:
+    if not name:
+        return False
+    low = str(name).lower()
+    if any(low.startswith(p.lower()) for p in _INTERNAL_SYM_PREFIXES):
+        return False
+    return any(k in low for k in ("stdin", "taint_", "argv", "env", "buf_arg", "arg_", "user_input", "input"))
+
+
+def _taint_var_sort_key(name: str) -> Tuple[int, int, str]:
+    m = re.search(r"taint_[a-zA-Z0-9_]+_(0x[0-9a-fA-F]+)_byte(\d+)", str(name))
+    if m:
+        try:
+            return (0, int(m.group(2)), str(name))
+        except Exception:
+            pass
+    if str(name).startswith("stdin"):
+        return (1, 0, str(name))
+    return (2, 0, str(name))
+
+
+def _iter_leaf_asts(ast_obj):
+    """Safely iterate leaf ASTs of a claripy AST regardless of whether leaf_asts is a method or iterable."""
+    if ast_obj is None or not hasattr(ast_obj, "leaf_asts"):
+        return ()
+    la = getattr(ast_obj, "leaf_asts")
+    try:
+        return la() if callable(la) else la
+    except Exception:
+        return ()
+
+
+def get_symbolic_variables_from_state(state, injected_vars, extra_constraints=None) -> Dict[str, Any]:
+    vars_dict = dict(injected_vars or {})
+
+    tracker = getattr(state, "vuln_tracker", None) if state is not None else None
+    if tracker is not None and hasattr(tracker, "symbolic_variables"):
+        for k, v in tracker.symbolic_variables.items():
+            if k not in vars_dict and getattr(v, "op", None) == "BVS" and _is_attacker_controlled_var_name(k):
+                vars_dict[k] = v
 
     def walk(node):
-        if not hasattr(node, 'op') or not hasattr(node, 'args'):
-            return
-        if node.op == 'BVS':
-            name = node.args[0]
-            if name not in vars_dict:
-                vars_dict[name] = node
-            return
-        for arg in node.args:
-            walk(arg)
+        for leaf in _iter_leaf_asts(node):
+            if getattr(leaf, 'op', None) == 'BVS' and getattr(leaf, 'args', None):
+                name = str(leaf.args[0])
+                if name not in vars_dict and _is_attacker_controlled_var_name(name):
+                    vars_dict[name] = leaf
 
-    for constraint in state.solver.constraints:
-        walk(constraint)
-    return vars_dict
+    if state is not None and hasattr(state, "solver"):
+        for constraint in state.solver.constraints:
+            walk(constraint)
+    if extra_constraints:
+        for constraint in extra_constraints:
+            walk(constraint)
+    return dict(sorted(vars_dict.items(), key=lambda kv: _taint_var_sort_key(kv[0])))
 
 
 def _get_bvs_and_offset(node) -> Tuple[Optional[str], Optional[int]]:
@@ -472,17 +515,16 @@ def is_legitimate_user_function(func, project) -> bool:
 
 
 def is_variable_used_in_constraints(sym_var, constraints) -> bool:
-    if not constraints:
+    if not constraints or sym_var is None:
         return False
     var_names = set()
     for c in constraints:
-        if hasattr(c, 'leaf_asts'):
-            for leaf in c.leaf_asts():
-                if leaf.op == 'BVS':
-                    var_names.add(leaf.args[0])
-    if hasattr(sym_var, 'leaf_asts'):
-        for leaf in sym_var.leaf_asts():
-            if leaf.op == 'BVS' and leaf.args[0] in var_names:
+        for leaf in _iter_leaf_asts(c):
+            if getattr(leaf, 'op', None) == 'BVS' and getattr(leaf, 'args', None):
+                var_names.add(str(leaf.args[0]))
+    for leaf in _iter_leaf_asts(sym_var):
+        if getattr(leaf, 'op', None) == 'BVS' and getattr(leaf, 'args', None):
+            if str(leaf.args[0]) in var_names:
                 return True
     return False
 
@@ -723,13 +765,12 @@ class AnalysisBackendProvider:
                 if not getattr(pc_ast, 'symbolic', False):
                     return False
                 from core.taint_engine import is_tainted
-                if is_tainted(st, pc_ast):
+                tracker = getattr(st, 'vuln_tracker', None)
+                taint_set = getattr(tracker, 'taint_set', set()) if tracker else set()
+                if is_tainted(pc_ast, taint_set):
                     return True
                 pc_str = str(pc_ast).lower()
-                if any(k in pc_str for k in ('stdin', 'argv', 'env', 'buf_arg', 'user_input')):
-                    return True
-                tracker = getattr(st, 'vuln_tracker', None)
-                if tracker and any(f.get('vuln_type') in ('STACK_OVERFLOW', 'OOB_WRITE') for f in tracker.findings):
+                if any(k in pc_str for k in ('stdin', 'taint', 'argv', 'env', 'buf_arg', 'user_input')):
                     return True
                 return False
 
@@ -1244,6 +1285,10 @@ class AnalysisBackendProvider:
                             (addr_int, state_obj.vuln_type)
                         )
 
+                    vars_dict = get_symbolic_variables_from_state(
+                        raw_state, vars_dict, extra_constraints=extra_constraints_ast
+                    )
+
                     all_bytes = bytearray()
                     result = Z3Interface.evaluate_path(
                         raw_state, vars_dict,
@@ -1264,12 +1309,14 @@ class AnalysisBackendProvider:
                     )
 
                     if solver_status == "SAT" and result.get("satisfying_assignment"):
+                        all_c_ast = list(raw_state.solver.constraints)
+                        if extra_constraints_ast:
+                            all_c_ast.extend(extra_constraints_ast)
+
+                        # First pass: variables explicitly constrained by path or safety conditions
                         for name, sym_var in vars_dict.items():
                             val = result["satisfying_assignment"].get(name)
-                            if val is not None and not isinstance(val, str):
-                                all_c_ast = list(raw_state.solver.constraints)
-                                if extra_constraints_ast:
-                                    all_c_ast.extend(extra_constraints_ast)
+                            if val is not None and isinstance(val, (bytes, bytearray)):
                                 if not is_variable_used_in_constraints(sym_var, all_c_ast):
                                     continue
                                 hex_repr = ' '.join(f'{b:02x}' for b in val)
@@ -1289,74 +1336,56 @@ class AnalysisBackendProvider:
                                 all_bytes.extend(val)
                                 self._emit("ASSIGN", f"  SOLVED  {name} ({len(val)} B) = [{hex_repr}]  ascii=[{ascii_repr}]")
 
-                        if not all_bytes and raw_state is not None:
-                            for sym_var in raw_state.solver.variables:
-                                if hasattr(sym_var, 'args') and len(sym_var.args) > 0:
-                                    vname = str(sym_var.args[0])
-                                    try:
-                                        val = raw_state.solver.eval(sym_var, cast_to=bytes)
-                                        if val and len(val) > 0:
-                                            all_bytes.extend(val)
-                                            exploit_vars.append({
-                                                "name": vname,
-                                                "hex": ' '.join(f'{b:02x}' for b in val),
-                                                "ascii": ''.join(chr(b) if 32 <= b < 127 else '.' for b in val),
-                                                "raw": list(val),
-                                                "constrained_bytes": list(range(len(val))),
-                                                "unconstrained_bytes": [],
-                                                "size": len(val),
-                                            })
-                                    except Exception:
-                                        pass
-
+                        # Second pass: if path had 0 branch constraints on input (unconditional reachability),
+                        # use solved assignment for primary input variable from Z3 model (never fabricate bytes).
                         if not all_bytes:
-                            synth_bytes = [65] * 40
-                            all_bytes.extend(synth_bytes)
-                            exploit_vars.append({
-                                "name": "overflow_payload",
-                                "hex": ' '.join(f'{b:02x}' for b in synth_bytes),
-                                "ascii": 'A' * 40,
-                                "raw": synth_bytes,
-                                "constrained_bytes": list(range(40)),
-                                "unconstrained_bytes": [],
-                                "size": 40,
-                            })
+                            taint_keys = [k for k in vars_dict if k.startswith("taint_")]
+                            fallback_keys = taint_keys if taint_keys else [
+                                k for k in ("stdin_input", "buf_arg_0", "arg_0") if k in vars_dict
+                            ]
+                            for name in fallback_keys:
+                                sym_var = vars_dict[name]
+                                val = result["satisfying_assignment"].get(name)
+                                if val is not None and isinstance(val, (bytes, bytearray)) and len(val) > 0:
+                                    hex_repr = ' '.join(f'{b:02x}' for b in val)
+                                    ascii_repr = ''.join(chr(b) if 32 <= b < 127 else '.' for b in val)
+                                    exploit_vars.append({
+                                        "name": name,
+                                        "hex": hex_repr,
+                                        "ascii": ascii_repr,
+                                        "raw": list(val),
+                                        "constrained_bytes": [],
+                                        "unconstrained_bytes": list(range(len(val))),
+                                        "size": len(val),
+                                    })
+                                    all_bytes.extend(val)
 
-                        dec_numbers = list(all_bytes)
-                        py_numbers_str = str(dec_numbers)
-                        reproduce_cmd = (
-                            f'python3 -c "import sys; sys.stdout.buffer.write(bytes({py_numbers_str}))"'
-                            f" | ./{self.original_filename}"
-                        )
-                        self._emit("SUCCESS", f"  Crash input computed ({len(all_bytes)} B, integers: {dec_numbers[:8]}...).")
+                        if all_bytes:
+                            dec_numbers = list(all_bytes)
+                            py_numbers_str = str(dec_numbers)
+                            reproduce_cmd = (
+                                f'python3 -c "import sys; sys.stdout.buffer.write(bytes({py_numbers_str}))"'
+                                f" | ./{self.original_filename}"
+                            )
+                            self._emit("SUCCESS", f"  Crash input computed ({len(all_bytes)} B, integers: {dec_numbers[:8]}...).")
+                        else:
+                            reproduce_cmd = ""
+                            self._emit("WARN", "  SAT state had no concrete input buffer assignment.")
                     else:
-                        synth_bytes = [65] * 40
-                        all_bytes.extend(synth_bytes)
-                        dec_numbers = list(all_bytes)
-                        reproduce_cmd = (
-                            f'python3 -c "import sys; sys.stdout.buffer.write(bytes({dec_numbers}))"'
-                            f" | ./{self.original_filename}"
-                        )
-                        self._emit("WARN", "  Synthesized concrete crash input payload.")
+                        reproduce_cmd = ""
+                        self._emit("WARN", f"  Solver returned {solver_status}; no exploit payload synthesized.")
                 except Exception as e:
-                    solver_status = f"ERROR: {str(e)}"
-                    synth_bytes = [65] * 40
-                    all_bytes.extend(synth_bytes)
-                    dec_numbers = list(all_bytes)
-                    reproduce_cmd = (
-                        f'python3 -c "import sys; sys.stdout.buffer.write(bytes({dec_numbers}))"'
-                        f" | ./{self.original_filename}"
-                    )
+                    solver_status = "ERROR"
+                    reproduce_cmd = ""
+                    all_bytes = bytearray()
+                    exploit_vars = []
                     self._emit("ERROR", f"  Z3 error: {str(e)[:100]}")
             else:
-                synth_bytes = [65] * 40
-                all_bytes.extend(synth_bytes)
-                dec_numbers = list(all_bytes)
-                reproduce_cmd = (
-                    f'python3 -c "import sys; sys.stdout.buffer.write(bytes({dec_numbers}))"'
-                    f" | ./{self.original_filename}"
-                )
-                self._emit("WARN", f"  State registry miss for {addr} — synthesized reproducer.")
+                solver_status = "UNKNOWN"
+                reproduce_cmd = ""
+                all_bytes = bytearray()
+                exploit_vars = []
+                self._emit("WARN", f"  State registry miss for {addr} — no payload synthesized.")
 
             classifier_info = {
                 "DOUBLE_FREE": {
