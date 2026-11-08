@@ -150,46 +150,142 @@ class BinaryLoader:
             pass
 
     def _get_simprocedure_for_name(self, name: str):
-        n = name.lower()
+        n = name.lower().lstrip('_')
+
+        def _with_name(proc, sym_name: str):
+            if proc is not None:
+                try:
+                    proc.display_name = sym_name
+                except Exception:
+                    pass
+            return proc
+
         if n in ('strcpy_chk', 'strcpy'):
-            return angr.SIM_PROCEDURES['libc']['strcpy']()
+            return _with_name(angr.SIM_PROCEDURES['libc']['strcpy'](), n)
         if n in ('strncpy_chk', 'strncpy'):
-            return angr.SIM_PROCEDURES['libc']['strncpy']()
-        if n in ('memcpy_chk', 'memcpy'):
-            return angr.SIM_PROCEDURES['libc']['memcpy']()
+            return _with_name(angr.SIM_PROCEDURES['libc']['strncpy'](), n)
+        if n in ('strcat_chk', 'strcat'):
+            if 'strcat' in angr.SIM_PROCEDURES['libc']:
+                return _with_name(angr.SIM_PROCEDURES['libc']['strcat'](), n)
+            return _with_name(angr.SIM_PROCEDURES['libc']['strcpy'](), n)
+        if n in ('memcpy_chk', 'memcpy', 'memmove_chk', 'memmove', 'bcopy'):
+            return _with_name(angr.SIM_PROCEDURES['libc']['memcpy'](), n)
         if n in ('memset_chk', 'memset'):
-            return angr.SIM_PROCEDURES['libc']['memset']()
-        if n in ('snprintf_chk', 'snprintf'):
-            class SafeSnprintf(angr.SimProcedure):
-                def run(self, dst_ptr, size, fmt_ptr, *args):
+            return _with_name(angr.SIM_PROCEDURES['libc']['memset'](), n)
+        if n in ('snprintf_chk', 'snprintf', 'vsnprintf_chk', 'vsnprintf', 'sprintf_chk', 'sprintf', 'vsprintf'):
+            is_bounded = 'snprintf' in n
+
+            class TaintPropagatingPrintfBuf(angr.SimProcedure):
+                def run(self, dst_ptr, arg1=None, arg2=None, arg3=None, arg4=None, arg5=None):
                     try:
-                        sz = self.state.solver.eval(size) if not getattr(size, 'symbolic', False) else 128
-                        self.state.memory.store(dst_ptr, b'A' * min(sz, 64))
-                        return min(sz, 64)
+                        from core.taint_engine import is_tainted
+                        st = self.state
+                        tracker = getattr(st, 'vuln_tracker', None)
+                        taint_set = getattr(tracker, 'taint_set', set()) if tracker else set()
+
+                        max_copy = 64
+                        if is_bounded and arg1 is not None:
+                            try:
+                                if not getattr(arg1, 'symbolic', False):
+                                    max_copy = max(1, min(int(st.solver.eval(arg1)), 64))
+                            except Exception:
+                                max_copy = 64
+
+                        # Gather candidate argument pointers from registers and Apple ARM64 / x86 stack variadic slots
+                        candidates = []
+                        arch = st.arch.name
+                        if 'AARCH64' in arch:
+                            reg_names = ['x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7']
+                        elif 'AMD64' in arch:
+                            reg_names = ['rsi', 'rdx', 'rcx', 'r8', 'r9']
+                        elif 'ARM' in arch:
+                            reg_names = ['r1', 'r2', 'r3']
+                        else:
+                            reg_names = []
+
+                        for rn in reg_names:
+                            if hasattr(st.regs, rn):
+                                candidates.append(getattr(st.regs, rn))
+
+                        # Apple Silicon (Darwin ARM64) passes variadic arguments (...) on the stack at [sp + 0], [sp + 8], ...
+                        try:
+                            sp_val = st.regs.sp
+                            ptr_bytes = st.arch.bits // 8
+                            for slot in range(4):
+                                stack_arg = st.memory.load(
+                                    sp_val + slot * ptr_bytes,
+                                    ptr_bytes,
+                                    endness=st.arch.memory_endness,
+                                    inspect=False,
+                                )
+                                candidates.append(stack_arg)
+                        except Exception:
+                            pass
+
+                        # Check if any candidate pointer dereferences to tainted bytes
+                        tainted_src_ptr = None
+                        for cand in candidates:
+                            if cand is None:
+                                continue
+                            try:
+                                if not getattr(cand, 'symbolic', False):
+                                    cand_val = int(st.solver.eval(cand))
+                                    # Skip small integers (e.g. maxlen=128, flag=0, objsize=128) and NULL
+                                    if cand_val < 0x10000 or cand_val >= (1 << (st.arch.bits - 1)):
+                                        continue
+                                loaded_probe = st.memory.load(cand, 16, inspect=False)
+                                if is_tainted(loaded_probe, taint_set):
+                                    tainted_src_ptr = cand
+                                    break
+                            except Exception:
+                                continue
+
+                        if tainted_src_ptr is not None:
+                            for i in range(max_copy):
+                                try:
+                                    b_sym = st.memory.load(tainted_src_ptr + i, 1, inspect=False)
+                                    st.memory.store(dst_ptr + i, b_sym, inspect=False)
+                                except Exception:
+                                    break
+                            return max_copy
+
+                        # If a candidate register itself is tainted/symbolic integer, store its bytes
+                        for cand in candidates:
+                            if cand is not None and (is_tainted(cand, taint_set) or getattr(cand, 'symbolic', False)):
+                                try:
+                                    st.memory.store(dst_ptr, cand)
+                                    return min(max_copy, st.arch.bits // 8)
+                                except Exception:
+                                    pass
+
+                        st.memory.store(dst_ptr, b'A' * min(max_copy, 32))
+                        return min(max_copy, 32)
                     except Exception:
                         return 0
-            return SafeSnprintf()
-        if n in ('sprintf_chk', 'sprintf'):
-            class SafeSprintf(angr.SimProcedure):
-                def run(self, dst_ptr, fmt_ptr, *args):
-                    try:
-                        self.state.memory.store(dst_ptr, b'A' * 32)
-                        return 32
-                    except Exception:
-                        return 0
-            return SafeSprintf()
-        if n == 'read':
-            return angr.SIM_PROCEDURES['posix']['read']()
-        if n in ('printf', 'puts', 'fprintf', 'dprintf', 'vprintf'):
-            return angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](resolves=0)
+
+            return _with_name(TaintPropagatingPrintfBuf(display_name=n), n)
+        if n in ('read', 'pread', 'recv', 'recvfrom'):
+            return _with_name(angr.SIM_PROCEDURES['posix']['read'](display_name=n), n)
+        if n in ('fgets', 'gets', 'fread'):
+            if n in angr.SIM_PROCEDURES['libc']:
+                return _with_name(angr.SIM_PROCEDURES['libc'][n](display_name=n), n)
+            return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n), n)
+        if n in ('printf', 'puts', 'fprintf', 'dprintf', 'vprintf', 'vfprintf'):
+            return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n, resolves=0), n)
         if n == 'malloc':
-            return angr.SIM_PROCEDURES['libc']['malloc']()
+            return _with_name(angr.SIM_PROCEDURES['libc']['malloc'](), n)
+        if n == 'calloc' and 'calloc' in angr.SIM_PROCEDURES['libc']:
+            return _with_name(angr.SIM_PROCEDURES['libc']['calloc'](), n)
+        if n == 'realloc' and 'realloc' in angr.SIM_PROCEDURES['libc']:
+            return _with_name(angr.SIM_PROCEDURES['libc']['realloc'](), n)
         if n == 'free':
-            return angr.SIM_PROCEDURES['libc']['free']()
-        if n == 'system':
-            return angr.SIM_PROCEDURES['libc']['system']()
+            return _with_name(angr.SIM_PROCEDURES['libc']['free'](), n)
+        if n in ('system', 'popen', 'execve', 'execl', 'execlp', 'execvp'):
+            if n in angr.SIM_PROCEDURES['libc']:
+                return _with_name(angr.SIM_PROCEDURES['libc'][n](display_name=n), n)
+            return _with_name(angr.SIM_PROCEDURES['stubs']['ReturnUnconstrained'](display_name=n, resolves=0), n)
         if n == 'exit' or n == '_exit':
-            return angr.SIM_PROCEDURES['libc']['exit']()
+            return _with_name(angr.SIM_PROCEDURES['libc']['exit'](), n)
         return None
 
     def analyze(self):

@@ -86,6 +86,149 @@ _OP_SYMBOLS = {
 }
 
 
+_SIGNAL_NAMES: Dict[int, str] = {
+    4: "SIGILL",
+    5: "SIGTRAP",
+    6: "SIGABRT",
+    7: "SIGEMT",
+    8: "SIGFPE",
+    9: "SIGKILL",
+    10: "SIGBUS",
+    11: "SIGSEGV",
+    12: "SIGSYS",
+}
+
+
+def verify_live_crash(
+    binary_path: str,
+    payload: bytes,
+    vuln_type: str = "",
+    timeout_s: float = 2.0,
+    is_targeted_func: bool = False,
+) -> Dict[str, Any]:
+    """
+    Independently replay a synthesized witness payload against the native target binary
+    via subprocess execution and verify whether it triggers an authentic crash signal.
+
+    A witness is considered verified ONLY when the native binary terminates with a crash
+    signal (e.g. SIGSEGV, SIGABRT, SIGTRAP, SIGBUS, SIGILL, SIGFPE) or sanitizer fault.
+    Timeouts, missing payloads, or normal exits are never counted as verified crashes.
+    """
+    import os
+    import subprocess
+
+    if not payload:
+        return {
+            "attempted": False,
+            "crashed": False,
+            "returncode": None,
+            "signal": None,
+            "timed_out": False,
+            "method": "none",
+            "reason": "Empty witness payload",
+        }
+
+    if not binary_path or not os.path.isfile(binary_path):
+        return {
+            "attempted": False,
+            "crashed": False,
+            "returncode": None,
+            "signal": None,
+            "timed_out": False,
+            "method": "none",
+            "reason": "Binary file not found",
+        }
+
+    if binary_path.endswith(".o") or not os.access(binary_path, os.X_OK):
+        return {
+            "attempted": False,
+            "crashed": False,
+            "returncode": None,
+            "signal": None,
+            "timed_out": False,
+            "method": "none",
+            "reason": "Target is a non-executable object file",
+        }
+
+    def _run_once(env_override: Optional[Dict[str, str]] = None, method_label: str = "native") -> Dict[str, Any]:
+        try:
+            proc = subprocess.run(
+                [binary_path],
+                input=bytes(payload),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=timeout_s,
+                env=env_override,
+            )
+            rc = proc.returncode
+            stderr_text = proc.stderr.decode("utf-8", errors="replace") if proc.stderr else ""
+            sig_num = None
+            if rc < 0:
+                sig_num = -rc
+            elif rc > 128 and (rc - 128) in _SIGNAL_NAMES:
+                sig_num = rc - 128
+
+            sanitizer_fault = any(
+                tok in stderr_text
+                for tok in ("AddressSanitizer", "UndefinedBehaviorSanitizer", "GuardMalloc", "malloc: *** error")
+            )
+            crashed = (sig_num in _SIGNAL_NAMES) or (rc != 0 and sanitizer_fault)
+            sig_name = _SIGNAL_NAMES.get(sig_num, f"SIG({sig_num})") if sig_num else (
+                "SANITIZER_ABORT" if crashed else None
+            )
+            return {
+                "attempted": True,
+                "crashed": bool(crashed),
+                "returncode": rc,
+                "signal": sig_name,
+                "timed_out": False,
+                "method": method_label,
+                "reason": (
+                    f"Process terminated with {sig_name} (rc={rc})"
+                    if crashed
+                    else f"Process exited without crash (rc={rc})"
+                ),
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "attempted": True,
+                "crashed": False,
+                "returncode": None,
+                "signal": None,
+                "timed_out": True,
+                "method": method_label,
+                "reason": f"Execution timed out after {timeout_s}s",
+            }
+        except OSError as exc:
+            return {
+                "attempted": False,
+                "crashed": False,
+                "returncode": None,
+                "signal": None,
+                "timed_out": False,
+                "method": method_label,
+                "reason": f"OS execution error: {exc}",
+            }
+
+    res = _run_once(env_override=None, method_label="native")
+    if res["crashed"] or res["timed_out"] or not res["attempted"]:
+        return res
+
+    # On macOS, standard system malloc does not immediately unmap small freed heap chunks;
+    # re-verify heap safety violations under built-in GuardMalloc (/usr/lib/libgmalloc.dylib).
+    gmalloc_path = "/usr/lib/libgmalloc.dylib"
+    if vuln_type in ("USE_AFTER_FREE", "DOUBLE_FREE", "INVALID_FREE", "OOB_WRITE", "OOB_READ") and os.path.exists(gmalloc_path):
+        env_gm = dict(os.environ)
+        env_gm["DYLD_INSERT_LIBRARIES"] = gmalloc_path
+        gm_res = _run_once(env_override=env_gm, method_label="native+libgmalloc")
+        if gm_res["crashed"]:
+            return gm_res
+
+    if is_targeted_func and not res["crashed"]:
+        res["reason"] = f"{res['reason']} (targeted function entry may not be reachable via default main/stdin harness)"
+    return res
+
+
 def _fmt_constant(value: int, bits: int) -> str:
     num_bytes = max(1, bits // 8)
     if num_bytes == 1 and 32 <= value < 127:
@@ -245,19 +388,27 @@ def _iter_leaf_asts(ast_obj):
 
 def get_symbolic_variables_from_state(state, injected_vars, extra_constraints=None) -> Dict[str, Any]:
     vars_dict = dict(injected_vars or {})
+    seen_bvs_names = {
+        str(v.args[0]) for v in vars_dict.values()
+        if getattr(v, "op", None) == "BVS" and getattr(v, "args", None)
+    }
 
     tracker = getattr(state, "vuln_tracker", None) if state is not None else None
     if tracker is not None and hasattr(tracker, "symbolic_variables"):
         for k, v in tracker.symbolic_variables.items():
             if k not in vars_dict and getattr(v, "op", None) == "BVS" and _is_attacker_controlled_var_name(k):
-                vars_dict[k] = v
+                bvs_internal = str(v.args[0]) if getattr(v, "args", None) else str(k)
+                if bvs_internal not in seen_bvs_names:
+                    vars_dict[k] = v
+                    seen_bvs_names.add(bvs_internal)
 
     def walk(node):
         for leaf in _iter_leaf_asts(node):
             if getattr(leaf, 'op', None) == 'BVS' and getattr(leaf, 'args', None):
                 name = str(leaf.args[0])
-                if name not in vars_dict and _is_attacker_controlled_var_name(name):
+                if name not in vars_dict and name not in seen_bvs_names and _is_attacker_controlled_var_name(name):
                     vars_dict[name] = leaf
+                    seen_bvs_names.add(name)
 
     if state is not None and hasattr(state, "solver"):
         for constraint in state.solver.constraints:
@@ -805,6 +956,28 @@ class AnalysisBackendProvider:
                     flat_succs = successors.flat_successors
                     unsat_succs = successors.unsat_successors
 
+                    # Propagate findings, extra_constraints_map, and symbolic_variables recorded on successor states
+                    # during block/SimProcedure execution back onto the pre-step state's vuln_tracker.
+                    parent_vt = getattr(state, "vuln_tracker", None)
+                    if parent_vt is not None:
+                        for succ_s in getattr(successors, "all_successors", flat_succs):
+                            succ_vt = getattr(succ_s, "vuln_tracker", None)
+                            if succ_vt is None:
+                                continue
+                            for k, v in getattr(succ_vt, "symbolic_variables", {}).items():
+                                if k not in parent_vt.symbolic_variables:
+                                    parent_vt.symbolic_variables[k] = v
+                            for k, v in getattr(succ_vt, "extra_constraints_map", {}).items():
+                                if k not in parent_vt.extra_constraints_map:
+                                    parent_vt.extra_constraints_map[k] = list(v)
+                            for f in getattr(succ_vt, "findings", []):
+                                if not any(
+                                    ef["instruction_address"] == f["instruction_address"]
+                                    and ef["vuln_type"] == f["vuln_type"]
+                                    for ef in parent_vt.findings
+                                ):
+                                    parent_vt.findings.append(f)
+
                     unconstrained_succs = [
                         s for s in getattr(successors, 'all_successors', flat_succs)
                         if _is_true_symbolic_pc(s, s.regs.ip)
@@ -1048,7 +1221,10 @@ class AnalysisBackendProvider:
             except Exception:
                 blk_size = 1
                 addr_val = 0
-            matches = [f for f in all_findings if addr_val <= f["instruction_address"] <= addr_val + blk_size]
+            matches = [
+                f for f in all_findings
+                if addr_val <= f["instruction_address"] < addr_val + max(1, blk_size)
+            ]
             if matches:
                 local_f = min(
                     matches,
@@ -1060,6 +1236,26 @@ class AnalysisBackendProvider:
                     "CRITICAL" if local_f["vuln_type"] in ("OOB_WRITE", "STACK_OVERFLOW", "USE_AFTER_FREE", "DOUBLE_FREE") else "HIGH"
                 )
                 exec_state.vuln_details = local_f["details"]
+                reg_entry = self._state_registry.get(exec_state._registry_key)
+                if reg_entry is not None:
+                    raw_st = reg_entry[0]
+                    vt = getattr(raw_st, "vuln_tracker", None)
+                    if vt is not None:
+                        f_extra = local_f.get("extra_constraints")
+                        if not f_extra:
+                            f_extra = vt.extra_constraints_map.get(
+                                (local_f["instruction_address"], local_f["vuln_type"])
+                            )
+                        if f_extra:
+                            vt.extra_constraints_map[(addr_val, local_f["vuln_type"])] = list(f_extra)
+                        if not any(
+                            ef["instruction_address"] == exec_state.instruction_address
+                            and ef["vuln_type"] == local_f["vuln_type"]
+                            for ef in vt.findings
+                        ):
+                            f_copy = dict(local_f)
+                            f_copy["instruction_address"] = exec_state.instruction_address
+                            vt.findings.append(f_copy)
                 self._emit("VULN", f"[{exec_state.vuln_severity}] {exec_state.vuln_type} mapped to {exec_state.instruction_address}!")
 
         for i in range(len(states) - 1):
@@ -1439,31 +1635,65 @@ class AnalysisBackendProvider:
                 "remediation": "Perform sanity checks on arithmetic and pointer bounds.",
             })
 
+            if solver_status == "SAT" and len(all_bytes) > 0:
+                self._emit("INFO", f"  Replaying synthesized witness ({len(all_bytes)} B) against native binary...")
+                crash_verification = verify_live_crash(
+                    self.binary_path,
+                    bytes(all_bytes),
+                    vuln_type=state_obj.vuln_type,
+                    is_targeted_func=bool(getattr(self, "_target_func_addr", None) is not None),
+                )
+                if crash_verification.get("crashed"):
+                    self._emit(
+                        "SUCCESS",
+                        f"  Live crash verified: {crash_verification.get('signal')} via {crash_verification.get('method')}",
+                    )
+                else:
+                    self._emit("WARN", f"  Witness did not trigger native crash: {crash_verification.get('reason')}")
+            else:
+                crash_verification = {
+                    "attempted": False,
+                    "crashed": False,
+                    "returncode": None,
+                    "signal": None,
+                    "timed_out": False,
+                    "method": "none",
+                    "reason": f"No witness synthesized (solver_status={solver_status})",
+                }
+
+            exploit_verified = bool(
+                solver_status == "SAT"
+                and len(all_bytes) > 0
+                and crash_verification.get("crashed", False)
+            )
+
             self._emit("INFO", "  Generating fix recommendation...")
             partial_report = {
-                "trace_index":      idx,
-                "address":          addr,
-                "function_name":    state_obj.function_name,
-                "vuln_type":        state_obj.vuln_type,
-                "vuln_severity":    c_info["confidence"],
-                "vuln_details":     state_obj.vuln_details,
-                "solver_status":    solver_status,
-                "solver_time_ms":   solver_time_ms,
-                "exploit_vars":     exploit_vars,
-                "crash_integers":   list(all_bytes) if all_bytes else [],
-                "crash_length":     len(all_bytes) if all_bytes else 0,
-                "reproduce_cmd":    reproduce_cmd,
-                "confidence":       c_info["confidence"],
-                "root_cause":       c_info["root_cause"],
-                "impact":           c_info["impact"],
-                "remediation":      c_info["remediation"],
-                "disasm_hash":      _compute_block_disasm_hash(self.engine.project, addr),
-                "witness_model":    {},
-                "registers":        {},
-                "call_stack":       [],
-                "reasoning_trace":  [],
-                "relevant_objects": [],
-                "smt_constraints":  [],
+                "trace_index":        idx,
+                "address":            addr,
+                "function_name":      state_obj.function_name,
+                "vuln_type":          state_obj.vuln_type,
+                "vuln_severity":      c_info["confidence"],
+                "vuln_details":       state_obj.vuln_details,
+                "solver_status":      solver_status,
+                "solver_time_ms":     solver_time_ms,
+                "exploit_vars":       exploit_vars,
+                "crash_integers":     list(all_bytes) if all_bytes else [],
+                "crash_length":       len(all_bytes) if all_bytes else 0,
+                "reproduce_cmd":      reproduce_cmd,
+                "crash_verification": crash_verification,
+                "exploit_verified":   exploit_verified,
+                "confidence":         c_info["confidence"],
+                "root_cause":         c_info["root_cause"],
+                "impact":             c_info["impact"],
+                "remediation":        c_info["remediation"],
+                "disasm_hash":        _compute_block_disasm_hash(self.engine.project, addr),
+                "witness_model":      {},
+                "registers":          {},
+                "call_stack":         [],
+                "reasoning_trace":    [],
+                "relevant_objects":   [],
+                "smt_constraints":    [],
             }
 
             if entry is not None:

@@ -43,25 +43,37 @@ TAINT_SOURCES: Dict[str, Tuple[Optional[int], Optional[int]]] = {
 #: Dangerous sink functions.
 #: Maps clean_name → (tainted_arg_indices, sink_category)
 TAINT_SINKS: Dict[str, Tuple[List[int], str]] = {
-    "strcpy":    ([1], "CONTROLLED_STRCPY"),
-    "strncpy":   ([1], "CONTROLLED_STRNCPY"),
-    "strcat":    ([1], "CONTROLLED_STRCAT"),
-    "strncat":   ([1], "CONTROLLED_STRNCAT"),
-    "memcpy":    ([1], "CONTROLLED_MEMCPY"),
-    "memmove":   ([1], "CONTROLLED_MEMMOVE"),
-    "bcopy":     ([0], "CONTROLLED_MEMCPY"),
-    "printf":    ([0], "CONTROLLED_FORMAT_STRING"),
-    "fprintf":   ([1], "CONTROLLED_FORMAT_STRING"),
-    "sprintf":   ([1], "CONTROLLED_FORMAT_STRING"),
-    "snprintf":  ([2], "CONTROLLED_FORMAT_STRING"),
-    "vsnprintf": ([2], "CONTROLLED_FORMAT_STRING"),
-    "system":    ([0], "CONTROLLED_CMD_INJECTION"),
-    "popen":     ([0], "CONTROLLED_CMD_INJECTION"),
-    "execve":    ([0], "CONTROLLED_EXEC"),
-    "execl":     ([0], "CONTROLLED_EXEC"),
-    "execvp":    ([0], "CONTROLLED_EXEC"),
-    "execlp":    ([0], "CONTROLLED_EXEC"),
-    "write":     ([1], "CONTROLLED_WRITE"),
+    "strcpy":       ([1], "CONTROLLED_STRCPY"),
+    "strcpy_chk":   ([1], "CONTROLLED_STRCPY"),
+    "strncpy":      ([1], "CONTROLLED_STRNCPY"),
+    "strncpy_chk":  ([1], "CONTROLLED_STRNCPY"),
+    "strcat":       ([1], "CONTROLLED_STRCAT"),
+    "strcat_chk":   ([1], "CONTROLLED_STRCAT"),
+    "strncat":      ([1], "CONTROLLED_STRNCAT"),
+    "strncat_chk":  ([1], "CONTROLLED_STRNCAT"),
+    "memcpy":       ([1], "CONTROLLED_MEMCPY"),
+    "memcpy_chk":   ([1], "CONTROLLED_MEMCPY"),
+    "memmove":      ([1], "CONTROLLED_MEMMOVE"),
+    "memmove_chk":  ([1], "CONTROLLED_MEMMOVE"),
+    "bcopy":        ([0], "CONTROLLED_MEMCPY"),
+    "printf":       ([0], "CONTROLLED_FORMAT_STRING"),
+    "vprintf":      ([0], "CONTROLLED_FORMAT_STRING"),
+    "fprintf":      ([1], "CONTROLLED_FORMAT_STRING"),
+    "vfprintf":     ([1], "CONTROLLED_FORMAT_STRING"),
+    "dprintf":      ([1], "CONTROLLED_FORMAT_STRING"),
+    "sprintf":      ([1], "CONTROLLED_FORMAT_STRING"),
+    "sprintf_chk":  ([3], "CONTROLLED_FORMAT_STRING"),
+    "snprintf":     ([2], "CONTROLLED_FORMAT_STRING"),
+    "snprintf_chk": ([4], "CONTROLLED_FORMAT_STRING"),
+    "vsnprintf":    ([2], "CONTROLLED_FORMAT_STRING"),
+    "vsnprintf_chk":([4], "CONTROLLED_FORMAT_STRING"),
+    "system":       ([0], "CONTROLLED_CMD_INJECTION"),
+    "popen":        ([0], "CONTROLLED_CMD_INJECTION"),
+    "execve":       ([0], "CONTROLLED_EXEC"),
+    "execl":        ([0], "CONTROLLED_EXEC"),
+    "execvp":       ([0], "CONTROLLED_EXEC"),
+    "execlp":       ([0], "CONTROLLED_EXEC"),
+    "write":        ([1], "CONTROLLED_WRITE"),
 }
 
 
@@ -90,17 +102,38 @@ class TaintSinkHit:
 
 # ── Core taint analysis functions ─────────────────────────────────────────────
 
-def is_tainted(expr: Any, taint_names: Set[str]) -> bool:
-    """Return True if any BVS leaf in expr is a known taint variable."""
-    if not hasattr(expr, "leaf_asts"):
+def _iter_leaves(expr: Any):
+    if expr is None or not hasattr(expr, "leaf_asts"):
+        return ()
+    la = getattr(expr, "leaf_asts")
+    try:
+        return la() if callable(la) else la
+    except Exception:
+        return ()
+
+
+def is_tainted(expr: Any, taint_names: Any = None) -> bool:
+    """
+    Return True if any BVS leaf in expr is a known taint variable.
+    Supports both calling conventions:
+      - is_tainted(expr, taint_names_set)
+      - is_tainted(state, expr)
+    """
+    if hasattr(expr, "vuln_tracker") and taint_names is not None and not isinstance(taint_names, (set, frozenset, list, tuple, dict)):
+        state = expr
+        expr = taint_names
+        tracker = getattr(state, "vuln_tracker", None)
+        taint_names = getattr(tracker, "taint_set", set()) if tracker is not None else set()
+
+    if not taint_names or expr is None:
         return False
     try:
-        for leaf in expr.leaf_asts():
+        for leaf in _iter_leaves(expr):
             if getattr(leaf, "op", None) == "BVS":
-                var_name = leaf.args[0]
+                var_name = str(leaf.args[0])
                 if var_name in taint_names:
                     return True
-                if any(var_name.startswith(t) for t in taint_names):
+                if any(var_name.startswith(str(t)) for t in taint_names):
                     return True
     except Exception:
         pass
@@ -109,14 +142,14 @@ def is_tainted(expr: Any, taint_names: Set[str]) -> bool:
 
 def get_taint_sources(expr: Any, sources: List[TaintSource]) -> List[TaintSource]:
     """Return TaintSources whose variable names appear in expr's AST."""
-    if not hasattr(expr, "leaf_asts"):
-        return []
     expr_var_names: Set[str] = set()
     try:
-        for leaf in expr.leaf_asts():
+        for leaf in _iter_leaves(expr):
             if getattr(leaf, "op", None) == "BVS":
-                expr_var_names.add(leaf.args[0])
+                expr_var_names.add(str(leaf.args[0]))
     except Exception:
+        return []
+    if not expr_var_names:
         return []
     return [s for s in sources if any(any(vn.startswith(t) for vn in expr_var_names) for t in s.var_names)]
 
@@ -125,10 +158,10 @@ def inject_taint(state: Any, func_name: str, call_site: int,
                  buf_ptr: Any, length: int) -> TaintSource:
     """
     Inject `length` fresh BVS taint-marker bytes into state memory at buf_ptr.
-    Records each BVS name in state.vuln_tracker.taint_set.
+    Records each BVS name in state.vuln_tracker.taint_set and symbolic_variables.
     """
     tracker = state.vuln_tracker
-    length = min(length, 512)  # cap to avoid explosion
+    length = min(max(int(length), 1), 256)  # cap to avoid explosion
     var_names: List[str] = []
 
     for i in range(length):
@@ -141,6 +174,8 @@ def inject_taint(state: Any, func_name: str, call_site: int,
         var_names.append(var_name)
         if isinstance(tracker.taint_set, set):
             tracker.taint_set.add(var_name)
+        if hasattr(tracker, "symbolic_variables") and isinstance(tracker.symbolic_variables, dict):
+            tracker.symbolic_variables[var_name] = taint_sym
 
     src = TaintSource(
         func_name=func_name,

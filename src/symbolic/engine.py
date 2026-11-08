@@ -105,6 +105,9 @@ class SymbolicEngine:
             tracker.symbolic_variables[f"arg_{i}"] = concrete_ptr
             tracker.symbolic_variables[f"buf_arg_{i}"] = buf_sym
             tracker.symbolic_variables[f"buf_len_arg_{i}"] = buf_len_sym
+            tracker.taint_set.add(f"arg_{i}")
+            tracker.taint_set.add(f"buf_arg_{i}")
+            tracker.taint_set.add(f"buf_len_arg_{i}")
 
             heap_cursor += buf_size_bytes + 8  # 8-byte guard gap
 
@@ -181,6 +184,9 @@ class SymbolicEngine:
         tracker.symbolic_variables["stdin_input"] = sym_var
         tracker.symbolic_variables["argv1"] = argv1_sym
         tracker.symbolic_variables["env_var"] = env_val_sym
+        tracker.taint_set.add("stdin_input")
+        tracker.taint_set.add("argv1")
+        tracker.taint_set.add("env_var")
         
         self.state.register_plugin('vuln_tracker', tracker)
         instrument_state(self.state)

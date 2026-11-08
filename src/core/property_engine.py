@@ -140,18 +140,79 @@ def get_argument_value(state, index):
         
     return None
 
+def _build_sink_witness_constraints(state, sink_hit: TaintSinkHit, arg_expr) -> List[Any]:
+    """
+    Build satisfiable extra constraints for format-string and command-injection sinks
+    so Z3 synthesizes a concrete exploit witness that triggers a verifiable native signal.
+    """
+    cat = sink_hit.sink_category
+    if "FORMAT_STRING" in cat:
+        payload = b"%n%n%n%n%s%s%s%s"
+    elif "CMD_INJECTION" in cat or "EXEC" in cat:
+        payload = b"'; kill -SEGV $PPID #"
+    else:
+        return []
+
+    tracker = getattr(state, "vuln_tracker", None)
+    sym_map = getattr(tracker, "symbolic_variables", {}) if tracker else {}
+
+    # 1. Try constraining the originating TaintSource BVS byte variables directly
+    candidate_constraints = []
+    if sink_hit.taint_sources:
+        src = sink_hit.taint_sources[0]
+        if len(src.var_names) >= len(payload):
+            for i, vname in enumerate(src.var_names):
+                bvs = sym_map.get(vname)
+                if bvs is None:
+                    continue
+                b_val = payload[i] if i < len(payload) else 0x20  # pad remaining bytes with ASCII space
+                candidate_constraints.append(bvs == b_val)
+
+    if candidate_constraints:
+        try:
+            if state.solver.satisfiable(extra_constraints=candidate_constraints):
+                return candidate_constraints
+        except Exception:
+            pass
+
+    # 2. Fallback: constrain memory bytes at arg_expr directly
+    mem_constraints = []
+    if arg_expr is not None:
+        try:
+            for i, b_val in enumerate(payload):
+                b_ast = state.memory.load(arg_expr + i, 1, inspect=False)
+                if getattr(b_ast, "symbolic", False):
+                    mem_constraints.append(b_ast == b_val)
+            if mem_constraints and state.solver.satisfiable(extra_constraints=mem_constraints):
+                return mem_constraints
+        except Exception:
+            pass
+
+    return []
+
+
 def track_simproc_before(state):
     name = state.inspect.simprocedure_name
     if name is None:
         return
         
-    clean_name = name.strip('_')
+    clean_name = name.strip('_').lower()
     tracker = state.vuln_tracker
-    site = state.inspect.simprocedure_addr
+    site = get_precise_site(state)
+
+    # ── Capture Taint Source Arguments Before Execution Overwrites Return Reg ─
+    if clean_name in TAINT_SOURCES:
+        buf_arg_idx, len_arg_idx = TAINT_SOURCES[clean_name]
+        try:
+            buf_ptr = get_argument_value(state, buf_arg_idx) if buf_arg_idx is not None else None
+            raw_len = get_argument_value(state, len_arg_idx) if len_arg_idx is not None else None
+            tracker.pending_taint_source = (clean_name, site, buf_ptr, raw_len)
+        except Exception:
+            tracker.pending_taint_source = None
 
     # ── Taint Sink Check ─────────────────────────────────────────────────────
     # Collect arguments and check if any tainted value reaches a dangerous sink
-    _SINK_MAX_ARGS = 4
+    _SINK_MAX_ARGS = 6
     args = []
     for i in range(_SINK_MAX_ARGS):
         try:
@@ -159,12 +220,17 @@ def track_simproc_before(state):
         except Exception:
             args.append(None)
 
-    if clean_name in ("strcpy", "strcat", "strncpy", "memcpy", "memmove"):
+    if clean_name in (
+        "strcpy", "strcpy_chk", "strcat", "strcat_chk",
+        "strncpy", "strncpy_chk", "memcpy", "memcpy_chk", "memmove", "memmove_chk"
+    ):
         dest_ptr = args[0]
         src_ptr = args[1]
-        n_arg = args[2] if clean_name in ("strncpy", "memcpy", "memmove") else None
+        n_arg = args[2] if clean_name in ("strncpy", "strncpy_chk", "memcpy", "memcpy_chk", "memmove", "memmove_chk") else None
         
-        is_overflow, overflow_details, dest_size = check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg)
+        is_overflow, overflow_details, dest_size, overflow_constraints = check_copy_overflow(
+            state, clean_name, dest_ptr, src_ptr, n_arg
+        )
         if is_overflow:
             origin = get_pointer_origin(state, dest_ptr)
             vuln_type = "STACK_OVERFLOW" if origin == 'stack' else "OOB_WRITE"
@@ -173,17 +239,21 @@ def track_simproc_before(state):
                 vuln_type,
                 overflow_details,
                 site,
+                extra_constraints=overflow_constraints,
             )
             tracker.log(f"[EXPLOIT-COPY] {vuln_type} proved at {hex(site)} via '{clean_name}'")
     else:
         sink_hit: Optional[TaintSinkHit] = check_sink(state, clean_name, site, args)
         if sink_hit is not None:
             vuln_type = f"TAINT_{sink_hit.sink_category}"
+            arg_expr = args[sink_hit.tainted_arg] if sink_hit.tainted_arg < len(args) else None
+            sink_extra = _build_sink_witness_constraints(state, sink_hit, arg_expr)
             report_finding(
                 state,
                 vuln_type,
                 sink_hit.details,
                 site,
+                extra_constraints=sink_extra if sink_extra else None,
             )
             tracker.log(f"[EXPLOIT-SINK] {vuln_type} proved at {hex(site)} via '{clean_name}'")
 
@@ -233,9 +303,9 @@ def track_simproc_after(state):
     if name is None:
         return
         
-    clean_name = name.strip('_')
+    clean_name = name.strip('_').lower()
     tracker = state.vuln_tracker
-    site = state.inspect.simprocedure_addr
+    site = get_precise_site(state)
     ret_val = state.inspect.simprocedure_result
     
     if ret_val is None:
@@ -246,10 +316,16 @@ def track_simproc_after(state):
     if clean_name in TAINT_SOURCES:
         buf_arg_idx, len_arg_idx = TAINT_SOURCES[clean_name]
         try:
+            pending = getattr(tracker, "pending_taint_source", None)
+            tracker.pending_taint_source = None
+            if pending is not None and pending[0] == clean_name:
+                _, site, buf_ptr, raw_len = pending
+            else:
+                buf_ptr = get_argument_value(state, buf_arg_idx) if buf_arg_idx is not None else None
+                raw_len = get_argument_value(state, len_arg_idx) if len_arg_idx is not None else None
+
             if buf_arg_idx is not None:
-                buf_ptr = get_argument_value(state, buf_arg_idx)
-                if len_arg_idx is not None:
-                    raw_len = get_argument_value(state, len_arg_idx)
+                if raw_len is not None:
                     try:
                         length = state.solver.eval(raw_len)
                     except Exception:
@@ -261,13 +337,14 @@ def track_simproc_after(state):
                     inject_taint(state, clean_name, site, buf_ptr, int(length))
             else:
                 # Variadic sources (scanf) or return-value sources (getenv)
-                # Mark the return value itself as tainted by writing to a known sym var
                 var_name = f"taint_{clean_name}_{hex(site)}_retval"
                 taint_sym = claripy.BVS(var_name, ret_val.size() if hasattr(ret_val, 'size') else 64)
                 if isinstance(tracker.taint_set, set):
                     tracker.taint_set.add(var_name)
                     if not hasattr(tracker, 'taint_sources'):
                         tracker.taint_sources = []
+                if hasattr(tracker, "symbolic_variables"):
+                    tracker.symbolic_variables[var_name] = taint_sym
                 tracker.log(f"[TAINT] Return-value taint marker for '{clean_name}' at {hex(site)}")
         except Exception as e:
             tracker.log(f"[TAINT] Source injection error for '{clean_name}': {e}")
@@ -426,43 +503,75 @@ def find_buffer_size(state, ptr) -> Optional[int]:
             
     return None
 
-def check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg=None) -> Tuple[bool, str, Optional[int]]:
+def check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg=None) -> Tuple[bool, str, Optional[int], List[Any]]:
     dest_size = find_buffer_size(state, dest_ptr)
     effective_dest_size = dest_size if dest_size is not None else 16
     tracker = getattr(state, 'vuln_tracker', None)
     taint_set = getattr(tracker, 'taint_set', set()) if tracker else set()
-    
-    if n_arg is not None:
+
+    # Detect angr's internal strcpy -> inline_call(strncpy/memcpy, dst, src, -1)
+    is_internal_unbounded_strncpy = False
+    if n_arg is not None and clean_name in ("strncpy", "strncpy_chk", "memcpy", "memcpy_chk", "memmove", "memmove_chk"):
+        try:
+            if not getattr(n_arg, "symbolic", False):
+                n_val = state.solver.eval(n_arg)
+                max_uint = (1 << state.arch.bits) - 1
+                if n_val == max_uint or n_val > 0x7fffffff:
+                    is_internal_unbounded_strncpy = True
+        except Exception:
+            pass
+
+    if n_arg is not None and not is_internal_unbounded_strncpy:
         try:
             if dest_size is not None and state.solver.satisfiable(extra_constraints=[n_arg > dest_size]):
                 details = f"Buffer overflow in {clean_name}: size argument {n_arg} can exceed destination buffer size {dest_size}."
-                return True, details, dest_size
+                return True, details, dest_size, [n_arg > dest_size]
         except Exception:
             pass
     else:
         try:
+            # Build overflow constraints requiring source string to contain non-null bytes past destination buffer
+            smash_len = min(max(effective_dest_size + 24, 48), 80)
+            overflow_Fill = []
+            has_attacker_sym = False
+            for i in range(smash_len):
+                char_val = state.memory.load(src_ptr + i, 1, inspect=False)
+                if getattr(char_val, "symbolic", False):
+                    if any(
+                        not str(v).startswith(("mem_", "reg_", "strlen_", "unconstrained_"))
+                        for v in getattr(char_val, "variables", set())
+                    ):
+                        has_attacker_sym = True
+                    overflow_Fill.append(char_val == 0x41)
+
+            min_overflow_constraints = []
+            for i in range(effective_dest_size + 1):
+                char_val = state.memory.load(src_ptr + i, 1, inspect=False)
+                min_overflow_constraints.append(char_val != 0)
+
             is_src_tainted = is_tainted(src_ptr, taint_set)
             if not is_src_tainted and src_ptr is not None:
                 try:
-                    loaded = state.memory.load(src_ptr, 8)
+                    loaded = state.memory.load(src_ptr, 8, inspect=False)
                     is_src_tainted = is_tainted(loaded, taint_set)
                 except Exception:
                     pass
-            if is_src_tainted:
-                details = f"Buffer overflow in {clean_name}: tainted source string can exceed destination buffer size {effective_dest_size}."
-                return True, details, effective_dest_size
 
-            constraints = []
-            for i in range(effective_dest_size + 1):
-                char_val = state.memory.load(src_ptr + i, 1)
-                constraints.append(char_val != 0)
-            if state.solver.satisfiable(extra_constraints=constraints):
+            if is_src_tainted:
+                chosen_extra = overflow_Fill if (overflow_Fill and state.solver.satisfiable(extra_constraints=overflow_Fill)) else (
+                    min_overflow_constraints if state.solver.satisfiable(extra_constraints=min_overflow_constraints) else []
+                )
+                details = f"Buffer overflow in {clean_name}: tainted source string can exceed destination buffer size {effective_dest_size}."
+                return True, details, effective_dest_size, chosen_extra
+
+            if has_attacker_sym and state.solver.satisfiable(extra_constraints=min_overflow_constraints):
+                chosen_extra = overflow_Fill if (overflow_Fill and state.solver.satisfiable(extra_constraints=overflow_Fill)) else min_overflow_constraints
                 details = f"Buffer overflow in {clean_name}: source string can exceed destination buffer size {effective_dest_size}."
-                return True, details, effective_dest_size
+                return True, details, effective_dest_size, chosen_extra
         except Exception:
             pass
             
-    return False, "", dest_size
+    return False, "", dest_size, []
 
 def verify_free_pointer(state, ptr, is_realloc=False):
     if state.solver.is_true(ptr == 0):
@@ -504,7 +613,13 @@ def verify_memory_safety(state, addr, size, is_write):
     site = get_precise_site(state)
     
     try:
-        size_bytes = state.solver.eval(size)
+        if getattr(size, 'symbolic', False):
+            if is_tainted(size, tracker.taint_set):
+                size_bytes = size
+            else:
+                size_bytes = state.solver.min(size)
+        else:
+            size_bytes = state.solver.eval(size)
     except Exception:
         size_bytes = 8  # fallback
         
@@ -524,7 +639,7 @@ def verify_memory_safety(state, addr, size, is_write):
             if not is_stack_address(state, addr):
                 if state.solver.satisfiable(extra_constraints=[addr == 0]):
                     # Ensure it's not a generic filler register by checking if it's tainted or constrained
-                    if is_tainted(state, addr) or len(state.solver.constraints) > 0:
+                    if is_tainted(addr, tracker.taint_set) or len(state.solver.constraints) > 0:
                         details = f"Null pointer dereference invariant violated: pointer {addr} can be NULL (0x0)."
                         report_finding(state, "NULL_DEREF", details, site, extra_constraints=[addr == 0])
                         return
@@ -553,7 +668,7 @@ def verify_memory_safety(state, addr, size, is_write):
         overflow_cond = (addr + size_bytes > obj.start_addr + obj.size)
         base_in_bounds = (addr >= obj.start_addr) & (addr < obj.start_addr + obj.size)
         if state.solver.satisfiable(extra_constraints=[base_in_bounds, overflow_cond]):
-            if is_tainted(state, addr) or is_write:
+            if is_tainted(addr, tracker.taint_set) or is_write:
                 vuln_type = "OOB_WRITE" if is_write else "OOB_READ"
                 details = (
                     f"Out-of-bounds boundary invariant violated: access at {addr} "
@@ -563,7 +678,7 @@ def verify_memory_safety(state, addr, size, is_write):
                 return
             
         # Check underflow (only for tainted/user-controlled pointers)
-        if getattr(addr, 'symbolic', False) and is_tainted(state, addr):
+        if getattr(addr, 'symbolic', False) and is_tainted(addr, tracker.taint_set):
             underflow_neighborhood = (addr >= obj.start_addr - 256) & (addr < obj.start_addr)
             if state.solver.satisfiable(extra_constraints=[underflow_neighborhood]):
                 vuln_type = "OOB_WRITE" if is_write else "OOB_READ"
@@ -595,8 +710,10 @@ def verify_memory_safety(state, addr, size, is_write):
 
 def verify_allocation_size(state, size):
     site = get_precise_site(state)
+    tracker = getattr(state, "vuln_tracker", None)
+    taint_set = getattr(tracker, "taint_set", set()) if tracker else set()
     try:
-        if getattr(size, 'symbolic', False) and is_tainted(state, size):
+        if getattr(size, 'symbolic', False) and is_tainted(size, taint_set):
             bits = size.size()
             max_val = (1 << (bits - 1)) - 1
             overflow_cond = (size > max_val) | (size < 0)
@@ -641,7 +758,7 @@ def report_finding(state, vuln_type, details, site, extra_constraints=None, rele
     witness_model = {}
     for name, var in tracker.symbolic_variables.items():
         try:
-            val = state.solver.eval(var, cast_to=bytes)
+            val = state.solver.eval(var, cast_to=bytes, extra_constraints=extra_constraints)
             witness_model[name] = val.decode('utf-8', errors='ignore')
         except Exception:
             try:
@@ -673,6 +790,7 @@ def report_finding(state, vuln_type, details, site, extra_constraints=None, rele
         "call_stack": call_stack,
         "witness_model": witness_model,
         "constraints": [str(c) for c in solver_constraints],
+        "extra_constraints": list(extra_constraints) if extra_constraints else [],
         "registers": registers,
         "reasoning_trace": list(tracker.reasoning_trace),
         "relevant_objects": [str(obj) for obj in (relevant_objects or [])],
