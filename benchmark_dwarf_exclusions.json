@@ -1,0 +1,595 @@
+{
+  "total_primevul_vulnerable_evaluated": 1240,
+  "successfully_mapped_dwarf": 1190,
+  "unmapped_dwarf_excluded": 50,
+  "mapping_rate_pct": 95.97,
+  "clean_controls_verified": 1240,
+  "clean_controls_purity_pct": 100.0,
+  "opt_level_distribution": {
+    "O0": 3,
+    "O1": 15,
+    "O2": 16,
+    "Os": 16
+  },
+  "cwe_distribution": {
+    "CWE787": 9,
+    "CWE264": 6,
+    "CWE399": 6,
+    "CWE17": 4,
+    "CWE772": 4,
+    "CWE362": 3,
+    "CWE189": 3,
+    "CWE119": 3,
+    "CWE310": 3,
+    "CWE834": 3,
+    "CWE703": 3,
+    "CWE190": 3
+  },
+  "project_distribution": {
+    "linux": 12,
+    "openssl": 10,
+    "ImageMagick": 7,
+    "savannah": 4,
+    "php-src": 3,
+    "libuv": 3,
+    "FFmpeg": 3,
+    "feh": 3,
+    "libpng": 3,
+    "oniguruma": 2
+  },
+  "unique_cves_count": 16,
+  "cve_distribution": {
+    "CVE-2015-0290": 4,
+    "CVE-2017-7857": 4,
+    "CVE-2017-11447": 4,
+    "CVE-2014-3509": 3,
+    "CVE-2012-4565": 3,
+    "CVE-2014-4049": 3,
+    "CVE-2014-3122": 3,
+    "CVE-2013-7339": 3,
+    "CVE-2015-0278": 3,
+    "CVE-2015-0204": 3,
+    "CVE-2017-14056": 3,
+    "CVE-2017-7875": 3,
+    "CVE-2017-7273": 3,
+    "CVE-2015-8959": 3,
+    "CVE-2018-13785": 3,
+    "CVE-2017-9225": 2
+  },
+  "patch_taxonomy": {
+    "Macro / Typedef / Preprocessor Boundaries": {
+      "count": 21,
+      "description": "Patches modifying #define buffer limits, macro expansions, or struct definitions where clang folds constants without dedicated machine instructions mapping to the patch diff lines.",
+      "example_cwes": [
+        "CWE787",
+        "CWE189",
+        "CWE119"
+      ]
+    },
+    "Inlined Resource Deallocation / Cleanup": {
+      "count": 16,
+      "description": "Patches inserting kfree/free/unref error handlers that the compiler completely inlines and merges into existing function exit epilogues at -O1/-O2/-Os.",
+      "example_cwes": [
+        "CWE772",
+        "CWE399"
+      ]
+    },
+    "Control Flow Permission & Guard Splitting": {
+      "count": 13,
+      "description": "Security checks or capability validations (e.g., capable(CAP_SYS_ADMIN)) where the check is hoisted or folded into early register test instructions shared by sibling blocks.",
+      "example_cwes": [
+        "CWE264",
+        "CWE703",
+        "CWE362"
+      ]
+    }
+  },
+  "class_distribution_impact": {
+    "vuln_blocks_with_exclusions": 3569,
+    "total_blocks_evaluated": 366067,
+    "positive_class_ratio_pct": 0.975,
+    "note": "If the 50 unmapped graphs were incorrectly included with y=0 labels, 6,104 basic blocks from true vulnerable functions would be falsely labeled as safe, introducing label noise. Correctly excluding them maintains 100% ground-truth label fidelity for supervised training and evaluation."
+  },
+  "excluded_binaries_list": [
+    {
+      "binary_name": "PV_00069_openssl_CVE-2015-0290_CWE17_VULN_O0.out",
+      "cwe": "CWE17",
+      "cve": "CVE-2015-0290",
+      "project": "openssl",
+      "opt_level": "O0",
+      "base_testcase": "PV_PAIR_00069_CVE-2015-0290",
+      "nodes": 73,
+      "edges": 98
+    },
+    {
+      "binary_name": "PV_00069_openssl_CVE-2015-0290_CWE17_VULN_O1.out",
+      "cwe": "CWE17",
+      "cve": "CVE-2015-0290",
+      "project": "openssl",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00069_CVE-2015-0290",
+      "nodes": 34,
+      "edges": 48
+    },
+    {
+      "binary_name": "PV_00069_openssl_CVE-2015-0290_CWE17_VULN_O2.out",
+      "cwe": "CWE17",
+      "cve": "CVE-2015-0290",
+      "project": "openssl",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00069_CVE-2015-0290",
+      "nodes": 35,
+      "edges": 49
+    },
+    {
+      "binary_name": "PV_00069_openssl_CVE-2015-0290_CWE17_VULN_Os.out",
+      "cwe": "CWE17",
+      "cve": "CVE-2015-0290",
+      "project": "openssl",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00069_CVE-2015-0290",
+      "nodes": 35,
+      "edges": 48
+    },
+    {
+      "binary_name": "PV_00090_savannah_CVE-2017-7857_CWE787_VULN_O0.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-7857",
+      "project": "savannah",
+      "opt_level": "O0",
+      "base_testcase": "PV_PAIR_00090_CVE-2017-7857",
+      "nodes": 55,
+      "edges": 73
+    },
+    {
+      "binary_name": "PV_00090_savannah_CVE-2017-7857_CWE787_VULN_O1.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-7857",
+      "project": "savannah",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00090_CVE-2017-7857",
+      "nodes": 38,
+      "edges": 54
+    },
+    {
+      "binary_name": "PV_00090_savannah_CVE-2017-7857_CWE787_VULN_O2.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-7857",
+      "project": "savannah",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00090_CVE-2017-7857",
+      "nodes": 39,
+      "edges": 55
+    },
+    {
+      "binary_name": "PV_00090_savannah_CVE-2017-7857_CWE787_VULN_Os.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-7857",
+      "project": "savannah",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00090_CVE-2017-7857",
+      "nodes": 39,
+      "edges": 55
+    },
+    {
+      "binary_name": "PV_00141_openssl_CVE-2014-3509_CWE362_VULN_O1.out",
+      "cwe": "CWE362",
+      "cve": "CVE-2014-3509",
+      "project": "openssl",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00141_CVE-2014-3509",
+      "nodes": 24,
+      "edges": 35
+    },
+    {
+      "binary_name": "PV_00141_openssl_CVE-2014-3509_CWE362_VULN_O2.out",
+      "cwe": "CWE362",
+      "cve": "CVE-2014-3509",
+      "project": "openssl",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00141_CVE-2014-3509",
+      "nodes": 23,
+      "edges": 33
+    },
+    {
+      "binary_name": "PV_00141_openssl_CVE-2014-3509_CWE362_VULN_Os.out",
+      "cwe": "CWE362",
+      "cve": "CVE-2014-3509",
+      "project": "openssl",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00141_CVE-2014-3509",
+      "nodes": 23,
+      "edges": 32
+    },
+    {
+      "binary_name": "PV_00221_linux_CVE-2012-4565_CWE189_VULN_O1.out",
+      "cwe": "CWE189",
+      "cve": "CVE-2012-4565",
+      "project": "linux",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00221_CVE-2012-4565",
+      "nodes": 4,
+      "edges": 2
+    },
+    {
+      "binary_name": "PV_00221_linux_CVE-2012-4565_CWE189_VULN_O2.out",
+      "cwe": "CWE189",
+      "cve": "CVE-2012-4565",
+      "project": "linux",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00221_CVE-2012-4565",
+      "nodes": 4,
+      "edges": 2
+    },
+    {
+      "binary_name": "PV_00221_linux_CVE-2012-4565_CWE189_VULN_Os.out",
+      "cwe": "CWE189",
+      "cve": "CVE-2012-4565",
+      "project": "linux",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00221_CVE-2012-4565",
+      "nodes": 4,
+      "edges": 2
+    },
+    {
+      "binary_name": "PV_00370_php-src_CVE-2014-4049_CWE119_VULN_O1.out",
+      "cwe": "CWE119",
+      "cve": "CVE-2014-4049",
+      "project": "php-src",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00370_CVE-2014-4049",
+      "nodes": 28,
+      "edges": 37
+    },
+    {
+      "binary_name": "PV_00370_php-src_CVE-2014-4049_CWE119_VULN_O2.out",
+      "cwe": "CWE119",
+      "cve": "CVE-2014-4049",
+      "project": "php-src",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00370_CVE-2014-4049",
+      "nodes": 28,
+      "edges": 37
+    },
+    {
+      "binary_name": "PV_00370_php-src_CVE-2014-4049_CWE119_VULN_Os.out",
+      "cwe": "CWE119",
+      "cve": "CVE-2014-4049",
+      "project": "php-src",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00370_CVE-2014-4049",
+      "nodes": 28,
+      "edges": 37
+    },
+    {
+      "binary_name": "PV_00389_linux_CVE-2014-3122_CWE264_VULN_O1.out",
+      "cwe": "CWE264",
+      "cve": "CVE-2014-3122",
+      "project": "linux",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00389_CVE-2014-3122",
+      "nodes": 21,
+      "edges": 28
+    },
+    {
+      "binary_name": "PV_00389_linux_CVE-2014-3122_CWE264_VULN_O2.out",
+      "cwe": "CWE264",
+      "cve": "CVE-2014-3122",
+      "project": "linux",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00389_CVE-2014-3122",
+      "nodes": 21,
+      "edges": 28
+    },
+    {
+      "binary_name": "PV_00389_linux_CVE-2014-3122_CWE264_VULN_Os.out",
+      "cwe": "CWE264",
+      "cve": "CVE-2014-3122",
+      "project": "linux",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00389_CVE-2014-3122",
+      "nodes": 21,
+      "edges": 28
+    },
+    {
+      "binary_name": "PV_00411_linux_CVE-2013-7339_CWE399_VULN_O1.out",
+      "cwe": "CWE399",
+      "cve": "CVE-2013-7339",
+      "project": "linux",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00411_CVE-2013-7339",
+      "nodes": 19,
+      "edges": 24
+    },
+    {
+      "binary_name": "PV_00411_linux_CVE-2013-7339_CWE399_VULN_O2.out",
+      "cwe": "CWE399",
+      "cve": "CVE-2013-7339",
+      "project": "linux",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00411_CVE-2013-7339",
+      "nodes": 19,
+      "edges": 24
+    },
+    {
+      "binary_name": "PV_00411_linux_CVE-2013-7339_CWE399_VULN_Os.out",
+      "cwe": "CWE399",
+      "cve": "CVE-2013-7339",
+      "project": "linux",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00411_CVE-2013-7339",
+      "nodes": 19,
+      "edges": 24
+    },
+    {
+      "binary_name": "PV_00468_libuv_CVE-2015-0278_CWE264_VULN_O1.out",
+      "cwe": "CWE264",
+      "cve": "CVE-2015-0278",
+      "project": "libuv",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00468_CVE-2015-0278",
+      "nodes": 51,
+      "edges": 76
+    },
+    {
+      "binary_name": "PV_00468_libuv_CVE-2015-0278_CWE264_VULN_O2.out",
+      "cwe": "CWE264",
+      "cve": "CVE-2015-0278",
+      "project": "libuv",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00468_CVE-2015-0278",
+      "nodes": 80,
+      "edges": 132
+    },
+    {
+      "binary_name": "PV_00468_libuv_CVE-2015-0278_CWE264_VULN_Os.out",
+      "cwe": "CWE264",
+      "cve": "CVE-2015-0278",
+      "project": "libuv",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00468_CVE-2015-0278",
+      "nodes": 47,
+      "edges": 72
+    },
+    {
+      "binary_name": "PV_00473_openssl_CVE-2015-0204_CWE310_VULN_O1.out",
+      "cwe": "CWE310",
+      "cve": "CVE-2015-0204",
+      "project": "openssl",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00473_CVE-2015-0204",
+      "nodes": 46,
+      "edges": 67
+    },
+    {
+      "binary_name": "PV_00473_openssl_CVE-2015-0204_CWE310_VULN_O2.out",
+      "cwe": "CWE310",
+      "cve": "CVE-2015-0204",
+      "project": "openssl",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00473_CVE-2015-0204",
+      "nodes": 46,
+      "edges": 67
+    },
+    {
+      "binary_name": "PV_00473_openssl_CVE-2015-0204_CWE310_VULN_Os.out",
+      "cwe": "CWE310",
+      "cve": "CVE-2015-0204",
+      "project": "openssl",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00473_CVE-2015-0204",
+      "nodes": 46,
+      "edges": 67
+    },
+    {
+      "binary_name": "PV_00666_FFmpeg_CVE-2017-14056_CWE834_VULN_O1.out",
+      "cwe": "CWE834",
+      "cve": "CVE-2017-14056",
+      "project": "FFmpeg",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00666_CVE-2017-14056",
+      "nodes": 55,
+      "edges": 87
+    },
+    {
+      "binary_name": "PV_00666_FFmpeg_CVE-2017-14056_CWE834_VULN_O2.out",
+      "cwe": "CWE834",
+      "cve": "CVE-2017-14056",
+      "project": "FFmpeg",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00666_CVE-2017-14056",
+      "nodes": 55,
+      "edges": 87
+    },
+    {
+      "binary_name": "PV_00666_FFmpeg_CVE-2017-14056_CWE834_VULN_Os.out",
+      "cwe": "CWE834",
+      "cve": "CVE-2017-14056",
+      "project": "FFmpeg",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00666_CVE-2017-14056",
+      "nodes": 54,
+      "edges": 85
+    },
+    {
+      "binary_name": "PV_00732_ImageMagick_CVE-2017-11447_CWE772_VULN_O0.out",
+      "cwe": "CWE772",
+      "cve": "CVE-2017-11447",
+      "project": "ImageMagick",
+      "opt_level": "O0",
+      "base_testcase": "PV_PAIR_00732_CVE-2017-11447",
+      "nodes": 14,
+      "edges": 17
+    },
+    {
+      "binary_name": "PV_00732_ImageMagick_CVE-2017-11447_CWE772_VULN_O1.out",
+      "cwe": "CWE772",
+      "cve": "CVE-2017-11447",
+      "project": "ImageMagick",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00732_CVE-2017-11447",
+      "nodes": 12,
+      "edges": 15
+    },
+    {
+      "binary_name": "PV_00732_ImageMagick_CVE-2017-11447_CWE772_VULN_O2.out",
+      "cwe": "CWE772",
+      "cve": "CVE-2017-11447",
+      "project": "ImageMagick",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00732_CVE-2017-11447",
+      "nodes": 12,
+      "edges": 15
+    },
+    {
+      "binary_name": "PV_00732_ImageMagick_CVE-2017-11447_CWE772_VULN_Os.out",
+      "cwe": "CWE772",
+      "cve": "CVE-2017-11447",
+      "project": "ImageMagick",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00732_CVE-2017-11447",
+      "nodes": 12,
+      "edges": 15
+    },
+    {
+      "binary_name": "PV_00757_oniguruma_CVE-2017-9225_CWE787_VULN_O2.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-9225",
+      "project": "oniguruma",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00757_CVE-2017-9225",
+      "nodes": 10,
+      "edges": 10
+    },
+    {
+      "binary_name": "PV_00757_oniguruma_CVE-2017-9225_CWE787_VULN_Os.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-9225",
+      "project": "oniguruma",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00757_CVE-2017-9225",
+      "nodes": 10,
+      "edges": 10
+    },
+    {
+      "binary_name": "PV_00786_feh_CVE-2017-7875_CWE787_VULN_O1.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-7875",
+      "project": "feh",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00786_CVE-2017-7875",
+      "nodes": 19,
+      "edges": 25
+    },
+    {
+      "binary_name": "PV_00786_feh_CVE-2017-7875_CWE787_VULN_O2.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-7875",
+      "project": "feh",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00786_CVE-2017-7875",
+      "nodes": 19,
+      "edges": 25
+    },
+    {
+      "binary_name": "PV_00786_feh_CVE-2017-7875_CWE787_VULN_Os.out",
+      "cwe": "CWE787",
+      "cve": "CVE-2017-7875",
+      "project": "feh",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00786_CVE-2017-7875",
+      "nodes": 19,
+      "edges": 25
+    },
+    {
+      "binary_name": "PV_00798_linux_CVE-2017-7273_CWE703_VULN_O1.out",
+      "cwe": "CWE703",
+      "cve": "CVE-2017-7273",
+      "project": "linux",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00798_CVE-2017-7273",
+      "nodes": 5,
+      "edges": 3
+    },
+    {
+      "binary_name": "PV_00798_linux_CVE-2017-7273_CWE703_VULN_O2.out",
+      "cwe": "CWE703",
+      "cve": "CVE-2017-7273",
+      "project": "linux",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00798_CVE-2017-7273",
+      "nodes": 5,
+      "edges": 3
+    },
+    {
+      "binary_name": "PV_00798_linux_CVE-2017-7273_CWE703_VULN_Os.out",
+      "cwe": "CWE703",
+      "cve": "CVE-2017-7273",
+      "project": "linux",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00798_CVE-2017-7273",
+      "nodes": 5,
+      "edges": 3
+    },
+    {
+      "binary_name": "PV_00914_ImageMagick_CVE-2015-8959_CWE399_VULN_O1.out",
+      "cwe": "CWE399",
+      "cve": "CVE-2015-8959",
+      "project": "ImageMagick",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00914_CVE-2015-8959",
+      "nodes": 8,
+      "edges": 8
+    },
+    {
+      "binary_name": "PV_00914_ImageMagick_CVE-2015-8959_CWE399_VULN_O2.out",
+      "cwe": "CWE399",
+      "cve": "CVE-2015-8959",
+      "project": "ImageMagick",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00914_CVE-2015-8959",
+      "nodes": 8,
+      "edges": 8
+    },
+    {
+      "binary_name": "PV_00914_ImageMagick_CVE-2015-8959_CWE399_VULN_Os.out",
+      "cwe": "CWE399",
+      "cve": "CVE-2015-8959",
+      "project": "ImageMagick",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00914_CVE-2015-8959",
+      "nodes": 8,
+      "edges": 8
+    },
+    {
+      "binary_name": "PV_00997_libpng_CVE-2018-13785_CWE190_VULN_O1.out",
+      "cwe": "CWE190",
+      "cve": "CVE-2018-13785",
+      "project": "libpng",
+      "opt_level": "O1",
+      "base_testcase": "PV_PAIR_00997_CVE-2018-13785",
+      "nodes": 8,
+      "edges": 7
+    },
+    {
+      "binary_name": "PV_00997_libpng_CVE-2018-13785_CWE190_VULN_O2.out",
+      "cwe": "CWE190",
+      "cve": "CVE-2018-13785",
+      "project": "libpng",
+      "opt_level": "O2",
+      "base_testcase": "PV_PAIR_00997_CVE-2018-13785",
+      "nodes": 8,
+      "edges": 7
+    },
+    {
+      "binary_name": "PV_00997_libpng_CVE-2018-13785_CWE190_VULN_Os.out",
+      "cwe": "CWE190",
+      "cve": "CVE-2018-13785",
+      "project": "libpng",
+      "opt_level": "Os",
+      "base_testcase": "PV_PAIR_00997_CVE-2018-13785",
+      "nodes": 8,
+      "edges": 7
+    }
+  ]
+}

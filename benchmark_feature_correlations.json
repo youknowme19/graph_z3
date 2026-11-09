@@ -1,0 +1,164 @@
+{
+  "num_nodes": 637712,
+  "num_features": 40,
+  "mean_abs_pearson": 0.1481,
+  "median_abs_pearson": 0.0643,
+  "max_abs_pearson": 1.0,
+  "mean_abs_spearman": 0.1689,
+  "median_abs_spearman": 0.0745,
+  "max_abs_spearman": 1.0,
+  "audited_replacement_pairs": [
+    {
+      "pair": "Feat 0 (in_degree) vs Feat 5 (dominator_tree_depth)",
+      "pearson_r": 0.0671,
+      "spearman_rho": 0.3308
+    },
+    {
+      "pair": "Feat 1 (out_degree) vs Feat 6 (back_edge_count)",
+      "pearson_r": 0.3532,
+      "spearman_rho": 0.3086
+    },
+    {
+      "pair": "Feat 27 (num_path_constraints) vs Feat 35 (branch_condition_complexity)",
+      "pearson_r": 0.6811,
+      "spearman_rho": 0.6454
+    }
+  ],
+  "top_15_correlated_pairs": [
+    {
+      "feat_i": 14,
+      "name_i": "is_library_call",
+      "feat_j": 16,
+      "name_j": "has_simprocedure",
+      "pearson_r": 1.0,
+      "spearman_rho": 1.0,
+      "abs_pearson": 1.0
+    },
+    {
+      "feat_i": 8,
+      "name_i": "num_instructions",
+      "feat_j": 9,
+      "name_j": "vex_imark",
+      "pearson_r": 0.9994,
+      "spearman_rho": 1.0,
+      "abs_pearson": 0.9994
+    },
+    {
+      "feat_i": 25,
+      "name_i": "has_memory_write",
+      "feat_j": 28,
+      "name_j": "has_symbolic_store_addr",
+      "pearson_r": 0.9979,
+      "spearman_rho": 0.9979,
+      "abs_pearson": 0.9979
+    },
+    {
+      "feat_i": 12,
+      "name_i": "vex_iop",
+      "feat_j": 26,
+      "name_j": "num_symbolic_variables",
+      "pearson_r": 0.981,
+      "spearman_rho": 0.9843,
+      "abs_pearson": 0.981
+    },
+    {
+      "feat_i": 24,
+      "name_i": "has_comparison",
+      "feat_j": 30,
+      "name_j": "has_symbolic_branch",
+      "pearson_r": 0.9389,
+      "spearman_rho": 0.9355,
+      "abs_pearson": 0.9389
+    },
+    {
+      "feat_i": 9,
+      "name_i": "vex_imark",
+      "feat_j": 26,
+      "name_j": "num_symbolic_variables",
+      "pearson_r": 0.8774,
+      "spearman_rho": 0.9191,
+      "abs_pearson": 0.8774
+    },
+    {
+      "feat_i": 8,
+      "name_i": "num_instructions",
+      "feat_j": 26,
+      "name_j": "num_symbolic_variables",
+      "pearson_r": 0.8759,
+      "spearman_rho": 0.9191,
+      "abs_pearson": 0.8759
+    },
+    {
+      "feat_i": 12,
+      "name_i": "vex_iop",
+      "feat_j": 13,
+      "name_j": "total_vex_stmts_log",
+      "pearson_r": 0.8728,
+      "spearman_rho": 0.9927,
+      "abs_pearson": 0.8728
+    },
+    {
+      "feat_i": 13,
+      "name_i": "total_vex_stmts_log",
+      "feat_j": 26,
+      "name_j": "num_symbolic_variables",
+      "pearson_r": 0.8719,
+      "spearman_rho": 0.9869,
+      "abs_pearson": 0.8719
+    },
+    {
+      "feat_i": 9,
+      "name_i": "vex_imark",
+      "feat_j": 12,
+      "name_j": "vex_iop",
+      "pearson_r": 0.837,
+      "spearman_rho": 0.8974,
+      "abs_pearson": 0.837
+    },
+    {
+      "feat_i": 8,
+      "name_i": "num_instructions",
+      "feat_j": 12,
+      "name_j": "vex_iop",
+      "pearson_r": 0.8359,
+      "spearman_rho": 0.8974,
+      "abs_pearson": 0.8359
+    },
+    {
+      "feat_i": 9,
+      "name_i": "vex_imark",
+      "feat_j": 13,
+      "name_j": "total_vex_stmts_log",
+      "pearson_r": 0.8264,
+      "spearman_rho": 0.9325,
+      "abs_pearson": 0.8264
+    },
+    {
+      "feat_i": 8,
+      "name_i": "num_instructions",
+      "feat_j": 13,
+      "name_j": "total_vex_stmts_log",
+      "pearson_r": 0.8248,
+      "spearman_rho": 0.9325,
+      "abs_pearson": 0.8248
+    },
+    {
+      "feat_i": 2,
+      "name_i": "depth_from_entry",
+      "feat_j": 5,
+      "name_j": "dominator_tree_depth",
+      "pearson_r": 0.8233,
+      "spearman_rho": 0.9406,
+      "abs_pearson": 0.8233
+    },
+    {
+      "feat_i": 11,
+      "name_i": "vex_iload",
+      "feat_j": 29,
+      "name_j": "has_symbolic_load_addr",
+      "pearson_r": 0.804,
+      "spearman_rho": 0.8079,
+      "abs_pearson": 0.804
+    }
+  ]
+}
