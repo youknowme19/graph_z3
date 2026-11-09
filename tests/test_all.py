@@ -399,12 +399,17 @@ class TestNativeCrashReplay(unittest.TestCase):
             self.assertFalse(uaf_invalid["expected_vuln_crash"])
 
         if os.path.exists(bof_bin):
-            # 48 bytes overflows 32-byte buffer via ___strcpy_chk; 8 bytes is benign
+            # 48 bytes overflows 32-byte buffer via ___strcpy_chk; 8 bytes is benign.
+            # On macOS ARM64, ___strcpy_chk traps directly with brk #0x1 without emitting stderr diagnostic.
+            # Under strengthened attribution rule, uncorroborated SIGTRAP is classified as UNVERIFIED_ABNORMAL_TERMINATION.
             bof_valid = verify_live_crash(bof_bin, b"B" * 48, vuln_type="STACK_OVERFLOW", input_channel="stdin")
             self.assertTrue(bof_valid["crashed"])
-            self.assertTrue(bof_valid["expected_vuln_crash"])
+            self.assertEqual(bof_valid["terminating_signal"], "SIGTRAP")
+            self.assertEqual(bof_valid["classification"], "UNVERIFIED_ABNORMAL_TERMINATION")
+            self.assertFalse(bof_valid["expected_vuln_crash"])
             self.assertIn("fortify_chk_symbol_present(___strcpy_chk)", bof_valid["corroborating_evidence"])
             self.assertIn("sub_boundary_truncated_witness_8B_survived", bof_valid["corroborating_evidence"])
+            self.assertIn("insufficient_runtime_diagnostic_classified_unverified_abnormal_termination", bof_valid["corroborating_evidence"])
 
             bof_short = verify_live_crash(bof_bin, b"B" * 8, vuln_type="STACK_OVERFLOW", input_channel="stdin")
             self.assertFalse(bof_short["crashed"])
@@ -444,12 +449,22 @@ class TestNativeCrashReplay(unittest.TestCase):
             self.assertEqual(recorded_calls[0]["cmd"], [BINARY_PATH, "arg_val"])
             self.assertIsNone(recorded_calls[0]["input"])
 
-            # 3. function_arg channel: must not invoke subprocess at all
+            # 3. function_arg channel: must not invoke subprocess at all and classify as NOT_REPLAYABLE
             recorded_calls.clear()
             r_fn = verify_live_crash(BINARY_PATH, b"in_mem_buf", vuln_type="OOB_WRITE", input_channel="function_arg")
             self.assertFalse(r_fn["attempted"])
             self.assertEqual(r_fn["input_channel"], "function_arg")
+            self.assertEqual(r_fn["classification"], "NOT_REPLAYABLE")
+            self.assertEqual(r_fn["replay_status"], "NOT_REPLAYABLE")
+            self.assertFalse(r_fn["expected_vuln_crash"])
             self.assertEqual(len(recorded_calls), 0)
+
+            # 4. Unlinked object file (.o): must classify as NOT_REPLAYABLE
+            r_obj = verify_live_crash("/dummy/path/module.o", b"payload", vuln_type="STACK_OVERFLOW", input_channel="stdin")
+            self.assertFalse(r_obj["attempted"])
+            self.assertEqual(r_obj["classification"], "NOT_REPLAYABLE")
+            self.assertEqual(r_obj["replay_status"], "NOT_REPLAYABLE")
+            self.assertFalse(r_obj["expected_vuln_crash"])
 
     def test_unconditional_crash_and_uncorroborated_sigtrap_rejected(self):
         from unittest.mock import patch
@@ -478,7 +493,7 @@ class TestNativeCrashReplay(unittest.TestCase):
             self.assertTrue(res_trap_null["crashed"])
             self.assertEqual(res_trap_null["terminating_signal"], "SIGTRAP")
             self.assertFalse(res_trap_null["benign_control_crashed"])
-            self.assertTrue(res_trap_null["unrelated_crash"])
+            self.assertEqual(res_trap_null["classification"], "UNVERIFIED_ABNORMAL_TERMINATION")
             self.assertFalse(res_trap_null["expected_vuln_crash"])
 
         # 3. SIGTRAP on STACK_OVERFLOW where 8-byte truncated prefix ALSO traps -> rejected
@@ -492,8 +507,29 @@ class TestNativeCrashReplay(unittest.TestCase):
             )
             self.assertTrue(res_trap_bof["crashed"])
             self.assertEqual(res_trap_bof["terminating_signal"], "SIGTRAP")
-            self.assertTrue(res_trap_bof["unrelated_crash"])
+            self.assertEqual(res_trap_bof["classification"], "UNVERIFIED_ABNORMAL_TERMINATION")
             self.assertFalse(res_trap_bof["expected_vuln_crash"])
+
+        # 4. SIGTRAP on STACK_OVERFLOW WITH runtime stderr diagnostic -> corroborated (expected_vuln_crash=True, VERIFIED_EXPLOIT)
+        def _sigtrap_with_stderr_diagnostic(cmd, input=None, **kwargs):
+            if input == b"0\n" or (input and len(input) <= 8):
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout=b"", stderr=b"")
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=-5,
+                stdout=b"",
+                stderr=b"*** buffer overflow detected ***: terminated\n",
+            )
+
+        with patch("subprocess.run", side_effect=_sigtrap_with_stderr_diagnostic):
+            res_corrob = verify_live_crash(
+                BINARY_PATH, b"W" * 48, vuln_type="STACK_OVERFLOW", input_channel="stdin"
+            )
+            self.assertTrue(res_corrob["crashed"])
+            self.assertEqual(res_corrob["terminating_signal"], "SIGTRAP")
+            self.assertTrue(res_corrob["expected_vuln_crash"])
+            self.assertEqual(res_corrob["classification"], "VERIFIED_EXPLOIT")
+            self.assertIn("runtime_diagnostic_corroborates_fortify_overflow", res_corrob["corroborating_evidence"])
 
     def test_empty_missing_and_timeout_crash_replay(self):
         empty_res = verify_live_crash(BINARY_PATH, b"")

@@ -214,7 +214,27 @@ def verify_live_crash(
         evidence: Optional[List[str]] = None,
         cmd_executed: bool = False,
         stdout_text: str = "",
+        classification: Optional[str] = None,
     ) -> Dict[str, Any]:
+        eff_classification = classification
+        if eff_classification is None:
+            if not attempted:
+                eff_classification = "NOT_REPLAYABLE" if channel_norm == "function_arg" else "NOT_ATTEMPTED"
+            elif timed_out:
+                eff_classification = "TIMEOUT"
+            elif expected_vuln:
+                eff_classification = "VERIFIED_EXPLOIT"
+            elif unrelated:
+                eff_classification = "UNRELATED_CRASH"
+            elif crashed:
+                eff_classification = "UNVERIFIED_ABNORMAL_TERMINATION"
+            elif cmd_executed:
+                eff_classification = "VERIFIED_COMMAND_EXECUTION"
+            else:
+                eff_classification = "NORMAL_TERMINATION"
+
+        replay_status = "NOT_REPLAYABLE" if eff_classification == "NOT_REPLAYABLE" else ("REPLAYED" if attempted else "SKIPPED")
+
         return {
             "attempted": bool(attempted),
             "input_channel": channel_norm,
@@ -234,6 +254,8 @@ def verify_live_crash(
             "method": replay_mode,
             "stdout_snippet": stdout_text[:200] if stdout_text else "",
             "reason": reason,
+            "classification": eff_classification,
+            "replay_status": replay_status,
         }
 
     if channel_norm == "function_arg":
@@ -244,7 +266,8 @@ def verify_live_crash(
             sig_name=None,
             timed_out=False,
             replay_mode="none",
-            reason="In-memory function argument witness requires a function-level harness; not replayed via stdin/argv",
+            reason="Candidate cannot be live-replayed: in-memory function argument witness requires a dedicated harness",
+            classification="NOT_REPLAYABLE",
         )
 
     if not hash_material:
@@ -256,6 +279,19 @@ def verify_live_crash(
             timed_out=False,
             replay_mode="none",
             reason="Empty witness payload",
+            classification="NOT_ATTEMPTED",
+        )
+
+    if binary_path and (binary_path.endswith(".o") or (os.path.isfile(binary_path) and not os.access(binary_path, os.X_OK))):
+        return _base_record(
+            attempted=False,
+            crashed=False,
+            rc=None,
+            sig_name=None,
+            timed_out=False,
+            replay_mode="none",
+            reason="Candidate cannot be live-replayed: target is an unlinked object file or lacks execute permission",
+            classification="NOT_REPLAYABLE",
         )
 
     if not binary_path or not os.path.isfile(binary_path):
@@ -267,17 +303,7 @@ def verify_live_crash(
             timed_out=False,
             replay_mode="none",
             reason="Binary file not found",
-        )
-
-    if binary_path.endswith(".o") or not os.access(binary_path, os.X_OK):
-        return _base_record(
-            attempted=False,
-            crashed=False,
-            rc=None,
-            sig_name=None,
-            timed_out=False,
-            replay_mode="none",
-            reason="Target is a non-executable object file",
+            classification="NOT_ATTEMPTED",
         )
 
     def _cstr_arg(raw_b: bytes) -> str:
@@ -535,11 +561,18 @@ def verify_live_crash(
             expected_vuln = True
             evidence.append(f"signal_{sig_name}_matches_{vtype_upper}")
         elif sig_name == "SIGTRAP":
-            # Never classify SIGTRAP as proof of STACK_OVERFLOW / OOB_WRITE without corroborating evidence:
-            # 1. Binary must contain a _FORTIFY_SOURCE *_chk symbol (macOS ARM64 __chk_fail_overflow raises SIGTRAP via brk #0x1).
-            # 2. A sub-boundary truncated prefix of the witness (8 bytes) must NOT trigger SIGTRAP.
+            # Never classify SIGTRAP as proof of STACK_OVERFLOW / OOB_WRITE without corroborating execution evidence.
+            # A Fortify symbol's presence alone is not sufficient proof that a particular vulnerable operation
+            # caused the trap. Record corroborating execution evidence or classify as UNVERIFIED_ABNORMAL_TERMINATION.
             fortify_sym = _binary_has_fortify_chk_symbol(binary_path)
+            stderr_lower = raw_res.get("stderr_text", "").lower()
+            stdout_lower = raw_res.get("stdout_text", "").lower()
+            has_runtime_diag = any(
+                tok in stderr_lower or tok in stdout_lower
+                for tok in ("buffer overflow", "stack smashing", "chk_fail", "abort", "trap", "overflow detected")
+            )
             if fortify_sym and len(payload) > 8:
+                evidence.append(f"fortify_chk_symbol_present({fortify_sym})")
                 trunc_probe = _run_channel(
                     stdin_bytes=bytes(payload[:8]) if channel_norm in ("stdin", "stdin+argv") else None,
                     argv_list=[bytes(payload[:8])] if channel_norm in ("argv", "stdin+argv") else [],
@@ -548,9 +581,13 @@ def verify_live_crash(
                     replay_mode=raw_res["replay_mode"],
                 )
                 if not trunc_probe.get("crashed", False):
-                    expected_vuln = True
-                    evidence.append(f"fortify_chk_symbol_present({fortify_sym})")
                     evidence.append("sub_boundary_truncated_witness_8B_survived")
+                    if has_runtime_diag:
+                        expected_vuln = True
+                        evidence.append("runtime_diagnostic_corroborates_fortify_overflow")
+                    else:
+                        expected_vuln = False
+                        evidence.append("insufficient_runtime_diagnostic_classified_unverified_abnormal_termination")
     elif "FORMAT_STRING" in vtype_upper:
         if sig_name in ("SIGABRT", "SIGSEGV", "SIGBUS"):
             # Verify crash disappears when '%' format specifiers are replaced with benign 'A'
@@ -576,11 +613,18 @@ def verify_live_crash(
             evidence.append(f"signal_{sig_name}_differential_crash")
 
     unrelated = not expected_vuln
-    reason_str = (
-        f"Verified {vtype_upper or 'crash'}: process terminated with {sig_name} (rc={rc}, evidence={','.join(evidence)})"
-        if expected_vuln
-        else f"Unverified/unrelated crash signal {sig_name} (rc={rc}) for vuln_type='{vuln_type}' — insufficient corroborating evidence"
-    )
+    if expected_vuln:
+        classification = "VERIFIED_EXPLOIT"
+        reason_str = f"Verified {vtype_upper or 'crash'}: process terminated with {sig_name} (rc={rc}, evidence={','.join(evidence)})"
+    elif sig_name == "SIGTRAP":
+        classification = "UNVERIFIED_ABNORMAL_TERMINATION"
+        reason_str = (
+            f"Unverified abnormal termination: process terminated with SIGTRAP (rc={rc}) but execution "
+            f"lacked direct runtime diagnostic evidence tying trap to vulnerable operation (evidence={','.join(evidence)})"
+        )
+    else:
+        classification = "UNRELATED_CRASH"
+        reason_str = f"Unverified/unrelated crash signal {sig_name} (rc={rc}) for vuln_type='{vuln_type}' — insufficient corroborating evidence"
 
     return _base_record(
         attempted=True,
@@ -596,6 +640,7 @@ def verify_live_crash(
         evidence=evidence,
         cmd_executed=cmd_executed,
         stdout_text=raw_res.get("stdout_text", ""),
+        classification=classification,
     )
 
 
@@ -2253,11 +2298,16 @@ class AnalysisBackendProvider:
             sat_witness_generated = bool(solver_status == "SAT" and len(all_bytes) > 0)
 
             if sat_witness_generated:
-                primary_payload = (
-                    bytes(stdin_channel_bytes)
-                    if detected_channel in ("stdin", "stdin+argv")
-                    else (bytes(func_arg_bytes) if detected_channel == "function_arg" else bytes(all_bytes))
-                )
+                if detected_channel in ("stdin", "stdin+argv"):
+                    primary_payload = bytes(stdin_channel_bytes) if stdin_channel_bytes else bytes(all_bytes)
+                elif detected_channel == "argv":
+                    primary_payload = bytes(argv_channel_payloads[0]) if argv_channel_payloads else bytes(all_bytes)
+                elif detected_channel == "env":
+                    primary_payload = bytes(env_channel_payloads.get("INPUT", b"")) if env_channel_payloads else bytes(all_bytes)
+                elif detected_channel == "function_arg":
+                    primary_payload = bytes(func_arg_bytes) if func_arg_bytes else bytes(all_bytes)
+                else:
+                    primary_payload = bytes(all_bytes)
                 self._emit(
                     "INFO",
                     f"  Replaying synthesized witness ({len(all_bytes)} B) via channel '{detected_channel}' against native binary...",
@@ -2304,6 +2354,8 @@ class AnalysisBackendProvider:
                     "method": "none",
                     "stdout_snippet": "",
                     "reason": f"No witness synthesized (solver_status={solver_status})",
+                    "classification": "NOT_ATTEMPTED",
+                    "replay_status": "SKIPPED",
                 }
 
             injected_command_executed = bool(crash_verification.get("injected_command_executed", False))
@@ -2315,11 +2367,13 @@ class AnalysisBackendProvider:
                     taint_reached_sink
                     and sat_witness_generated
                     and injected_command_executed
+                    and crash_verification.get("classification") in ("VERIFIED_COMMAND_EXECUTION", "VERIFIED_EXPLOIT")
                 )
             else:
                 exploit_verified = bool(
                     sat_witness_generated
                     and expected_vuln_crash
+                    and crash_verification.get("classification") == "VERIFIED_EXPLOIT"
                 )
 
             command_injection_verification = {
