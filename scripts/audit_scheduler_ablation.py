@@ -36,6 +36,7 @@ from ml.gnn_model import create_model
 
 
 def _alarm_handler(signum, frame):
+    AnalysisBackendProvider._timeout_flag = True
     raise SymbolicTimeout("Timeout budget reached")
 
 
@@ -113,6 +114,13 @@ def compute_gnn_scores(loader: BinaryLoader, model, thresh: float, top_k_blocks:
 
 
 def compute_static_scores(loader: BinaryLoader, cfg: nx.DiGraph) -> dict:
+    """
+    Identifies dangerous sinks strictly by symbol/import string matching
+    on standard C functions (zero ground-truth vulnerability labels or annotations).
+    Assigns proximity score: P_Static(v) = 1 / (1 + shortest_path_distance(v, dangerous_sinks)).
+    Standard sinks checked: strcpy, strcat, sprintf, vsprintf, gets, system, popen,
+    execve, execl, execlp, memcpy, memmove, free.
+    """
     DANGEROUS = {
         'strcpy', 'strcat', 'sprintf', 'vsprintf', 'gets', 'system',
         'popen', 'execve', 'execl', 'execlp', 'memcpy', 'memmove', 'free'
@@ -153,6 +161,7 @@ def run_condition(
     timeout_s: float = 10.0,
     max_steps: int = 80,
 ) -> dict:
+    AnalysisBackendProvider._timeout_flag = False
     signal.signal(signal.SIGALRM, _alarm_handler)
     t0 = time.perf_counter()
     timed_out = False
@@ -160,7 +169,7 @@ def run_condition(
     vulns = []
 
     try:
-        signal.alarm(int(timeout_s) + 1)
+        signal.setitimer(signal.ITIMER_REAL, timeout_s, 0.5)
         backend = AnalysisBackendProvider(
             binary_path,
             max_steps=max_steps,
@@ -177,7 +186,10 @@ def run_condition(
     except Exception as e:
         timed_out = False
     finally:
-        signal.alarm(0)
+        signal.setitimer(signal.ITIMER_REAL, 0.0, 0.0)
+
+    if AnalysisBackendProvider._timeout_flag:
+        timed_out = True
 
     elapsed_s = time.perf_counter() - t0
     tel = getattr(backend, "scheduler_telemetry", {}) if backend else {}
@@ -211,30 +223,34 @@ def main():
     model, temp, thresh = load_trained_gnn()
     print(f"[+] Loaded VulnGNN model (T={temp:.4f}, thresh={thresh:.4f})")
 
-    # Select representative 18-binary benchmark suite
+    # Select representative 22-binary benchmark suite across all strata
     target_specs = [
-        # 1. Sample binaries (5 vulnerable)
+        # 1. Sample binaries (5 vulnerable + 1 clean)
         ("samples", "data/samples/cwe120_buffer_overflow.bin"),
         ("samples", "data/samples/cwe134_format_string.bin"),
         ("samples", "data/samples/cwe416_use_after_free.bin"),
         ("samples", "data/samples/cwe476_null_deref.bin"),
         ("samples", "data/samples/cwe78_command_injection.bin"),
+        ("samples", "data/samples/secure_program.bin"),
         # 2. Test suite multi-vuln binary
         ("test_suite", "tests/test_benchmarks_binary"),
-        # 3. Stratified Juliet vulnerable testcases
+        # 3. Stratified Juliet vulnerable testcases (7 CWEs)
         ("juliet_vuln", "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_10_O0.out"),
         ("juliet_vuln", "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_fgets_65_O0.out"),
         ("juliet_vuln", "data/train_binaries/CWE124_Buffer_Underwrite__CWE839_fgets_03_O2.out"),
         ("juliet_vuln", "data/train_binaries/CWE126_Buffer_Overread__CWE129_fgets_04_O0.out"),
         ("juliet_vuln", "data/train_binaries/CWE127_Buffer_Underread__CWE839_fgets_17_Os.out"),
-        ("juliet_vuln", "data/train_binaries/CWE78_OS_Command_Injection__char_connect_socket_execl_01_O0.out"),
-        # 4. Juliet patched negative controls
+        ("juliet_vuln", "data/train_binaries/CWE78_OS_Command_Injection__char_connect_socket_execl_02_O0.out"),
+        ("juliet_vuln", "data/train_binaries/CWE194_Unexpected_Sign_Extension__connect_socket_malloc_42_Os.out"),
+        # 4. Juliet patched negative controls (3 binaries)
         ("juliet_patched", "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_rand_06_PATCHED_O0.out"),
         ("juliet_patched", "data/train_binaries/CWE78_OS_Command_Injection__char_file_popen_63_PATCHED_O0.out"),
-        # 5. Real-World PrimeVul CVEs
+        ("juliet_patched", "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE135_04_PATCHED_O0.out"),
+        # 5. Real-World PrimeVul CVEs (3 binaries)
+        ("primevul_cve", "data/primevul_binaries/PV_00000_openssl_CVE-2013-6449_CWE310_VULN_O0.out"),
         ("primevul_cve", "data/primevul_binaries/PV_00008_haproxy_CVE-2018-20103_CWE835_VULN_O0.out"),
-        ("primevul_cve", "data/primevul_binaries/PV_00010_radare2_CVE-2018-20455_CWE125_VULN_O0.out"),
-        # 6. Production System Utilities
+        ("primevul_cve", "data/primevul_binaries/PV_00042_haproxy_CVE-2015-3281_CWE119_VULN_O0.out"),
+        # 6. Production System Utilities (2 binaries)
         ("system_util", "data/real_world_binaries/real_cut.bin"),
         ("system_util", "data/real_world_binaries/real_head.bin"),
     ]
@@ -243,9 +259,15 @@ def main():
     condition_aggregates = {
         "dfs": {"total_time": 0.0, "total_states": 0, "total_sat": 0, "total_vulns": 0, "timeouts": 0},
         "gnn_maxheap": {"total_time": 0.0, "total_states": 0, "total_sat": 0, "total_vulns": 0, "timeouts": 0},
+        "random_maxheap_42": {"total_time": 0.0, "total_states": 0, "total_sat": 0, "total_vulns": 0, "timeouts": 0},
+        "random_maxheap_1337": {"total_time": 0.0, "total_states": 0, "total_sat": 0, "total_vulns": 0, "timeouts": 0},
+        "random_maxheap_2026": {"total_time": 0.0, "total_states": 0, "total_sat": 0, "total_vulns": 0, "timeouts": 0},
         "random_maxheap": {"total_time": 0.0, "total_states": 0, "total_sat": 0, "total_vulns": 0, "timeouts": 0},
         "static_heuristic": {"total_time": 0.0, "total_states": 0, "total_sat": 0, "total_vulns": 0, "timeouts": 0},
     }
+
+    import z3
+    z3.set_param('timeout', 2500)
 
     for idx, (group, rel_path) in enumerate(target_specs):
         full_path = os.path.join(root_dir, rel_path)
@@ -264,18 +286,30 @@ def main():
         # Compute GNN scores
         func_map, gnn_node_scores, gnn_ms = compute_gnn_scores(loader, model, thresh)
 
-        # Compute Static Heuristic scores
+        # Compute Static Heuristic scores (pure symbol/import name pattern matching, zero ground-truth labels)
         static_scores = compute_static_scores(loader, cfg)
-
-        # Compute Random scores
-        rand_scores = compute_random_scores(cfg, seed=42)
 
         # 1. DFS Baseline
         res_dfs = run_condition(full_path, loader, "dfs", "dfs", timeout_s=10.0, max_steps=80)
         # 2. GNN MaxHeap
         res_gnn = run_condition(full_path, loader, "gnn_maxheap", "maxheap", node_scores=gnn_node_scores, func_vuln_map=func_map, timeout_s=10.0, max_steps=80)
-        # 3. Random MaxHeap
-        res_rand = run_condition(full_path, loader, "random_maxheap", "maxheap", node_scores=rand_scores, timeout_s=10.0, max_steps=80)
+        # 3. Random MaxHeap across seeds 42, 1337, 2026
+        res_rand_42 = run_condition(full_path, loader, "random_maxheap_42", "maxheap", node_scores=compute_random_scores(cfg, seed=42), timeout_s=10.0, max_steps=80)
+        res_rand_1337 = run_condition(full_path, loader, "random_maxheap_1337", "maxheap", node_scores=compute_random_scores(cfg, seed=1337), timeout_s=10.0, max_steps=80)
+        res_rand_2026 = run_condition(full_path, loader, "random_maxheap_2026", "maxheap", node_scores=compute_random_scores(cfg, seed=2026), timeout_s=10.0, max_steps=80)
+        res_rand_mean = {
+            "condition": "random_maxheap",
+            "time_s": round(float(np.mean([res_rand_42["time_s"], res_rand_1337["time_s"], res_rand_2026["time_s"]])), 3),
+            "states_explored": round(float(np.mean([res_rand_42["states_explored"], res_rand_1337["states_explored"], res_rand_2026["states_explored"]])), 1),
+            "sat_witnesses": round(float(np.mean([res_rand_42["sat_witnesses"], res_rand_1337["sat_witnesses"], res_rand_2026["sat_witnesses"]])), 2),
+            "vulnerabilities_reported": round(float(np.mean([res_rand_42["vulnerabilities_reported"], res_rand_1337["vulnerabilities_reported"], res_rand_2026["vulnerabilities_reported"]])), 2),
+            "timed_out": bool(res_rand_42["timed_out"] or res_rand_1337["timed_out"] or res_rand_2026["timed_out"]),
+            "seeds": {
+                "42": res_rand_42,
+                "1337": res_rand_1337,
+                "2026": res_rand_2026,
+            }
+        }
         # 4. Static Heuristic MaxHeap
         res_stat = run_condition(full_path, loader, "static_heuristic", "maxheap", node_scores=static_scores, timeout_s=10.0, max_steps=80)
 
@@ -287,13 +321,17 @@ def main():
             "conditions": {
                 "dfs": res_dfs,
                 "gnn_maxheap": res_gnn,
-                "random_maxheap": res_rand,
+                "random_maxheap_42": res_rand_42,
+                "random_maxheap_1337": res_rand_1337,
+                "random_maxheap_2026": res_rand_2026,
+                "random_maxheap": res_rand_mean,
                 "static_heuristic": res_stat,
             },
         }
         all_results.append(record)
 
-        for c_key, c_res in record["conditions"].items():
+        for c_key in ["dfs", "gnn_maxheap", "random_maxheap_42", "random_maxheap_1337", "random_maxheap_2026", "random_maxheap", "static_heuristic"]:
+            c_res = record["conditions"][c_key]
             condition_aggregates[c_key]["total_time"] += c_res["time_s"]
             condition_aggregates[c_key]["total_states"] += c_res["states_explored"]
             condition_aggregates[c_key]["total_sat"] += c_res["sat_witnesses"]
@@ -303,47 +341,56 @@ def main():
 
         print(f"  DFS:    Time={res_dfs['time_s']:.2f}s | States={res_dfs['states_explored']} | SAT={res_dfs['sat_witnesses']} | Vulns={res_dfs['vulnerabilities_reported']}")
         print(f"  GNN:    Time={res_gnn['time_s']:.2f}s | States={res_gnn['states_explored']} | SAT={res_gnn['sat_witnesses']} | Vulns={res_gnn['vulnerabilities_reported']}")
-        print(f"  Rand:   Time={res_rand['time_s']:.2f}s | States={res_rand['states_explored']} | SAT={res_rand['sat_witnesses']} | Vulns={res_rand['vulnerabilities_reported']}")
+        print(f"  Rand:   Time={res_rand_mean['time_s']:.2f}s (3-seed mean) | States={res_rand_mean['states_explored']} | SAT={res_rand_mean['sat_witnesses']}")
         print(f"  Static: Time={res_stat['time_s']:.2f}s | States={res_stat['states_explored']} | SAT={res_stat['sat_witnesses']} | Vulns={res_stat['vulnerabilities_reported']}")
 
     # Summary table
     print("\n" + "=" * 80)
-    print("4-WAY SCHEDULER ABLATION SUMMARY (N=18 Binaries)")
+    print("4-WAY SCHEDULER ABLATION SUMMARY (N=22 Binaries)")
     print("=" * 80)
-    print(f"{'Condition':20s} | {'Total Time (s)':15s} | {'Mean Time/Bin':15s} | {'Total States':12s} | {'SAT Witnesses':14s} | {'Timeouts':8s}")
-    print("-" * 92)
+    print(f"{'Condition':24s} | {'Total Time (s)':15s} | {'Mean Time/Bin':15s} | {'Total States':12s} | {'SAT Witnesses':14s} | {'Timeouts':8s}")
+    print("-" * 96)
     n_bins = len(all_results)
     summary_data = {}
-    for c_key in ["dfs", "gnn_maxheap", "random_maxheap", "static_heuristic"]:
+    for c_key in ["dfs", "gnn_maxheap", "random_maxheap_42", "random_maxheap_1337", "random_maxheap_2026", "random_maxheap", "static_heuristic"]:
         agg = condition_aggregates[c_key]
         mean_t = agg["total_time"] / max(n_bins, 1)
         mean_st = agg["total_states"] / max(n_bins, 1)
         summary_data[c_key] = {
             "total_time_s": round(agg["total_time"], 2),
             "mean_time_s": round(mean_t, 3),
-            "total_states": agg["total_states"],
+            "total_states": round(agg["total_states"], 1) if isinstance(agg["total_states"], float) else agg["total_states"],
             "mean_states": round(mean_st, 1),
-            "sat_witnesses": agg["total_sat"],
-            "vulnerabilities": agg["total_vulns"],
+            "sat_witnesses": round(agg["total_sat"], 1) if isinstance(agg["total_sat"], float) else agg["total_sat"],
+            "vulnerabilities": round(agg["total_vulns"], 1) if isinstance(agg["total_vulns"], float) else agg["total_vulns"],
             "timeouts": agg["timeouts"],
         }
         print(
-            f"{c_key:20s} | {agg['total_time']:15.2f} | {mean_t:15.3f} | {agg['total_states']:12d} | {agg['total_sat']:14d} | {agg['timeouts']:8d}"
+            f"{c_key:24s} | {agg['total_time']:15.2f} | {mean_t:15.3f} | {str(agg['total_states']):12s} | {str(agg['total_sat']):14s} | {agg['timeouts']:8d}"
         )
 
     out_file = os.path.join(root_dir, "benchmark_4way_scheduler_ablation.json")
+    payload = {
+        "budget": {"timeout_seconds": 10.0, "max_steps": 80, "depth_penalty_lambda": 0.02, "solver_timeout_ms": 2500},
+        "n_binaries": n_bins,
+        "static_heuristic_sink_identification": (
+            "Dangerous sinks are identified strictly by function symbol name and import table substring "
+            "matching against standard C dangerous functions ('strcpy', 'strcat', 'sprintf', 'vsprintf', "
+            "'gets', 'system', 'popen', 'execve', 'execl', 'execlp', 'memcpy', 'memmove', 'free'). "
+            "Zero ground-truth vulnerability labels, annotations, or external vulnerability databases are used."
+        ),
+        "summary": summary_data,
+        "binaries": all_results,
+    }
     with open(out_file, "w") as f:
-        json.dump(
-            {
-                "budget": {"timeout_seconds": 10.0, "max_steps": 80, "depth_penalty_lambda": 0.02},
-                "n_binaries": n_bins,
-                "summary": summary_data,
-                "binaries": all_results,
-            },
-            f,
-            indent=2,
-        )
+        json.dump(payload, f, indent=2)
+
+    multi_seed_out = os.path.join(root_dir, "benchmark_4way_scheduler_ablation_multi_seed.json")
+    with open(multi_seed_out, "w") as f:
+        json.dump(payload, f, indent=2)
+
     print(f"\n[+] Saved complete 4-way ablation results to: {out_file}")
+    print(f"[+] Saved multi-seed ablation results to: {multi_seed_out}")
 
 
 if __name__ == "__main__":

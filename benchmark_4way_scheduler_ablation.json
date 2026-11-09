@@ -2,45 +2,74 @@
   "budget": {
     "timeout_seconds": 10.0,
     "max_steps": 80,
-    "depth_penalty_lambda": 0.02
+    "depth_penalty_lambda": 0.02,
+    "solver_timeout_ms": 2500
   },
-  "n_binaries": 16,
+  "n_binaries": 22,
+  "static_heuristic_sink_identification": "Dangerous sinks are identified strictly by function symbol name and import table substring matching against standard C dangerous functions ('strcpy', 'strcat', 'sprintf', 'vsprintf', 'gets', 'system', 'popen', 'execve', 'execl', 'execlp', 'memcpy', 'memmove', 'free'). Zero ground-truth vulnerability labels, annotations, or external vulnerability databases are used.",
   "summary": {
     "dfs": {
-      "total_time_s": 167.45,
-      "mean_time_s": 10.466,
-      "total_states": 718,
-      "mean_states": 44.9,
-      "sat_witnesses": 13,
-      "vulnerabilities": 14,
-      "timeouts": 6
-    },
-    "gnn_maxheap": {
-      "total_time_s": 158.33,
-      "mean_time_s": 9.895,
-      "total_states": 683,
-      "mean_states": 42.7,
-      "sat_witnesses": 13,
-      "vulnerabilities": 14,
-      "timeouts": 5
-    },
-    "random_maxheap": {
-      "total_time_s": 134.46,
-      "mean_time_s": 8.404,
-      "total_states": 684,
-      "mean_states": 42.8,
+      "total_time_s": 129.62,
+      "mean_time_s": 5.892,
+      "total_states": 760,
+      "mean_states": 34.5,
       "sat_witnesses": 12,
       "vulnerabilities": 13,
-      "timeouts": 5
+      "timeouts": 8
+    },
+    "gnn_maxheap": {
+      "total_time_s": 136.1,
+      "mean_time_s": 6.186,
+      "total_states": 775,
+      "mean_states": 35.2,
+      "sat_witnesses": 14,
+      "vulnerabilities": 15,
+      "timeouts": 7
+    },
+    "random_maxheap_42": {
+      "total_time_s": 130.43,
+      "mean_time_s": 5.929,
+      "total_states": 775,
+      "mean_states": 35.2,
+      "sat_witnesses": 13,
+      "vulnerabilities": 14,
+      "timeouts": 7
+    },
+    "random_maxheap_1337": {
+      "total_time_s": 143.3,
+      "mean_time_s": 6.514,
+      "total_states": 775,
+      "mean_states": 35.2,
+      "sat_witnesses": 18,
+      "vulnerabilities": 20,
+      "timeouts": 7
+    },
+    "random_maxheap_2026": {
+      "total_time_s": 129.84,
+      "mean_time_s": 5.902,
+      "total_states": 775,
+      "mean_states": 35.2,
+      "sat_witnesses": 18,
+      "vulnerabilities": 20,
+      "timeouts": 7
+    },
+    "random_maxheap": {
+      "total_time_s": 134.52,
+      "mean_time_s": 6.115,
+      "total_states": 775.0,
+      "mean_states": 35.2,
+      "sat_witnesses": 16.3,
+      "vulnerabilities": 18.0,
+      "timeouts": 7
     },
     "static_heuristic": {
-      "total_time_s": 158.4,
-      "mean_time_s": 9.9,
-      "total_states": 686,
-      "mean_states": 42.9,
-      "sat_witnesses": 15,
-      "vulnerabilities": 16,
-      "timeouts": 5
+      "total_time_s": 134.65,
+      "mean_time_s": 6.12,
+      "total_states": 775,
+      "mean_states": 35.2,
+      "sat_witnesses": 16,
+      "vulnerabilities": 17,
+      "timeouts": 7
     }
   },
   "binaries": [
@@ -48,14 +77,14 @@
       "binary": "cwe120_buffer_overflow.bin",
       "group": "samples",
       "path": "data/samples/cwe120_buffer_overflow.bin",
-      "gnn_infer_ms": 20.3,
+      "gnn_infer_ms": 1.77,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 2.528,
+          "time_s": 1.519,
           "states_explored": 14,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 2010.75,
+          "time_to_first_vuln_ms": 1119.22,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -70,10 +99,64 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 2.004,
+          "time_s": 1.622,
           "states_explored": 14,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 1479.83,
+          "time_to_first_vuln_ms": 1219.87,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 1.524,
+          "states_explored": 14,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 1122.08,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 1.53,
+          "states_explored": 14,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 1127.14,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 1.609,
+          "states_explored": 14,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 1197.92,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -88,28 +171,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 2.414,
-          "states_explored": 14,
-          "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 1874.81,
-          "max_frontier_size": 1,
-          "sat_witnesses": 1,
-          "vulnerabilities_reported": 1,
-          "solver_status_counts": {
-            "SAT": 1,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 1.554,
+          "states_explored": 14.0,
+          "sat_witnesses": 1.0,
+          "vulnerabilities_reported": 1.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 1.524,
+              "states_explored": 14,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 1122.08,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 1.53,
+              "states_explored": 14,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 1127.14,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 1.609,
+              "states_explored": 14,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 1197.92,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 2.188,
+          "time_s": 1.547,
           "states_explored": 14,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 1673.68,
+          "time_to_first_vuln_ms": 1138.59,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -128,14 +257,14 @@
       "binary": "cwe134_format_string.bin",
       "group": "samples",
       "path": "data/samples/cwe134_format_string.bin",
-      "gnn_infer_ms": 3.92,
+      "gnn_infer_ms": 1.28,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 0.648,
+          "time_s": 0.508,
           "states_explored": 15,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 254.3,
+          "time_to_first_vuln_ms": 193.16,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -150,10 +279,64 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 0.822,
+          "time_s": 0.519,
           "states_explored": 15,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 257.53,
+          "time_to_first_vuln_ms": 199.94,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 0.513,
+          "states_explored": 15,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 198.22,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.516,
+          "states_explored": 15,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 197.68,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 0.511,
+          "states_explored": 15,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 200.1,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -168,28 +351,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 0.66,
-          "states_explored": 15,
-          "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 261.64,
-          "max_frontier_size": 1,
-          "sat_witnesses": 1,
-          "vulnerabilities_reported": 1,
-          "solver_status_counts": {
-            "SAT": 1,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 0.513,
+          "states_explored": 15.0,
+          "sat_witnesses": 1.0,
+          "vulnerabilities_reported": 1.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 0.513,
+              "states_explored": 15,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 198.22,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.516,
+              "states_explored": 15,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 197.68,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 0.511,
+              "states_explored": 15,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 200.1,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 0.656,
+          "time_s": 0.509,
           "states_explored": 15,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 250.08,
+          "time_to_first_vuln_ms": 197.39,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -208,14 +437,14 @@
       "binary": "cwe416_use_after_free.bin",
       "group": "samples",
       "path": "data/samples/cwe416_use_after_free.bin",
-      "gnn_infer_ms": 1.62,
+      "gnn_infer_ms": 1.25,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 0.543,
+          "time_s": 0.477,
           "states_explored": 23,
           "steps_to_first_vuln": 15,
-          "time_to_first_vuln_ms": 135.28,
+          "time_to_first_vuln_ms": 93.34,
           "max_frontier_size": 2,
           "sat_witnesses": 2,
           "vulnerabilities_reported": 2,
@@ -230,10 +459,64 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 0.594,
+          "time_s": 0.473,
           "states_explored": 23,
           "steps_to_first_vuln": 16,
-          "time_to_first_vuln_ms": 175.16,
+          "time_to_first_vuln_ms": 113.59,
+          "max_frontier_size": 2,
+          "sat_witnesses": 2,
+          "vulnerabilities_reported": 2,
+          "solver_status_counts": {
+            "SAT": 2,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 0.414,
+          "states_explored": 23,
+          "steps_to_first_vuln": 15,
+          "time_to_first_vuln_ms": 96.48,
+          "max_frontier_size": 2,
+          "sat_witnesses": 2,
+          "vulnerabilities_reported": 2,
+          "solver_status_counts": {
+            "SAT": 2,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.441,
+          "states_explored": 23,
+          "steps_to_first_vuln": 16,
+          "time_to_first_vuln_ms": 98.84,
+          "max_frontier_size": 2,
+          "sat_witnesses": 2,
+          "vulnerabilities_reported": 2,
+          "solver_status_counts": {
+            "SAT": 2,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 0.415,
+          "states_explored": 23,
+          "steps_to_first_vuln": 16,
+          "time_to_first_vuln_ms": 98.55,
           "max_frontier_size": 2,
           "sat_witnesses": 2,
           "vulnerabilities_reported": 2,
@@ -248,28 +531,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 0.533,
-          "states_explored": 23,
-          "steps_to_first_vuln": 15,
-          "time_to_first_vuln_ms": 127.67,
-          "max_frontier_size": 2,
-          "sat_witnesses": 2,
-          "vulnerabilities_reported": 2,
-          "solver_status_counts": {
-            "SAT": 2,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 0.423,
+          "states_explored": 23.0,
+          "sat_witnesses": 2.0,
+          "vulnerabilities_reported": 2.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 0.414,
+              "states_explored": 23,
+              "steps_to_first_vuln": 15,
+              "time_to_first_vuln_ms": 96.48,
+              "max_frontier_size": 2,
+              "sat_witnesses": 2,
+              "vulnerabilities_reported": 2,
+              "solver_status_counts": {
+                "SAT": 2,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.441,
+              "states_explored": 23,
+              "steps_to_first_vuln": 16,
+              "time_to_first_vuln_ms": 98.84,
+              "max_frontier_size": 2,
+              "sat_witnesses": 2,
+              "vulnerabilities_reported": 2,
+              "solver_status_counts": {
+                "SAT": 2,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 0.415,
+              "states_explored": 23,
+              "steps_to_first_vuln": 16,
+              "time_to_first_vuln_ms": 98.55,
+              "max_frontier_size": 2,
+              "sat_witnesses": 2,
+              "vulnerabilities_reported": 2,
+              "solver_status_counts": {
+                "SAT": 2,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 0.529,
+          "time_s": 0.416,
           "states_explored": 23,
           "steps_to_first_vuln": 16,
-          "time_to_first_vuln_ms": 143.58,
+          "time_to_first_vuln_ms": 97.99,
           "max_frontier_size": 2,
           "sat_witnesses": 2,
           "vulnerabilities_reported": 2,
@@ -288,14 +617,14 @@
       "binary": "cwe476_null_deref.bin",
       "group": "samples",
       "path": "data/samples/cwe476_null_deref.bin",
-      "gnn_infer_ms": 1.41,
+      "gnn_infer_ms": 1.4,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 0.391,
+          "time_s": 0.299,
           "states_explored": 19,
           "steps_to_first_vuln": 8,
-          "time_to_first_vuln_ms": 105.9,
+          "time_to_first_vuln_ms": 77.13,
           "max_frontier_size": 2,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -310,10 +639,64 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 0.37,
+          "time_s": 0.299,
           "states_explored": 19,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 113.39,
+          "time_to_first_vuln_ms": 81.15,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 0.433,
+          "states_explored": 19,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 81.31,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.31,
+          "states_explored": 19,
+          "steps_to_first_vuln": 8,
+          "time_to_first_vuln_ms": 80.98,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 0.317,
+          "states_explored": 19,
+          "steps_to_first_vuln": 9,
+          "time_to_first_vuln_ms": 84.51,
           "max_frontier_size": 2,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -328,28 +711,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 0.385,
-          "states_explored": 19,
-          "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 108.14,
-          "max_frontier_size": 2,
-          "sat_witnesses": 1,
-          "vulnerabilities_reported": 1,
-          "solver_status_counts": {
-            "SAT": 1,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 0.353,
+          "states_explored": 19.0,
+          "sat_witnesses": 1.0,
+          "vulnerabilities_reported": 1.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 0.433,
+              "states_explored": 19,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 81.31,
+              "max_frontier_size": 2,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.31,
+              "states_explored": 19,
+              "steps_to_first_vuln": 8,
+              "time_to_first_vuln_ms": 80.98,
+              "max_frontier_size": 2,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 0.317,
+              "states_explored": 19,
+              "steps_to_first_vuln": 9,
+              "time_to_first_vuln_ms": 84.51,
+              "max_frontier_size": 2,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 0.394,
+          "time_s": 0.304,
           "states_explored": 19,
           "steps_to_first_vuln": 9,
-          "time_to_first_vuln_ms": 115.78,
+          "time_to_first_vuln_ms": 81.45,
           "max_frontier_size": 2,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -368,14 +797,14 @@
       "binary": "cwe78_command_injection.bin",
       "group": "samples",
       "path": "data/samples/cwe78_command_injection.bin",
-      "gnn_infer_ms": 1.73,
+      "gnn_infer_ms": 1.42,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 0.876,
+          "time_s": 0.674,
           "states_explored": 16,
           "steps_to_first_vuln": 11,
-          "time_to_first_vuln_ms": 494.27,
+          "time_to_first_vuln_ms": 368.46,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -390,10 +819,64 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 1.15,
+          "time_s": 0.673,
           "states_explored": 16,
           "steps_to_first_vuln": 11,
-          "time_to_first_vuln_ms": 763.45,
+          "time_to_first_vuln_ms": 373.45,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 0.674,
+          "states_explored": 16,
+          "steps_to_first_vuln": 11,
+          "time_to_first_vuln_ms": 374.1,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.676,
+          "states_explored": 16,
+          "steps_to_first_vuln": 11,
+          "time_to_first_vuln_ms": 373.83,
+          "max_frontier_size": 1,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 0.681,
+          "states_explored": 16,
+          "steps_to_first_vuln": 11,
+          "time_to_first_vuln_ms": 374.6,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -408,28 +891,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 0.958,
-          "states_explored": 16,
-          "steps_to_first_vuln": 11,
-          "time_to_first_vuln_ms": 531.8,
-          "max_frontier_size": 1,
-          "sat_witnesses": 1,
-          "vulnerabilities_reported": 1,
-          "solver_status_counts": {
-            "SAT": 1,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 0.677,
+          "states_explored": 16.0,
+          "sat_witnesses": 1.0,
+          "vulnerabilities_reported": 1.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 0.674,
+              "states_explored": 16,
+              "steps_to_first_vuln": 11,
+              "time_to_first_vuln_ms": 374.1,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.676,
+              "states_explored": 16,
+              "steps_to_first_vuln": 11,
+              "time_to_first_vuln_ms": 373.83,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 0.681,
+              "states_explored": 16,
+              "steps_to_first_vuln": 11,
+              "time_to_first_vuln_ms": 374.6,
+              "max_frontier_size": 1,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 0.88,
+          "time_s": 0.676,
           "states_explored": 16,
           "steps_to_first_vuln": 11,
-          "time_to_first_vuln_ms": 488.4,
+          "time_to_first_vuln_ms": 375.67,
           "max_frontier_size": 1,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -445,17 +974,197 @@
       }
     },
     {
-      "binary": "test_benchmarks_binary",
-      "group": "test_suite",
-      "path": "tests/test_benchmarks_binary",
-      "gnn_infer_ms": 1.57,
+      "binary": "secure_program.bin",
+      "group": "samples",
+      "path": "data/samples/secure_program.bin",
+      "gnn_infer_ms": 1.32,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 1.375,
+          "time_s": 0.933,
+          "states_explored": 44,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "gnn_maxheap": {
+          "condition": "gnn_maxheap",
+          "time_s": 0.949,
+          "states_explored": 44,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 0.909,
+          "states_explored": 44,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.912,
+          "states_explored": 44,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 1.051,
+          "states_explored": 44,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap": {
+          "condition": "random_maxheap",
+          "time_s": 0.957,
+          "states_explored": 44.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 0.909,
+              "states_explored": 44,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.912,
+              "states_explored": 44,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 1.051,
+              "states_explored": 44,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
+        },
+        "static_heuristic": {
+          "condition": "static_heuristic",
+          "time_s": 0.902,
+          "states_explored": 44,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        }
+      }
+    },
+    {
+      "binary": "test_benchmarks_binary",
+      "group": "test_suite",
+      "path": "tests/test_benchmarks_binary",
+      "gnn_infer_ms": 1.28,
+      "conditions": {
+        "dfs": {
+          "condition": "dfs",
+          "time_s": 1.057,
           "states_explored": 80,
           "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 281.84,
+          "time_to_first_vuln_ms": 196.28,
           "max_frontier_size": 2,
           "sat_witnesses": 4,
           "vulnerabilities_reported": 4,
@@ -470,10 +1179,64 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 1.356,
+          "time_s": 1.049,
           "states_explored": 80,
           "steps_to_first_vuln": 40,
-          "time_to_first_vuln_ms": 572.79,
+          "time_to_first_vuln_ms": 443.34,
+          "max_frontier_size": 6,
+          "sat_witnesses": 4,
+          "vulnerabilities_reported": 4,
+          "solver_status_counts": {
+            "SAT": 4,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 1.143,
+          "states_explored": 80,
+          "steps_to_first_vuln": 26,
+          "time_to_first_vuln_ms": 292.69,
+          "max_frontier_size": 6,
+          "sat_witnesses": 4,
+          "vulnerabilities_reported": 4,
+          "solver_status_counts": {
+            "SAT": 4,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.982,
+          "states_explored": 80,
+          "steps_to_first_vuln": 25,
+          "time_to_first_vuln_ms": 374.56,
+          "max_frontier_size": 6,
+          "sat_witnesses": 3,
+          "vulnerabilities_reported": 3,
+          "solver_status_counts": {
+            "SAT": 3,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 1.056,
+          "states_explored": 80,
+          "steps_to_first_vuln": 22,
+          "time_to_first_vuln_ms": 288.89,
           "max_frontier_size": 6,
           "sat_witnesses": 4,
           "vulnerabilities_reported": 4,
@@ -488,28 +1251,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 1.573,
-          "states_explored": 80,
-          "steps_to_first_vuln": 26,
-          "time_to_first_vuln_ms": 510.85,
-          "max_frontier_size": 6,
-          "sat_witnesses": 4,
-          "vulnerabilities_reported": 4,
-          "solver_status_counts": {
-            "SAT": 4,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 1.06,
+          "states_explored": 80.0,
+          "sat_witnesses": 3.67,
+          "vulnerabilities_reported": 3.67,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 1.143,
+              "states_explored": 80,
+              "steps_to_first_vuln": 26,
+              "time_to_first_vuln_ms": 292.69,
+              "max_frontier_size": 6,
+              "sat_witnesses": 4,
+              "vulnerabilities_reported": 4,
+              "solver_status_counts": {
+                "SAT": 4,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.982,
+              "states_explored": 80,
+              "steps_to_first_vuln": 25,
+              "time_to_first_vuln_ms": 374.56,
+              "max_frontier_size": 6,
+              "sat_witnesses": 3,
+              "vulnerabilities_reported": 3,
+              "solver_status_counts": {
+                "SAT": 3,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 1.056,
+              "states_explored": 80,
+              "steps_to_first_vuln": 22,
+              "time_to_first_vuln_ms": 288.89,
+              "max_frontier_size": 6,
+              "sat_witnesses": 4,
+              "vulnerabilities_reported": 4,
+              "solver_status_counts": {
+                "SAT": 4,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 1.562,
+          "time_s": 1.075,
           "states_explored": 80,
           "steps_to_first_vuln": 30,
-          "time_to_first_vuln_ms": 497.16,
+          "time_to_first_vuln_ms": 363.5,
           "max_frontier_size": 6,
           "sat_witnesses": 4,
           "vulnerabilities_reported": 4,
@@ -528,11 +1337,11 @@
       "binary": "CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_10_O0.out",
       "group": "juliet_vuln",
       "path": "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_connect_socket_10_O0.out",
-      "gnn_infer_ms": 4.84,
+      "gnn_infer_ms": 2.93,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 0.253,
+          "time_s": 0.332,
           "states_explored": 80,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -550,7 +1359,61 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 0.278,
+          "time_s": 0.2,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 0.202,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.201,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 0.206,
           "states_explored": 80,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -568,25 +1431,71 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 0.279,
-          "states_explored": 80,
-          "steps_to_first_vuln": null,
-          "time_to_first_vuln_ms": null,
-          "max_frontier_size": 2,
-          "sat_witnesses": 0,
-          "vulnerabilities_reported": 0,
-          "solver_status_counts": {
-            "SAT": 0,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 0.203,
+          "states_explored": 80.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 0.202,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.201,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 0.206,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 0.28,
+          "time_s": 0.204,
           "states_explored": 80,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -608,15 +1517,15 @@
       "binary": "CWE121_Stack_Based_Buffer_Overflow__CWE129_fgets_65_O0.out",
       "group": "juliet_vuln",
       "path": "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_fgets_65_O0.out",
-      "gnn_infer_ms": 2.06,
+      "gnn_infer_ms": 2.01,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 48.621,
-          "states_explored": 52,
-          "steps_to_first_vuln": 52,
-          "time_to_first_vuln_ms": 48584.36,
-          "max_frontier_size": 3,
+          "time_s": 15.392,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -630,11 +1539,65 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 38.674,
-          "states_explored": 53,
-          "steps_to_first_vuln": 53,
-          "time_to_first_vuln_ms": 38639.32,
-          "max_frontier_size": 3,
+          "time_s": 24.905,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 22.077,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 19.092,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 21.324,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -648,29 +1611,75 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 36.473,
-          "states_explored": 54,
-          "steps_to_first_vuln": 54,
-          "time_to_first_vuln_ms": 36446.62,
-          "max_frontier_size": 3,
-          "sat_witnesses": 0,
-          "vulnerabilities_reported": 0,
-          "solver_status_counts": {
-            "SAT": 0,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": true
+          "time_s": 20.831,
+          "states_explored": 0.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": true,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 22.077,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 19.092,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 21.324,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 43.847,
-          "states_explored": 56,
-          "steps_to_first_vuln": 56,
-          "time_to_first_vuln_ms": 43819.22,
-          "max_frontier_size": 3,
+          "time_s": 23.985,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -688,15 +1697,15 @@
       "binary": "CWE124_Buffer_Underwrite__CWE839_fgets_03_O2.out",
       "group": "juliet_vuln",
       "path": "data/train_binaries/CWE124_Buffer_Underwrite__CWE839_fgets_03_O2.out",
-      "gnn_infer_ms": 2.45,
+      "gnn_infer_ms": 2.73,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 18.435,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 18421.61,
-          "max_frontier_size": 2,
+          "time_s": 10.87,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -710,11 +1719,65 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 18.017,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 18001.3,
-          "max_frontier_size": 2,
+          "time_s": 13.134,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 13.066,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 14.895,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 11.865,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -728,29 +1791,75 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 27.674,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 27645.14,
-          "max_frontier_size": 2,
-          "sat_witnesses": 0,
-          "vulnerabilities_reported": 0,
-          "solver_status_counts": {
-            "SAT": 0,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": true
+          "time_s": 13.275,
+          "states_explored": 0.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": true,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 13.066,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 14.895,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 11.865,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 21.124,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 21103.33,
-          "max_frontier_size": 2,
+          "time_s": 12.02,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -768,15 +1877,15 @@
       "binary": "CWE126_Buffer_Overread__CWE129_fgets_04_O0.out",
       "group": "juliet_vuln",
       "path": "data/train_binaries/CWE126_Buffer_Overread__CWE129_fgets_04_O0.out",
-      "gnn_infer_ms": 3.97,
+      "gnn_infer_ms": 2.42,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 37.89,
-          "states_explored": 24,
-          "steps_to_first_vuln": 24,
-          "time_to_first_vuln_ms": 37842.79,
-          "max_frontier_size": 3,
+          "time_s": 26.353,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -790,11 +1899,65 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 42.72,
-          "states_explored": 28,
-          "steps_to_first_vuln": 28,
-          "time_to_first_vuln_ms": 42704.31,
-          "max_frontier_size": 3,
+          "time_s": 23.307,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 22.509,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 26.681,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 22.088,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -808,29 +1971,75 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 23.456,
-          "states_explored": 28,
-          "steps_to_first_vuln": 28,
-          "time_to_first_vuln_ms": 23438.5,
-          "max_frontier_size": 3,
-          "sat_witnesses": 0,
-          "vulnerabilities_reported": 0,
-          "solver_status_counts": {
-            "SAT": 0,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": true
+          "time_s": 23.759,
+          "states_explored": 0.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": true,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 22.509,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 26.681,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 22.088,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 41.498,
-          "states_explored": 28,
-          "steps_to_first_vuln": 28,
-          "time_to_first_vuln_ms": 41481.89,
-          "max_frontier_size": 3,
+          "time_s": 26.688,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -848,15 +2057,15 @@
       "binary": "CWE127_Buffer_Underread__CWE839_fgets_17_Os.out",
       "group": "juliet_vuln",
       "path": "data/train_binaries/CWE127_Buffer_Underread__CWE839_fgets_17_Os.out",
-      "gnn_infer_ms": 3.85,
+      "gnn_infer_ms": 1.91,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 25.068,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 25033.79,
-          "max_frontier_size": 2,
+          "time_s": 13.408,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -870,11 +2079,65 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 27.552,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 27520.37,
-          "max_frontier_size": 2,
+          "time_s": 12.839,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 15.538,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 18.882,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 10.939,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -888,11 +2151,281 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 18.974,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 18931.77,
+          "time_s": 15.12,
+          "states_explored": 0.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": true,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 15.538,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 18.882,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 10.939,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            }
+          }
+        },
+        "static_heuristic": {
+          "condition": "static_heuristic",
+          "time_s": 11.739,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        }
+      }
+    },
+    {
+      "binary": "CWE78_OS_Command_Injection__char_connect_socket_execl_02_O0.out",
+      "group": "juliet_vuln",
+      "path": "data/train_binaries/CWE78_OS_Command_Injection__char_connect_socket_execl_02_O0.out",
+      "gnn_infer_ms": 2.44,
+      "conditions": {
+        "dfs": {
+          "condition": "dfs",
+          "time_s": 0.74,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
           "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "gnn_maxheap": {
+          "condition": "gnn_maxheap",
+          "time_s": 0.744,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 1.295,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.611,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 1.636,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap": {
+          "condition": "random_maxheap",
+          "time_s": 1.181,
+          "states_explored": 80.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 1.295,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.611,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 1.636,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
+        },
+        "static_heuristic": {
+          "condition": "static_heuristic",
+          "time_s": 1.136,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        }
+      }
+    },
+    {
+      "binary": "CWE194_Unexpected_Sign_Extension__connect_socket_malloc_42_Os.out",
+      "group": "juliet_vuln",
+      "path": "data/train_binaries/CWE194_Unexpected_Sign_Extension__connect_socket_malloc_42_Os.out",
+      "gnn_infer_ms": 1.62,
+      "conditions": {
+        "dfs": {
+          "condition": "dfs",
+          "time_s": 10.007,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -904,13 +2437,149 @@
           },
           "timed_out": true
         },
+        "gnn_maxheap": {
+          "condition": "gnn_maxheap",
+          "time_s": 10.01,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 10.005,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 10.003,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 10.005,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap": {
+          "condition": "random_maxheap",
+          "time_s": 10.004,
+          "states_explored": 0.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": true,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 10.005,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 10.003,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 10.005,
+              "states_explored": 0,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 0,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            }
+          }
+        },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 20.981,
-          "states_explored": 17,
-          "steps_to_first_vuln": 17,
-          "time_to_first_vuln_ms": 20956.73,
-          "max_frontier_size": 2,
+          "time_s": 10.006,
+          "states_explored": 0,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 0,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -928,11 +2597,11 @@
       "binary": "CWE121_Stack_Based_Buffer_Overflow__CWE129_rand_06_PATCHED_O0.out",
       "group": "juliet_patched",
       "path": "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE129_rand_06_PATCHED_O0.out",
-      "gnn_infer_ms": 10.12,
+      "gnn_infer_ms": 44.61,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 0.986,
+          "time_s": 1.121,
           "states_explored": 80,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -950,7 +2619,61 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 0.622,
+          "time_s": 0.554,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 6,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 1.38,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 6,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.509,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 6,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 0.593,
           "states_explored": 80,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -968,25 +2691,71 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 0.756,
-          "states_explored": 80,
-          "steps_to_first_vuln": null,
-          "time_to_first_vuln_ms": null,
-          "max_frontier_size": 6,
-          "sat_witnesses": 0,
-          "vulnerabilities_reported": 0,
-          "solver_status_counts": {
-            "SAT": 0,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 0.827,
+          "states_explored": 80.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 1.38,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 6,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.509,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 6,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 0.593,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 6,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 0.655,
+          "time_s": 0.63,
           "states_explored": 80,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -1008,14 +2777,14 @@
       "binary": "CWE78_OS_Command_Injection__char_file_popen_63_PATCHED_O0.out",
       "group": "juliet_patched",
       "path": "data/train_binaries/CWE78_OS_Command_Injection__char_file_popen_63_PATCHED_O0.out",
-      "gnn_infer_ms": 2.02,
+      "gnn_infer_ms": 2.7,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 3.779,
+          "time_s": 3.148,
           "states_explored": 80,
           "steps_to_first_vuln": 49,
-          "time_to_first_vuln_ms": 1597.45,
+          "time_to_first_vuln_ms": 1368.43,
           "max_frontier_size": 2,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -1030,10 +2799,64 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 5.469,
+          "time_s": 4.415,
           "states_explored": 80,
           "steps_to_first_vuln": 33,
-          "time_to_first_vuln_ms": 1227.06,
+          "time_to_first_vuln_ms": 907.67,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 4.092,
+          "states_explored": 80,
+          "steps_to_first_vuln": 73,
+          "time_to_first_vuln_ms": 3519.52,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 4.092,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 3.274,
+          "states_explored": 80,
+          "steps_to_first_vuln": 36,
+          "time_to_first_vuln_ms": 912.5,
           "max_frontier_size": 2,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -1048,28 +2871,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 4.025,
-          "states_explored": 80,
-          "steps_to_first_vuln": 73,
-          "time_to_first_vuln_ms": 3422.13,
-          "max_frontier_size": 2,
-          "sat_witnesses": 1,
-          "vulnerabilities_reported": 1,
-          "solver_status_counts": {
-            "SAT": 1,
-            "UNSAT": 0,
-            "UNKNOWN": 0,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 3.819,
+          "states_explored": 80.0,
+          "sat_witnesses": 0.67,
+          "vulnerabilities_reported": 0.67,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 4.092,
+              "states_explored": 80,
+              "steps_to_first_vuln": 73,
+              "time_to_first_vuln_ms": 3519.52,
+              "max_frontier_size": 2,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 4.092,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 3.274,
+              "states_explored": 80,
+              "steps_to_first_vuln": 36,
+              "time_to_first_vuln_ms": 912.5,
+              "max_frontier_size": 2,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 3.139,
+          "time_s": 2.763,
           "states_explored": 80,
           "steps_to_first_vuln": 33,
-          "time_to_first_vuln_ms": 1387.38,
+          "time_to_first_vuln_ms": 1012.35,
           "max_frontier_size": 2,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -1085,18 +2954,378 @@
       }
     },
     {
-      "binary": "PV_00008_haproxy_CVE-2018-20103_CWE835_VULN_O0.out",
-      "group": "primevul_cve",
-      "path": "data/primevul_binaries/PV_00008_haproxy_CVE-2018-20103_CWE835_VULN_O0.out",
-      "gnn_infer_ms": 2.58,
+      "binary": "CWE121_Stack_Based_Buffer_Overflow__CWE135_04_PATCHED_O0.out",
+      "group": "juliet_patched",
+      "path": "data/train_binaries/CWE121_Stack_Based_Buffer_Overflow__CWE135_04_PATCHED_O0.out",
+      "gnn_infer_ms": 5.76,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 10.795,
-          "states_explored": 48,
-          "steps_to_first_vuln": 13,
-          "time_to_first_vuln_ms": 667.86,
-          "max_frontier_size": 5,
+          "time_s": 5.105,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "gnn_maxheap": {
+          "condition": "gnn_maxheap",
+          "time_s": 6.765,
+          "states_explored": 80,
+          "steps_to_first_vuln": 70,
+          "time_to_first_vuln_ms": 5877.85,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 5.282,
+          "states_explored": 80,
+          "steps_to_first_vuln": 59,
+          "time_to_first_vuln_ms": 3284.05,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 6.304,
+          "states_explored": 80,
+          "steps_to_first_vuln": 80,
+          "time_to_first_vuln_ms": 6216.1,
+          "max_frontier_size": 2,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 1,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 6.392,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 2,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap": {
+          "condition": "random_maxheap",
+          "time_s": 5.993,
+          "states_explored": 80.0,
+          "sat_witnesses": 0.67,
+          "vulnerabilities_reported": 0.67,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 5.282,
+              "states_explored": 80,
+              "steps_to_first_vuln": 59,
+              "time_to_first_vuln_ms": 3284.05,
+              "max_frontier_size": 2,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 6.304,
+              "states_explored": 80,
+              "steps_to_first_vuln": 80,
+              "time_to_first_vuln_ms": 6216.1,
+              "max_frontier_size": 2,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 1,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 6.392,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 2,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
+        },
+        "static_heuristic": {
+          "condition": "static_heuristic",
+          "time_s": 5.012,
+          "states_explored": 80,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        }
+      }
+    },
+    {
+      "binary": "PV_00000_openssl_CVE-2013-6449_CWE310_VULN_O0.out",
+      "group": "primevul_cve",
+      "path": "data/primevul_binaries/PV_00000_openssl_CVE-2013-6449_CWE310_VULN_O0.out",
+      "gnn_infer_ms": 5.32,
+      "conditions": {
+        "dfs": {
+          "condition": "dfs",
+          "time_s": 0.547,
+          "states_explored": 2,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "gnn_maxheap": {
+          "condition": "gnn_maxheap",
+          "time_s": 0.592,
+          "states_explored": 2,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 0.682,
+          "states_explored": 2,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 0.441,
+          "states_explored": 2,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 0.535,
+          "states_explored": 2,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap": {
+          "condition": "random_maxheap",
+          "time_s": 0.553,
+          "states_explored": 2.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 0.682,
+              "states_explored": 2,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 0.441,
+              "states_explored": 2,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 0.535,
+              "states_explored": 2,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
+        },
+        "static_heuristic": {
+          "condition": "static_heuristic",
+          "time_s": 0.465,
+          "states_explored": 2,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        }
+      }
+    },
+    {
+      "binary": "PV_00008_haproxy_CVE-2018-20103_CWE835_VULN_O0.out",
+      "group": "primevul_cve",
+      "path": "data/primevul_binaries/PV_00008_haproxy_CVE-2018-20103_CWE835_VULN_O0.out",
+      "gnn_infer_ms": 1.73,
+      "conditions": {
+        "dfs": {
+          "condition": "dfs",
+          "time_s": 10.104,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
           "sat_witnesses": 0,
           "vulnerabilities_reported": 0,
           "solver_status_counts": {
@@ -1110,7 +3339,61 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 11.049,
+          "time_s": 10.058,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 10.066,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 10.065,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 10.071,
           "states_explored": 1,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -1128,7 +3411,97 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 11.045,
+          "time_s": 10.067,
+          "states_explored": 1.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": true,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 10.066,
+              "states_explored": 1,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 10.065,
+              "states_explored": 1,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 10.071,
+              "states_explored": 1,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            }
+          }
+        },
+        "static_heuristic": {
+          "condition": "static_heuristic",
+          "time_s": 10.086,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        }
+      }
+    },
+    {
+      "binary": "PV_00042_haproxy_CVE-2015-3281_CWE119_VULN_O0.out",
+      "group": "primevul_cve",
+      "path": "data/primevul_binaries/PV_00042_haproxy_CVE-2015-3281_CWE119_VULN_O0.out",
+      "gnn_infer_ms": 2.73,
+      "conditions": {
+        "dfs": {
+          "condition": "dfs",
+          "time_s": 10.012,
           "states_explored": 1,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -1144,9 +3517,145 @@
           },
           "timed_out": true
         },
+        "gnn_maxheap": {
+          "condition": "gnn_maxheap",
+          "time_s": 10.521,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 10.512,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 10.011,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 10.01,
+          "states_explored": 1,
+          "steps_to_first_vuln": null,
+          "time_to_first_vuln_ms": null,
+          "max_frontier_size": 1,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
+          "solver_status_counts": {
+            "SAT": 0,
+            "UNSAT": 0,
+            "UNKNOWN": 0,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": true
+        },
+        "random_maxheap": {
+          "condition": "random_maxheap",
+          "time_s": 10.178,
+          "states_explored": 1.0,
+          "sat_witnesses": 0.0,
+          "vulnerabilities_reported": 0.0,
+          "timed_out": true,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 10.512,
+              "states_explored": 1,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 10.011,
+              "states_explored": 1,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 10.01,
+              "states_explored": 1,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 1,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": true
+            }
+          }
+        },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 11.037,
+          "time_s": 10.015,
           "states_explored": 1,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -1168,19 +3677,19 @@
       "binary": "real_cut.bin",
       "group": "system_util",
       "path": "data/real_world_binaries/real_cut.bin",
-      "gnn_infer_ms": 6.73,
+      "gnn_infer_ms": 4.15,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 11.043,
-          "states_explored": 73,
+          "time_s": 10.558,
+          "states_explored": 65,
           "steps_to_first_vuln": 28,
-          "time_to_first_vuln_ms": 1401.1,
-          "max_frontier_size": 6,
-          "sat_witnesses": 1,
-          "vulnerabilities_reported": 1,
+          "time_to_first_vuln_ms": 1549.97,
+          "max_frontier_size": 4,
+          "sat_witnesses": 0,
+          "vulnerabilities_reported": 0,
           "solver_status_counts": {
-            "SAT": 1,
+            "SAT": 0,
             "UNSAT": 0,
             "UNKNOWN": 0,
             "TIMEOUT": 0,
@@ -1190,10 +3699,10 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 3.379,
+          "time_s": 5.304,
           "states_explored": 80,
           "steps_to_first_vuln": 18,
-          "time_to_first_vuln_ms": 1661.96,
+          "time_to_first_vuln_ms": 3114.06,
           "max_frontier_size": 9,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 1,
@@ -1206,9 +3715,9 @@
           },
           "timed_out": false
         },
-        "random_maxheap": {
-          "condition": "random_maxheap",
-          "time_s": 0.991,
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 1.197,
           "states_explored": 80,
           "steps_to_first_vuln": null,
           "time_to_first_vuln_ms": null,
@@ -1224,17 +3733,117 @@
           },
           "timed_out": false
         },
-        "static_heuristic": {
-          "condition": "static_heuristic",
-          "time_s": 5.106,
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 8.394,
           "states_explored": 80,
           "steps_to_first_vuln": 5,
-          "time_to_first_vuln_ms": 529.21,
-          "max_frontier_size": 6,
-          "sat_witnesses": 3,
-          "vulnerabilities_reported": 3,
+          "time_to_first_vuln_ms": 497.25,
+          "max_frontier_size": 8,
+          "sat_witnesses": 7,
+          "vulnerabilities_reported": 8,
           "solver_status_counts": {
-            "SAT": 3,
+            "SAT": 7,
+            "UNSAT": 0,
+            "UNKNOWN": 1,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 6.702,
+          "states_explored": 80,
+          "steps_to_first_vuln": 33,
+          "time_to_first_vuln_ms": 2945.59,
+          "max_frontier_size": 6,
+          "sat_witnesses": 6,
+          "vulnerabilities_reported": 7,
+          "solver_status_counts": {
+            "SAT": 6,
+            "UNSAT": 0,
+            "UNKNOWN": 1,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap": {
+          "condition": "random_maxheap",
+          "time_s": 5.431,
+          "states_explored": 80.0,
+          "sat_witnesses": 4.33,
+          "vulnerabilities_reported": 5.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 1.197,
+              "states_explored": 80,
+              "steps_to_first_vuln": null,
+              "time_to_first_vuln_ms": null,
+              "max_frontier_size": 6,
+              "sat_witnesses": 0,
+              "vulnerabilities_reported": 0,
+              "solver_status_counts": {
+                "SAT": 0,
+                "UNSAT": 0,
+                "UNKNOWN": 0,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 8.394,
+              "states_explored": 80,
+              "steps_to_first_vuln": 5,
+              "time_to_first_vuln_ms": 497.25,
+              "max_frontier_size": 8,
+              "sat_witnesses": 7,
+              "vulnerabilities_reported": 8,
+              "solver_status_counts": {
+                "SAT": 7,
+                "UNSAT": 0,
+                "UNKNOWN": 1,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 6.702,
+              "states_explored": 80,
+              "steps_to_first_vuln": 33,
+              "time_to_first_vuln_ms": 2945.59,
+              "max_frontier_size": 6,
+              "sat_witnesses": 6,
+              "vulnerabilities_reported": 7,
+              "solver_status_counts": {
+                "SAT": 6,
+                "UNSAT": 0,
+                "UNKNOWN": 1,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
+        },
+        "static_heuristic": {
+          "condition": "static_heuristic",
+          "time_s": 7.369,
+          "states_explored": 80,
+          "steps_to_first_vuln": 5,
+          "time_to_first_vuln_ms": 576.86,
+          "max_frontier_size": 5,
+          "sat_witnesses": 4,
+          "vulnerabilities_reported": 4,
+          "solver_status_counts": {
+            "SAT": 4,
             "UNSAT": 0,
             "UNKNOWN": 0,
             "TIMEOUT": 0,
@@ -1248,14 +3857,14 @@
       "binary": "real_head.bin",
       "group": "system_util",
       "path": "data/real_world_binaries/real_head.bin",
-      "gnn_infer_ms": 2.92,
+      "gnn_infer_ms": 3.2,
       "conditions": {
         "dfs": {
           "condition": "dfs",
-          "time_s": 4.219,
+          "time_s": 6.458,
           "states_explored": 80,
           "steps_to_first_vuln": 10,
-          "time_to_first_vuln_ms": 775.53,
+          "time_to_first_vuln_ms": 1234.24,
           "max_frontier_size": 3,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 2,
@@ -1270,11 +3879,65 @@
         },
         "gnn_maxheap": {
           "condition": "gnn_maxheap",
-          "time_s": 4.27,
+          "time_s": 7.166,
           "states_explored": 80,
           "steps_to_first_vuln": 22,
-          "time_to_first_vuln_ms": 1085.81,
+          "time_to_first_vuln_ms": 1569.36,
           "max_frontier_size": 3,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 2,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 1,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_42": {
+          "condition": "random_maxheap_42",
+          "time_s": 6.915,
+          "states_explored": 80,
+          "steps_to_first_vuln": 32,
+          "time_to_first_vuln_ms": 2371.44,
+          "max_frontier_size": 4,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 2,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 1,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_1337": {
+          "condition": "random_maxheap_1337",
+          "time_s": 7.754,
+          "states_explored": 80,
+          "steps_to_first_vuln": 42,
+          "time_to_first_vuln_ms": 4385.52,
+          "max_frontier_size": 3,
+          "sat_witnesses": 1,
+          "vulnerabilities_reported": 2,
+          "solver_status_counts": {
+            "SAT": 1,
+            "UNSAT": 0,
+            "UNKNOWN": 1,
+            "TIMEOUT": 0,
+            "ERROR": 0
+          },
+          "timed_out": false
+        },
+        "random_maxheap_2026": {
+          "condition": "random_maxheap_2026",
+          "time_s": 8.564,
+          "states_explored": 80,
+          "steps_to_first_vuln": 19,
+          "time_to_first_vuln_ms": 2221.42,
+          "max_frontier_size": 4,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 2,
           "solver_status_counts": {
@@ -1288,28 +3951,74 @@
         },
         "random_maxheap": {
           "condition": "random_maxheap",
-          "time_s": 4.267,
-          "states_explored": 80,
-          "steps_to_first_vuln": 32,
-          "time_to_first_vuln_ms": 1499.19,
-          "max_frontier_size": 4,
-          "sat_witnesses": 1,
-          "vulnerabilities_reported": 2,
-          "solver_status_counts": {
-            "SAT": 1,
-            "UNSAT": 0,
-            "UNKNOWN": 1,
-            "TIMEOUT": 0,
-            "ERROR": 0
-          },
-          "timed_out": false
+          "time_s": 7.744,
+          "states_explored": 80.0,
+          "sat_witnesses": 1.0,
+          "vulnerabilities_reported": 2.0,
+          "timed_out": false,
+          "seeds": {
+            "42": {
+              "condition": "random_maxheap_42",
+              "time_s": 6.915,
+              "states_explored": 80,
+              "steps_to_first_vuln": 32,
+              "time_to_first_vuln_ms": 2371.44,
+              "max_frontier_size": 4,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 2,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 1,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "1337": {
+              "condition": "random_maxheap_1337",
+              "time_s": 7.754,
+              "states_explored": 80,
+              "steps_to_first_vuln": 42,
+              "time_to_first_vuln_ms": 4385.52,
+              "max_frontier_size": 3,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 2,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 1,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            },
+            "2026": {
+              "condition": "random_maxheap_2026",
+              "time_s": 8.564,
+              "states_explored": 80,
+              "steps_to_first_vuln": 19,
+              "time_to_first_vuln_ms": 2221.42,
+              "max_frontier_size": 4,
+              "sat_witnesses": 1,
+              "vulnerabilities_reported": 2,
+              "solver_status_counts": {
+                "SAT": 1,
+                "UNSAT": 0,
+                "UNKNOWN": 1,
+                "TIMEOUT": 0,
+                "ERROR": 0
+              },
+              "timed_out": false
+            }
+          }
         },
         "static_heuristic": {
           "condition": "static_heuristic",
-          "time_s": 4.522,
+          "time_s": 7.098,
           "states_explored": 80,
           "steps_to_first_vuln": 10,
-          "time_to_first_vuln_ms": 787.19,
+          "time_to_first_vuln_ms": 1294.93,
           "max_frontier_size": 4,
           "sat_witnesses": 1,
           "vulnerabilities_reported": 2,

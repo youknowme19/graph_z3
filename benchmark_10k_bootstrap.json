@@ -1,95 +1,69 @@
 {
   "n_resamples": 10000,
-  "n_paired_binaries": 69,
-  "aggregate_speedup_ratio": {
-    "mean": 0.394,
-    "median": 0.336,
-    "std": 0.1475,
+  "seed": 42,
+  "speedup_x": {
+    "mean": 0.944,
+    "median": 0.942,
+    "std": 0.0602,
     "ci_95": [
-      0.2319,
-      0.7458
+      0.8299,
+      1.0682
     ],
     "ci_99": [
-      0.2196,
-      0.8554
+      0.7952,
+      1.1214
     ]
   },
-  "per_binary_mean_speedup": {
-    "mean": 0.9639,
-    "median": 0.9536,
-    "std": 0.0866,
+  "state_reduction_pct": {
+    "mean": 5.34,
+    "median": 4.98,
+    "std": 4.3895,
     "ci_95": [
-      0.8259,
-      1.1572
+      -2.01,
+      14.78
     ],
     "ci_99": [
-      0.7987,
-      1.2381
+      -3.39,
+      18.07
     ]
   },
-  "per_binary_median_speedup": {
-    "mean": 0.9734,
-    "median": 0.98,
-    "std": 0.0165,
+  "sat_witness_delta": {
+    "mean": -5.98,
+    "median": -5.0,
+    "std": 7.9986,
     "ci_95": [
-      0.93,
-      0.99
+      -23.0,
+      8.0
     ],
     "ci_99": [
-      0.91,
-      1.01
+      -29.0,
+      11.0
     ]
   },
-  "aggregate_state_reduction_pct": {
-    "mean": -6.05,
-    "median": -5.7,
-    "std": 4.28,
+  "steps_to_vuln_reduction_ratio": {
+    "mean": 1.014,
+    "median": 0.997,
+    "std": 0.1478,
     "ci_95": [
-      -16.26,
-      0.0
+      0.77,
+      1.348
     ],
     "ci_99": [
-      -20.46,
-      0.0
+      0.711,
+      1.513
     ]
   },
-  "sat_witness_delta (guided - unguided)": {
-    "mean": 13.8,
-    "median": 13.0,
-    "std": 13.82,
+  "time_to_vuln_speedup_ratio": {
+    "mean": 0.961,
+    "median": 0.908,
+    "std": 0.3343,
     "ci_95": [
-      -12.0,
-      42.0
+      0.465,
+      1.731
     ],
     "ci_99": [
-      -20.0,
-      52.0
-    ]
-  },
-  "steps_to_vuln_ratio": {
-    "mean": 0.968,
-    "median": 0.96,
-    "std": 0.091,
-    "ci_95": [
-      0.81,
-      1.169
-    ],
-    "ci_99": [
-      0.764,
-      1.26
-    ]
-  },
-  "time_to_vuln_ratio": {
-    "mean": 1.008,
-    "median": 1.008,
-    "std": 0.12,
-    "ci_95": [
-      0.761,
-      1.251
-    ],
-    "ci_99": [
-      0.654,
-      1.368
+      0.395,
+      2.046
     ]
   }
 }

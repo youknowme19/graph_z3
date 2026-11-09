@@ -1114,8 +1114,10 @@ def get_byte_status_with_extra(state, sym_var, extra_constraints=None) -> Tuple[
     return constrained_bytes, unconstrained_bytes
 
 
-class SymbolicTimeout(Exception):
-    """Raised when symbolic execution or constraint solving exceeds timeout budget."""
+class SymbolicTimeout(BaseException):
+    """Raised when symbolic execution or constraint solving exceeds timeout budget.
+    Inherits from BaseException so generic 'except Exception:' handlers cannot swallow it.
+    """
     pass
 
 
@@ -1124,6 +1126,7 @@ class AnalysisBackendProvider:
     Adapter that wires the UI up to the real analysis backend:
     BinaryLoader, SymbolicEngine, and Z3Interface.
     """
+    _timeout_flag: bool = False
 
     def __init__(
         self,
@@ -1444,7 +1447,7 @@ class AnalysisBackendProvider:
         loop_pre_states = {}
 
         while _frontier_len() > 0 and len(states) < self.max_steps:
-            if self.timeout_seconds is not None and (time.perf_counter() - t_trace_start) >= self.timeout_seconds:
+            if AnalysisBackendProvider._timeout_flag or (self.timeout_seconds is not None and (time.perf_counter() - t_trace_start) >= self.timeout_seconds):
                 timed_out_flag = True
                 self._emit("WARN", f"Trace exploration reached timeout ({self.timeout_seconds:.2f}s).")
                 break
@@ -1607,6 +1610,10 @@ class AnalysisBackendProvider:
                                     pre_finding_keys.add(f_key_full)
                                     step_new_findings.append(f)
                                     parent_vt.findings.append(f)
+
+                    if AnalysisBackendProvider._timeout_flag:
+                        timed_out_flag = True
+                        break
 
                     unconstrained_succs = [
                         s for s in getattr(successors, 'all_successors', flat_succs)
@@ -2046,7 +2053,7 @@ class AnalysisBackendProvider:
         for idx, state_obj in enumerate(trace):
             if not state_obj.is_vulnerable:
                 continue
-            if self.timeout_seconds is not None and (time.perf_counter() - t_scan_start) >= self.timeout_seconds:
+            if AnalysisBackendProvider._timeout_flag or (self.timeout_seconds is not None and (time.perf_counter() - t_scan_start) >= self.timeout_seconds):
                 self.scheduler_telemetry["timed_out"] = True
                 self._emit("WARN", f"Scan solving loop exceeded timeout ({self.timeout_seconds:.2f}s).")
                 break
@@ -2105,12 +2112,21 @@ class AnalysisBackendProvider:
                         raw_state, vars_dict, extra_constraints=extra_constraints_ast
                     )
 
+                    _solver_timeout_ms = 2500
+                    if self.timeout_seconds is not None:
+                        _rem_wall = self.timeout_seconds - (time.perf_counter() - t_scan_start)
+                        if _rem_wall <= 0:
+                            self.scheduler_telemetry["timed_out"] = True
+                            raise SymbolicTimeout(f"Scan solving exceeded timeout ({self.timeout_seconds:.2f}s).")
+                        _solver_timeout_ms = max(50, min(2500, int(_rem_wall * 1000)))
+
                     all_bytes = bytearray()
                     result = Z3Interface.evaluate_path(
                         raw_state, vars_dict,
                         parent_solver=parent_solver,
                         parent_constraints=parent_constraints,
                         extra_constraints=extra_constraints_ast,
+                        timeout_ms=_solver_timeout_ms,
                     )
 
                     self._state_registry[state_obj._registry_key] = (

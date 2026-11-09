@@ -94,9 +94,11 @@ class Z3Interface:
                 solver = z3.Solver()
                 parent_constraints = None
 
-            # Apply a timeout so a complex constraint set cannot hang indefinitely.
-            _timeout_ms = int(timeout_ms if timeout_ms is not None else _os.environ.get("Z3_TIMEOUT_MS", "30000"))
+            # Apply a strict timeout so a complex constraint set cannot hang indefinitely.
+            _timeout_ms = int(timeout_ms if timeout_ms is not None else _os.environ.get("Z3_TIMEOUT_MS", "2500"))
+            _timeout_ms = min(_timeout_ms, 2500)
             solver.set("timeout", max(1, _timeout_ms))
+            z3.set_param("timeout", max(1, _timeout_ms))
 
             # 2. Extract target variables for slicing
             target_var_names = set()

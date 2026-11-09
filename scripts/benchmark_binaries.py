@@ -35,14 +35,11 @@ import torch
 from src.core.binary_loader import BinaryLoader
 from src.graph.graph_builder import GraphBuilder
 from src.ml.gnn_model import create_model
-from src.core.interfaces import AnalysisBackendProvider
-
-
-class SymbolicTimeout(Exception):
-    pass
+from src.core.interfaces import AnalysisBackendProvider, SymbolicTimeout
 
 
 def _alarm_handler(signum, frame):
+    AnalysisBackendProvider._timeout_flag = True
     raise SymbolicTimeout("Symbolic exploration cap reached")
 
 
@@ -207,14 +204,19 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
         result["gnn_flagged_functions"] = len(func_vuln_map)
         result["gnn_infer_ms"] = gnn_ms
 
+        # Enforce global solver timeout
+        import z3
+        z3.set_param('timeout', 2500)
+
         # 1. GNN-Guided Neuro-Symbolic Verification (MaxHeap + risk priority scoring)
+        AnalysisBackendProvider._timeout_flag = False
         signal.signal(signal.SIGALRM, _alarm_handler)
         t_g0 = time.perf_counter()
         vulns = []
         guided_backend = None
         guided_timed_out = False
         try:
-            signal.alarm(15)
+            signal.setitimer(signal.ITIMER_REAL, 15.0, 0.5)
             guided_map = func_vuln_map if func_vuln_map else {-1: False}
             guided_backend = AnalysisBackendProvider(
                 binary_path,
@@ -230,14 +232,19 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
         except SymbolicTimeout:
             guided_timed_out = True
         finally:
-            signal.alarm(0)
+            signal.setitimer(signal.ITIMER_REAL, 0.0, 0.0)
+        if AnalysisBackendProvider._timeout_flag:
+            guided_timed_out = True
         guided_tel = getattr(guided_backend, "scheduler_telemetry", {}) if guided_backend else {}
         if guided_tel.get("timed_out"):
             guided_timed_out = True
-        guided_sym_s = 15.0 if guided_timed_out else (time.perf_counter() - t_g0)
+        actual_guided_elapsed = time.perf_counter() - t_g0
+        guided_sym_s = min(actual_guided_elapsed, 15.0) if guided_timed_out else actual_guided_elapsed
         total_guided_s = load_time_s + (gnn_ms / 1000.0) + guided_sym_s
         result["gnn_guided_time_s"] = round(total_guided_s, 3)
         result["analysis_time_s"] = round(total_guided_s, 3)
+        result["gnn_guided_elapsed_wall_s"] = round(actual_guided_elapsed, 3)
+        result["gnn_guided_termination_reason"] = "TIMEOUT_EXCEEDED" if guided_timed_out else "COMPLETED"
         result["gnn_guided_timed_out"] = guided_timed_out
         result["gnn_guided_states"] = guided_tel.get("states_explored", 0)
         result["gnn_guided_steps_to_vuln"] = guided_tel.get("steps_to_first_vuln")
@@ -248,12 +255,14 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
 
         # 2. Unguided Symbolic Execution baseline (standard DFS exploration)
         if compare_unguided:
+            AnalysisBackendProvider._timeout_flag = False
+            signal.signal(signal.SIGALRM, _alarm_handler)
             t_u0 = time.perf_counter()
             u_vulns = []
             u_timed_out = False
             unguided_backend = None
             try:
-                signal.alarm(15)
+                signal.setitimer(signal.ITIMER_REAL, 15.0, 0.5)
                 unguided_backend = AnalysisBackendProvider(
                     binary_path,
                     max_steps=max_steps,
@@ -267,16 +276,20 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
             except SymbolicTimeout:
                 u_timed_out = True
             finally:
-                signal.alarm(0)
+                signal.setitimer(signal.ITIMER_REAL, 0.0, 0.0)
+            if AnalysisBackendProvider._timeout_flag:
+                u_timed_out = True
             unguided_tel = getattr(unguided_backend, "scheduler_telemetry", {}) if unguided_backend else {}
             if unguided_tel.get("timed_out"):
                 u_timed_out = True
-            unguided_sym_s = 15.0 if u_timed_out else (time.perf_counter() - t_u0)
+            actual_unguided_elapsed = time.perf_counter() - t_u0
+            unguided_sym_s = min(actual_unguided_elapsed, 15.0) if u_timed_out else actual_unguided_elapsed
             total_unguided_s = load_time_s + unguided_sym_s
-            unguided_tel = getattr(unguided_backend, "scheduler_telemetry", {}) if unguided_backend else {}
             u_states = unguided_tel.get("states_explored", 0)
             g_states = result["gnn_guided_states"]
             result["unguided_time_s"] = round(total_unguided_s, 3)
+            result["unguided_elapsed_wall_s"] = round(actual_unguided_elapsed, 3)
+            result["unguided_termination_reason"] = "TIMEOUT_EXCEEDED" if u_timed_out else "COMPLETED"
             result["unguided_timed_out"] = u_timed_out
             result["unguided_vuln_count"] = len(u_vulns)
             result["unguided_states"] = u_states
@@ -434,7 +447,7 @@ def select_stratified_targets():
     return targets
 
 
-def run_paired_bootstrap_analysis(paired_runs: list, n_boot: int = 1000, seed: int = 42) -> dict:
+def run_paired_bootstrap_analysis(paired_runs: list, n_boot: int = 10000, seed: int = 42) -> dict:
     rng = np.random.default_rng(seed)
     n = len(paired_runs)
     if n == 0:
@@ -444,6 +457,7 @@ def run_paired_bootstrap_analysis(paired_runs: list, n_boot: int = 1000, seed: i
     boot_state_reds = []
     boot_step_reds = []
     boot_time_speedups = []
+    boot_sat_deltas = []
 
     for _ in range(n_boot):
         sample_idx = rng.integers(0, n, size=n)
@@ -456,6 +470,10 @@ def run_paired_bootstrap_analysis(paired_runs: list, n_boot: int = 1000, seed: i
         sum_u_states = sum(s.get("unguided_states", 0) for s in sample)
         sum_g_states = sum(s.get("gnn_guided_states", 0) for s in sample)
         boot_state_reds.append((1.0 - (sum_g_states / max(sum_u_states, 1))) * 100.0)
+
+        sum_g_sat = sum(s.get("solver_sat_count", 0) for s in sample)
+        sum_u_sat = sum(s.get("unguided_solver_counts", {}).get("SAT", 0) for s in sample)
+        boot_sat_deltas.append(sum_g_sat - sum_u_sat)
 
         s_both_steps = [
             (s["unguided_steps_to_vuln"], s["gnn_guided_steps_to_vuln"])
@@ -482,19 +500,38 @@ def run_paired_bootstrap_analysis(paired_runs: list, n_boot: int = 1000, seed: i
         "seed": seed,
         "speedup_x": {
             "mean": round(float(np.mean(boot_speedups)), 3),
-            "ci_95": [round(float(np.percentile(boot_speedups, 2.5)), 3), round(float(np.percentile(boot_speedups, 97.5)), 3)],
+            "median": round(float(np.median(boot_speedups)), 3),
+            "std": round(float(np.std(boot_speedups)), 4),
+            "ci_95": [round(float(np.percentile(boot_speedups, 2.5)), 4), round(float(np.percentile(boot_speedups, 97.5)), 4)],
+            "ci_99": [round(float(np.percentile(boot_speedups, 0.5)), 4), round(float(np.percentile(boot_speedups, 99.5)), 4)],
         },
         "state_reduction_pct": {
             "mean": round(float(np.mean(boot_state_reds)), 2),
+            "median": round(float(np.median(boot_state_reds)), 2),
+            "std": round(float(np.std(boot_state_reds)), 4),
             "ci_95": [round(float(np.percentile(boot_state_reds, 2.5)), 2), round(float(np.percentile(boot_state_reds, 97.5)), 2)],
+            "ci_99": [round(float(np.percentile(boot_state_reds, 0.5)), 2), round(float(np.percentile(boot_state_reds, 99.5)), 2)],
+        },
+        "sat_witness_delta": {
+            "mean": round(float(np.mean(boot_sat_deltas)), 2),
+            "median": round(float(np.median(boot_sat_deltas)), 2),
+            "std": round(float(np.std(boot_sat_deltas)), 4),
+            "ci_95": [round(float(np.percentile(boot_sat_deltas, 2.5)), 2), round(float(np.percentile(boot_sat_deltas, 97.5)), 2)],
+            "ci_99": [round(float(np.percentile(boot_sat_deltas, 0.5)), 2), round(float(np.percentile(boot_sat_deltas, 99.5)), 2)],
         },
         "steps_to_vuln_reduction_ratio": {
             "mean": round(float(np.mean(boot_step_reds)), 3) if boot_step_reds else None,
+            "median": round(float(np.median(boot_step_reds)), 3) if boot_step_reds else None,
+            "std": round(float(np.std(boot_step_reds)), 4) if boot_step_reds else None,
             "ci_95": [round(float(np.percentile(boot_step_reds, 2.5)), 3), round(float(np.percentile(boot_step_reds, 97.5)), 3)] if boot_step_reds else None,
+            "ci_99": [round(float(np.percentile(boot_step_reds, 0.5)), 3), round(float(np.percentile(boot_step_reds, 99.5)), 3)] if boot_step_reds else None,
         },
         "time_to_vuln_speedup_ratio": {
             "mean": round(float(np.mean(boot_time_speedups)), 3) if boot_time_speedups else None,
+            "median": round(float(np.median(boot_time_speedups)), 3) if boot_time_speedups else None,
+            "std": round(float(np.std(boot_time_speedups)), 4) if boot_time_speedups else None,
             "ci_95": [round(float(np.percentile(boot_time_speedups, 2.5)), 3), round(float(np.percentile(boot_time_speedups, 97.5)), 3)] if boot_time_speedups else None,
+            "ci_99": [round(float(np.percentile(boot_time_speedups, 0.5)), 3), round(float(np.percentile(boot_time_speedups, 99.5)), 3)] if boot_time_speedups else None,
         },
     }
 
@@ -586,12 +623,38 @@ def run_benchmark(output_path: str = None):
         if r.get("unguided_time_to_vuln_ms") is not None and r.get("gnn_guided_time_to_vuln_ms") is not None
     ]
 
-    # 3. Paired 1,000x Bootstrap Confidence Intervals
-    bootstrap_ci = run_paired_bootstrap_analysis(paired_runs, n_boot=1000, seed=42)
+    # 3. Completed-only Paired Evaluation & Timeout Exclusions
+    completed_paired = [
+        r for r in paired_runs
+        if not r.get("gnn_guided_timed_out") and not r.get("unguided_timed_out")
+    ]
+    excluded_due_to_timeout = [
+        {
+            "filename": r["filename"],
+            "group": r.get("group"),
+            "gnn_guided_timed_out": r.get("gnn_guided_timed_out"),
+            "unguided_timed_out": r.get("unguided_timed_out"),
+            "gnn_guided_time_s": r.get("gnn_guided_time_s"),
+            "unguided_time_s": r.get("unguided_time_s"),
+        }
+        for r in paired_runs
+        if r.get("gnn_guided_timed_out") or r.get("unguided_timed_out")
+    ]
+    completed_speedup = (
+        round(sum(r["unguided_time_s"] for r in completed_paired) / max(sum(r["gnn_guided_time_s"] for r in completed_paired), 1e-4), 2)
+        if completed_paired else None
+    )
+    completed_state_red = (
+        round((1.0 - (sum(r.get("gnn_guided_states", 0) for r in completed_paired) / max(sum(r.get("unguided_states", 0) for r in completed_paired), 1))) * 100, 2)
+        if completed_paired else None
+    )
+
+    # 4. Paired 10,000x Bootstrap Confidence Intervals
+    bootstrap_ci = run_paired_bootstrap_analysis(paired_runs, n_boot=10000, seed=42)
 
     summary = {
         "benchmark_metadata": {
-            "phase": "Phase 4 Neuro-Symbolic Integration and Guided Symbolic Execution Benchmark",
+            "phase": "Phase 4 Neuro-Symbolic Integration and Guided Symbolic Execution Benchmark (Post-Fix Validation)",
             "date": time.strftime("%Y-%m-%d %H:%M:%S"),
             "total_binaries": len(flat_results),
             "paired_binaries": len(paired_runs),
@@ -599,6 +662,7 @@ def run_benchmark(output_path: str = None):
             "unguided_scheduler": "Depth-First Search (DFS standard baseline)",
             "max_steps_budget": 90,
             "alarm_timeout_seconds": 15,
+            "solver_timeout_ms": 2500,
         },
         "global_results": {
             "total_binaries": len(flat_results),
@@ -616,15 +680,23 @@ def run_benchmark(output_path: str = None):
         },
         "paired_head_to_head": {
             "paired_binary_count": len(paired_runs),
+            "completed_only_binary_count": len(completed_paired),
+            "excluded_due_to_timeout_count": len(excluded_due_to_timeout),
+            "excluded_binaries": excluded_due_to_timeout,
+            "completed_only_speedup_x": completed_speedup,
+            "completed_only_state_reduction_pct": completed_state_red,
             "paired_unguided_total_time_s": round(sum_unguided_paired, 2),
             "paired_gnn_guided_total_time_s": round(sum_guided_paired, 2),
             "overall_symbolic_speedup_x": round(sum_unguided_paired / max(sum_guided_paired, 1e-4), 2),
             "speedup_95_ci": bootstrap_ci.get("speedup_x", {}).get("ci_95"),
+            "speedup_99_ci": bootstrap_ci.get("speedup_x", {}).get("ci_99"),
             "paired_unguided_total_states": sum_unguided_states,
             "paired_gnn_guided_total_states": sum_guided_states,
             "overall_state_reduction_pct": round((1.0 - (sum_guided_states / max(sum_unguided_states, 1))) * 100, 2),
             "overall_state_reduction_ratio": round(sum_unguided_states / max(sum_guided_states, 1), 2),
             "state_reduction_pct_95_ci": bootstrap_ci.get("state_reduction_pct", {}).get("ci_95"),
+            "state_reduction_pct_99_ci": bootstrap_ci.get("state_reduction_pct", {}).get("ci_99"),
+            "sat_witness_delta": bootstrap_ci.get("sat_witness_delta", {}),
             "mean_speedup_per_binary": round(float(np.mean(speedup_list)), 2) if speedup_list else 0.0,
             "median_speedup_per_binary": round(float(np.median(speedup_list)), 2) if speedup_list else 0.0,
             "mean_state_reduction_pct_per_binary": round(float(np.mean(state_red_list)), 2) if state_red_list else 0.0,
@@ -698,6 +770,16 @@ def run_benchmark(output_path: str = None):
     final_payload = {"summary": summary, "binaries": flat_results}
     with open(output_path, "w") as f:
         json.dump(final_payload, f, indent=2)
+
+    postfix_path = os.path.join(root_dir, "benchmark_symbolic_results_postfix.json")
+    with open(postfix_path, "w") as f:
+        json.dump(final_payload, f, indent=2)
+
+    boot_postfix_path = os.path.join(root_dir, "benchmark_10k_bootstrap_postfix.json")
+    with open(boot_postfix_path, "w") as f:
+        json.dump(bootstrap_ci, f, indent=2)
+    with open(os.path.join(root_dir, "benchmark_10k_bootstrap.json"), "w") as f:
+        json.dump(bootstrap_ci, f, indent=2)
 
     print("\n" + "=" * 80)
     print("PHASE 4: SYMBOLIC & NEURO-SYMBOLIC BENCHMARK SUMMARY")
