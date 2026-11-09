@@ -1,0 +1,253 @@
+{
+  "pruned_features": [
+    "vex_imark",
+    "has_simprocedure"
+  ],
+  "feature_names_38": [
+    "in_degree",
+    "out_degree",
+    "depth_from_entry",
+    "is_loop_header",
+    "scc_size",
+    "dominator_tree_depth",
+    "back_edge_count",
+    "flow_centrality",
+    "num_instructions",
+    "vex_istore",
+    "vex_iload",
+    "vex_iop",
+    "total_vex_stmts_log",
+    "is_library_call",
+    "has_syscall",
+    "has_unsafe_string",
+    "has_format_string",
+    "has_dangerous_call",
+    "has_memory_alloc",
+    "has_memory_copy",
+    "has_control_flow",
+    "has_int_arith",
+    "has_comparison",
+    "has_memory_write",
+    "num_symbolic_variables",
+    "num_path_constraints",
+    "has_symbolic_store_addr",
+    "has_symbolic_load_addr",
+    "has_symbolic_branch",
+    "has_tainted_input",
+    "taint_byte_count",
+    "stack_depth",
+    "avg_constraint_complexity",
+    "branch_condition_complexity",
+    "num_unique_variables",
+    "has_concrete_model",
+    "solver_time_estimate",
+    "path_satisfiability"
+  ],
+  "comparison": {
+    "VulnGNN": {
+      "metrics_38d": {
+        "precision": 0.3419,
+        "recall": 0.2481,
+        "f1": 0.2875,
+        "roc_auc": 0.9545,
+        "pr_auc": 0.2723,
+        "top1_hit_rate": 0.513,
+        "top3_hit_rate": 0.7634,
+        "top5_hit_rate": 0.8377,
+        "top10_hit_rate": 0.9206,
+        "mrr": 0.6554,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.0875
+      },
+      "metrics_40d": {
+        "precision": 0.333,
+        "recall": 0.2608,
+        "f1": 0.2925,
+        "roc_auc": 0.9524,
+        "pr_auc": 0.2746,
+        "top1_hit_rate": 0.5164,
+        "top3_hit_rate": 0.7599,
+        "top5_hit_rate": 0.8325,
+        "top10_hit_rate": 0.943,
+        "mrr": 0.6588,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.1458
+      },
+      "delta_38_minus_40": {
+        "f1": -0.005,
+        "pr_auc": -0.0023,
+        "roc_auc": 0.0021,
+        "mrr": -0.0034,
+        "top1_hit_rate": -0.0034,
+        "top5_hit_rate": 0.0052,
+        "clean_binary_fpr": -0.0583
+      }
+    },
+    "GIN": {
+      "metrics_38d": {
+        "precision": 0.3145,
+        "recall": 0.2693,
+        "f1": 0.2901,
+        "roc_auc": 0.9475,
+        "pr_auc": 0.2383,
+        "top1_hit_rate": 0.4491,
+        "top3_hit_rate": 0.7513,
+        "top5_hit_rate": 0.8325,
+        "top10_hit_rate": 0.9206,
+        "mrr": 0.6173,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.0958
+      },
+      "metrics_40d": {
+        "precision": 0.2965,
+        "recall": 0.2955,
+        "f1": 0.296,
+        "roc_auc": 0.9519,
+        "pr_auc": 0.2552,
+        "top1_hit_rate": 0.5078,
+        "top3_hit_rate": 0.7651,
+        "top5_hit_rate": 0.8446,
+        "top10_hit_rate": 0.9275,
+        "mrr": 0.651,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.2458
+      },
+      "delta_38_minus_40": {
+        "f1": -0.0059,
+        "pr_auc": -0.0169,
+        "roc_auc": -0.0044,
+        "mrr": -0.0337,
+        "top1_hit_rate": -0.0587,
+        "top5_hit_rate": -0.0121,
+        "clean_binary_fpr": -0.15
+      }
+    },
+    "Uni-SAGE": {
+      "metrics_38d": {
+        "precision": 0.3223,
+        "recall": 0.2388,
+        "f1": 0.2743,
+        "roc_auc": 0.9483,
+        "pr_auc": 0.2277,
+        "top1_hit_rate": 0.4266,
+        "top3_hit_rate": 0.6995,
+        "top5_hit_rate": 0.8048,
+        "top10_hit_rate": 0.9171,
+        "mrr": 0.5906,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.1083
+      },
+      "metrics_40d": {
+        "precision": 0.2411,
+        "recall": 0.2566,
+        "f1": 0.2486,
+        "roc_auc": 0.9403,
+        "pr_auc": 0.195,
+        "top1_hit_rate": 0.4249,
+        "top3_hit_rate": 0.6788,
+        "top5_hit_rate": 0.7858,
+        "top10_hit_rate": 0.9085,
+        "mrr": 0.58,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.175
+      },
+      "delta_38_minus_40": {
+        "f1": 0.0257,
+        "pr_auc": 0.0327,
+        "roc_auc": 0.008,
+        "mrr": 0.0106,
+        "top1_hit_rate": 0.0017,
+        "top5_hit_rate": 0.019,
+        "clean_binary_fpr": -0.0667
+      }
+    },
+    "MLP": {
+      "metrics_38d": {
+        "precision": 0.2294,
+        "recall": 0.1507,
+        "f1": 0.1819,
+        "roc_auc": 0.9033,
+        "pr_auc": 0.1383,
+        "top1_hit_rate": 0.3558,
+        "top3_hit_rate": 0.6269,
+        "top5_hit_rate": 0.7168,
+        "top10_hit_rate": 0.8325,
+        "mrr": 0.5185,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.2792
+      },
+      "metrics_40d": {
+        "precision": 0.1848,
+        "recall": 0.1981,
+        "f1": 0.1913,
+        "roc_auc": 0.9027,
+        "pr_auc": 0.1321,
+        "top1_hit_rate": 0.3316,
+        "top3_hit_rate": 0.5993,
+        "top5_hit_rate": 0.7185,
+        "top10_hit_rate": 0.8411,
+        "mrr": 0.5016,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.55
+      },
+      "delta_38_minus_40": {
+        "f1": -0.0094,
+        "pr_auc": 0.0062,
+        "roc_auc": 0.0006,
+        "mrr": 0.0169,
+        "top1_hit_rate": 0.0242,
+        "top5_hit_rate": -0.0017,
+        "clean_binary_fpr": -0.2708
+      }
+    },
+    "XGBoost": {
+      "metrics_38d": {
+        "precision": 0.3069,
+        "recall": 0.2134,
+        "f1": 0.2517,
+        "roc_auc": 0.9331,
+        "pr_auc": 0.2095,
+        "top1_hit_rate": 0.5181,
+        "top3_hit_rate": 0.7496,
+        "top5_hit_rate": 0.829,
+        "top10_hit_rate": 0.9171,
+        "mrr": 0.6501,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.3958
+      },
+      "metrics_40d": {
+        "precision": 0.3093,
+        "recall": 0.232,
+        "f1": 0.2651,
+        "roc_auc": 0.9338,
+        "pr_auc": 0.2244,
+        "top1_hit_rate": 0.5371,
+        "top3_hit_rate": 0.7392,
+        "top5_hit_rate": 0.8083,
+        "top10_hit_rate": 0.9033,
+        "mrr": 0.6606,
+        "vuln_graphs": 579,
+        "clean_graphs": 240,
+        "clean_binary_fpr": 0.4542
+      },
+      "delta_38_minus_40": {
+        "f1": -0.0134,
+        "pr_auc": -0.0149,
+        "roc_auc": -0.0007,
+        "mrr": -0.0105,
+        "top1_hit_rate": -0.019,
+        "top5_hit_rate": 0.0207,
+        "clean_binary_fpr": -0.0584
+      }
+    }
+  }
+}

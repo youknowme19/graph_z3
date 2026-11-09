@@ -1,0 +1,146 @@
+{
+  "VulnGNN_vs_GIN": {
+    "mrr": {
+      "mean_diff": 0.0306,
+      "ci_95": [
+        0.0059,
+        0.0545
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "positive (A > B)"
+    },
+    "top1_hit_rate": {
+      "mean_diff": 0.0264,
+      "ci_95": [
+        -0.0135,
+        0.0629
+      ],
+      "zero_in_ci": true,
+      "statistically_significant": false,
+      "direction": "not_significant"
+    },
+    "top5_hit_rate": {
+      "mean_diff": 0.0415,
+      "ci_95": [
+        0.0156,
+        0.0698
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "positive (A > B)"
+    },
+    "pr_auc": {
+      "mean_diff": 0.0268,
+      "ci_95": [
+        0.0131,
+        0.0397
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "positive (A > B)"
+    },
+    "roc_auc": {
+      "mean_diff": 0.0018,
+      "ci_95": [
+        -0.0014,
+        0.0054
+      ],
+      "zero_in_ci": true,
+      "statistically_significant": false,
+      "direction": "not_significant"
+    },
+    "f1": {
+      "mean_diff": 0.0192,
+      "ci_95": [
+        0.0023,
+        0.0367
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "positive (A > B)"
+    },
+    "clean_binary_fpr": {
+      "mean_diff": -0.0045,
+      "ci_95": [
+        -0.0279,
+        0.0208
+      ],
+      "zero_in_ci": true,
+      "statistically_significant": false,
+      "direction": "not_significant"
+    }
+  },
+  "VulnGNN_vs_XGBoost": {
+    "mrr": {
+      "mean_diff": -0.0084,
+      "ci_95": [
+        -0.0394,
+        0.0222
+      ],
+      "zero_in_ci": true,
+      "statistically_significant": false,
+      "direction": "not_significant"
+    },
+    "top1_hit_rate": {
+      "mean_diff": -0.0398,
+      "ci_95": [
+        -0.0848,
+        0.0035
+      ],
+      "zero_in_ci": true,
+      "statistically_significant": false,
+      "direction": "not_significant"
+    },
+    "top5_hit_rate": {
+      "mean_diff": 0.0608,
+      "ci_95": [
+        0.0306,
+        0.0933
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "positive (A > B)"
+    },
+    "pr_auc": {
+      "mean_diff": 0.0457,
+      "ci_95": [
+        0.0231,
+        0.0685
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "positive (A > B)"
+    },
+    "roc_auc": {
+      "mean_diff": 0.0176,
+      "ci_95": [
+        0.0124,
+        0.0234
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "positive (A > B)"
+    },
+    "f1": {
+      "mean_diff": 0.0177,
+      "ci_95": [
+        -0.0091,
+        0.0467
+      ],
+      "zero_in_ci": true,
+      "statistically_significant": false,
+      "direction": "not_significant"
+    },
+    "clean_binary_fpr": {
+      "mean_diff": -0.3913,
+      "ci_95": [
+        -0.4626,
+        -0.324
+      ],
+      "zero_in_ci": false,
+      "statistically_significant": true,
+      "direction": "negative (A < B)"
+    }
+  }
+}

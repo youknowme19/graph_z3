@@ -762,3 +762,22 @@ FEATURE_GROUPS = {
 
 assert len(FEATURE_NAMES) == 40
 assert sum(len(v) for v in FEATURE_GROUPS.values()) == 40
+
+# ============================================================
+# VERSIONED 38-FEATURE SCHEMA (PRUNED COLLINEAR PAIRS)
+# ============================================================
+# Prunes index 9 ('vex_imark', collinear with 'num_instructions' r=0.9992)
+# and index 16 ('has_simprocedure', identical with 'is_library_call' r=1.0000).
+FEATURE_MASK_38 = [i for i in range(len(FEATURE_NAMES)) if i not in (9, 16)]
+FEATURE_NAMES_38 = [FEATURE_NAMES[i] for i in FEATURE_MASK_38]
+
+FEATURE_GROUPS_38 = {
+    "structural": list(range(0, 8)),    # 8 features
+    "instruction": list(range(8, 13)),  # 5 features (dropped vex_imark)
+    "semantic": list(range(13, 24)),    # 11 features (dropped has_simprocedure)
+    "dataflow": list(range(24, 32)),    # 8 features
+    "symbolic": list(range(32, 38)),    # 6 features
+}
+
+assert len(FEATURE_NAMES_38) == 38
+assert sum(len(v) for v in FEATURE_GROUPS_38.values()) == 38
