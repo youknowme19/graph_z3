@@ -8,10 +8,10 @@ primitive classification across real compiled stripped binaries:
   1. Target Sample Suite (data/samples/*.bin, including secure_program.bin)
   2. Multi-Function Exploit Verification Suite (tests/test_benchmarks_binary)
   3. Stratified Multi-CWE Stripped Binaries (42 binaries across 21 CWEs + patched controls)
-  4. Real-World Open-Source CVE Stripped Binaries (36 PrimeVul pre-patch & post-patch binaries)
-  5. Production macOS/BSD System Binaries (15 utilities: bzip2, gzip, sed, awk, patch, diff, file, etc.)
+  4. Real-World Open-Source CVE Stripped Binaries (30 PrimeVul pre-patch & post-patch binaries)
+  5. Production macOS/BSD System Binaries (11 utilities: bzip2, gzip, sed, patch, diff, hexdump, sort, uniq, tr, wc, cut)
 
-Compares Unguided Symbolic Execution vs. GNN-Guided Neuro-Symbolic Verification.
+Compares Unguided Symbolic Execution (DFS baseline) vs. GNN-Guided Neuro-Symbolic Verification (MaxHeap).
 """
 
 import os
@@ -23,14 +23,6 @@ import hashlib
 from pathlib import Path
 from collections import defaultdict
 
-
-class SymbolicTimeout(Exception):
-    pass
-
-
-def _alarm_handler(signum, frame):
-    raise SymbolicTimeout("Symbolic exploration cap reached")
-
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -38,11 +30,20 @@ src_dir = os.path.join(root_dir, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
+import numpy as np
 import torch
 from src.core.binary_loader import BinaryLoader
 from src.graph.graph_builder import GraphBuilder
 from src.ml.gnn_model import create_model
 from src.core.interfaces import AnalysisBackendProvider
+
+
+class SymbolicTimeout(Exception):
+    pass
+
+
+def _alarm_handler(signum, frame):
+    raise SymbolicTimeout("Symbolic exploration cap reached")
 
 
 def get_file_sha256(filepath: str) -> str:
@@ -83,7 +84,7 @@ def compute_gnn_func_targets(loader: BinaryLoader, model, thresh: float, top_k_b
 
     nodes = list(nx_cfg.nodes())
     if not nodes:
-        return {}, 0, 0, 0.0
+        return {}, {}, 0, 0, 0.0
     node_to_idx = {n: i for i, n in enumerate(nodes)}
     x_list = [nx_cfg.nodes[n].get("features", [0.0] * 40) for n in nodes]
     edges_src, edges_dst = [], []
@@ -103,6 +104,9 @@ def compute_gnn_func_targets(loader: BinaryLoader, model, thresh: float, top_k_b
         probs = model.predict_proba(x, edge_index)[:, 1].numpy()
     gnn_ms = (time.perf_counter() - t_gnn0) * 1000.0
 
+    # Node-level risk map for MaxHeap scheduler priority scoring H(s)
+    node_risk_map = {int(nodes[i]): float(probs[i]) for i in range(len(nodes))}
+
     # Select blocks exceeding calibrated threshold OR Top-K highest-risk blocks (when max prob >= 0.20)
     cand_indices = set(int(i) for i, p in enumerate(probs) if p >= thresh)
     if not cand_indices and len(probs) > 0 and float(probs.max()) >= 0.20:
@@ -112,14 +116,15 @@ def compute_gnn_func_targets(loader: BinaryLoader, model, thresh: float, top_k_b
     func_vuln_map = {}
     for idx in cand_indices:
         b_addr = nodes[idx]
+        p_val = float(probs[idx])
         for fn_addr in nx_cg.nodes():
             if b_addr in nx_cg.nodes[fn_addr].get("block_addrs", set()):
-                func_vuln_map[fn_addr] = True
+                func_vuln_map[fn_addr] = max(func_vuln_map.get(fn_addr, 0.0), p_val)
                 break
         else:
             fn = loader.get_functions().floor_func(b_addr)
             if fn is not None:
-                func_vuln_map[fn.addr] = True
+                func_vuln_map[fn.addr] = max(func_vuln_map.get(fn.addr, 0.0), p_val)
 
     total_user_funcs = sum(
         1
@@ -127,7 +132,7 @@ def compute_gnn_func_targets(loader: BinaryLoader, model, thresh: float, top_k_b
         if not f.is_plt and not f.is_simprocedure and f.size > 20 and not f.name.startswith("_start")
     )
     _ = time.perf_counter() - t0
-    return func_vuln_map, len(cand_indices), total_user_funcs, round(gnn_ms, 3)
+    return func_vuln_map, node_risk_map, len(cand_indices), total_user_funcs, round(gnn_ms, 3)
 
 
 def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: int = 100, compare_unguided: bool = True) -> dict:
@@ -150,12 +155,28 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
         "gnn_flagged_functions": 0,
         "gnn_infer_ms": 0.0,
         "gnn_guided_time_s": 0.0,
+        "gnn_guided_states": 0,
+        "gnn_guided_steps_to_vuln": None,
+        "gnn_guided_time_to_vuln_ms": None,
+        "gnn_guided_max_frontier": 0,
+        "gnn_guided_solver_counts": {},
+        "gnn_guided_timed_out": False,
         "unguided_time_s": None,
+        "unguided_states": None,
+        "unguided_steps_to_vuln": None,
+        "unguided_time_to_vuln_ms": None,
+        "unguided_max_frontier": None,
+        "unguided_solver_counts": None,
+        "unguided_timed_out": None,
+        "unguided_vuln_count": None,
         "speedup_ratio": None,
+        "state_reduction_ratio": None,
+        "state_reduction_pct": None,
+        "steps_to_vuln_reduction_ratio": None,
+        "time_to_vuln_speedup": None,
         "analysis_time_s": 0.0,
         "vulnerabilities": [],
         "vuln_count": 0,
-        "unguided_vuln_count": None,
         "vuln_types": [],
         "solver_sat_count": 0,
         "avg_solver_time_ms": 0.0,
@@ -163,6 +184,7 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
         "composite_risk_score": 0.0,
         "mitigations": [],
         "exploit_primitives": [],
+        "verified_live_crashes": 0,
     }
 
     t_load0 = time.perf_counter()
@@ -179,16 +201,18 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
         if funcs is not None:
             result["num_functions"] = len(funcs)
 
-        func_vuln_map, n_cand_blocks, total_ufuncs, gnn_ms = compute_gnn_func_targets(loader, model, thresh)
+        func_vuln_map, node_risk_map, n_cand_blocks, total_ufuncs, gnn_ms = compute_gnn_func_targets(loader, model, thresh)
         result["user_functions"] = total_ufuncs
         result["gnn_flagged_blocks"] = n_cand_blocks
         result["gnn_flagged_functions"] = len(func_vuln_map)
         result["gnn_infer_ms"] = gnn_ms
 
-        # 1. GNN-Guided Neuro-Symbolic Verification (capped at 15s per binary)
+        # 1. GNN-Guided Neuro-Symbolic Verification (MaxHeap + risk priority scoring)
         signal.signal(signal.SIGALRM, _alarm_handler)
         t_g0 = time.perf_counter()
         vulns = []
+        guided_backend = None
+        guided_timed_out = False
         try:
             signal.alarm(15)
             guided_map = func_vuln_map if func_vuln_map else {-1: False}
@@ -196,29 +220,43 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
                 binary_path,
                 max_steps=max_steps,
                 gnn_vulnerable_functions=guided_map,
+                gnn_node_scores=node_risk_map,
+                scheduler_mode="maxheap",
+                depth_penalty_lambda=0.02,
                 _shared_loader=loader,
             )
             vulns = guided_backend.scan_vulnerabilities()
         except SymbolicTimeout:
-            pass
+            guided_timed_out = True
         finally:
             signal.alarm(0)
-        guided_sym_s = time.perf_counter() - t_g0
+        guided_sym_s = 15.0 if guided_timed_out else (time.perf_counter() - t_g0)
         total_guided_s = load_time_s + (gnn_ms / 1000.0) + guided_sym_s
         result["gnn_guided_time_s"] = round(total_guided_s, 3)
         result["analysis_time_s"] = round(total_guided_s, 3)
+        result["gnn_guided_timed_out"] = guided_timed_out
+        guided_tel = getattr(guided_backend, "scheduler_telemetry", {}) if guided_backend else {}
+        result["gnn_guided_states"] = guided_tel.get("states_explored", 0)
+        result["gnn_guided_steps_to_vuln"] = guided_tel.get("steps_to_first_vuln")
+        result["gnn_guided_time_to_vuln_ms"] = guided_tel.get("time_to_first_vuln_ms")
+        result["gnn_guided_max_frontier"] = guided_tel.get("max_frontier_size", 0)
+        result["gnn_guided_solver_counts"] = guided_tel.get("solver_status_counts", {})
+        result["verified_live_crashes"] = guided_tel.get("verified_exploits_count", 0)
 
-        # 2. Unguided Symbolic Execution baseline (capped at 15s lower-bound timeout)
+        # 2. Unguided Symbolic Execution baseline (standard DFS exploration)
         if compare_unguided:
             t_u0 = time.perf_counter()
             u_vulns = []
             u_timed_out = False
+            unguided_backend = None
             try:
                 signal.alarm(15)
                 unguided_backend = AnalysisBackendProvider(
                     binary_path,
                     max_steps=max_steps,
                     gnn_vulnerable_functions=None,
+                    gnn_node_scores=None,
+                    scheduler_mode="dfs",
                     _shared_loader=loader,
                 )
                 u_vulns = unguided_backend.scan_vulnerabilities()
@@ -228,10 +266,24 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
                 signal.alarm(0)
             unguided_sym_s = 15.0 if u_timed_out else (time.perf_counter() - t_u0)
             total_unguided_s = load_time_s + unguided_sym_s
+            unguided_tel = getattr(unguided_backend, "scheduler_telemetry", {}) if unguided_backend else {}
+            u_states = unguided_tel.get("states_explored", 0)
+            g_states = result["gnn_guided_states"]
             result["unguided_time_s"] = round(total_unguided_s, 3)
             result["unguided_timed_out"] = u_timed_out
             result["unguided_vuln_count"] = len(u_vulns)
+            result["unguided_states"] = u_states
+            result["unguided_steps_to_vuln"] = unguided_tel.get("steps_to_first_vuln")
+            result["unguided_time_to_vuln_ms"] = unguided_tel.get("time_to_first_vuln_ms")
+            result["unguided_max_frontier"] = unguided_tel.get("max_frontier_size", 0)
+            result["unguided_solver_counts"] = unguided_tel.get("solver_status_counts", {})
             result["speedup_ratio"] = round(total_unguided_s / max(total_guided_s, 1e-4), 2)
+            result["state_reduction_ratio"] = round(u_states / max(g_states, 1), 2)
+            result["state_reduction_pct"] = round((1.0 - (g_states / max(u_states, 1))) * 100, 2)
+            if result["unguided_steps_to_vuln"] is not None and result["gnn_guided_steps_to_vuln"] is not None:
+                result["steps_to_vuln_reduction_ratio"] = round(result["unguided_steps_to_vuln"] / max(result["gnn_guided_steps_to_vuln"], 1), 2)
+            if result["unguided_time_to_vuln_ms"] is not None and result["gnn_guided_time_to_vuln_ms"] is not None:
+                result["time_to_vuln_speedup"] = round(result["unguided_time_to_vuln_ms"] / max(result["gnn_guided_time_to_vuln_ms"], 1e-4), 2)
 
         result["vuln_count"] = len(vulns)
         result["vuln_types"] = sorted(list(set(v.get("vuln_type") for v in vulns if v.get("vuln_type"))))
@@ -253,6 +305,8 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
                 "solver_status": v.get("solver_status"),
                 "solver_time_ms": round(v.get("solver_time_ms", 0.0), 3),
                 "crash_length": v.get("crash_length", 0),
+                "exploit_verified": bool(v.get("exploit_verified", False)),
+                "crash_classification": v.get("crash_verification", {}).get("classification"),
             }
             if v.get("solver_status") == "SAT":
                 sat_count += 1
@@ -294,18 +348,18 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
 def select_stratified_targets():
     targets = []
 
-    # 1. All 6 sample binaries (5 vulnerable CWEs + 1 secure_program.bin)
+    # 1. All 6 sample binaries (5 vulnerable CWEs + 1 secure_program.bin) - all paired
     samples_dir = Path(root_dir) / "data" / "samples"
     for p in sorted(samples_dir.glob("*.bin")):
         if not p.name.startswith("._"):
             targets.append(("samples", str(p), True))
 
-    # 2. Multi-vuln benchmark suite binary
+    # 2. Multi-vuln benchmark suite binary - paired
     bench_bin = Path(root_dir) / "tests" / "test_benchmarks_binary"
     if bench_bin.exists():
         targets.append(("test_suite", str(bench_bin), True))
 
-    # 3. Stratified Multi-CWE Juliet stripped binaries (21 CWEs: prefer stdin/fgets/console/heap testcases + patched controls = 42)
+    # 3. Stratified Multi-CWE Juliet stripped binaries (21 CWEs: 21 vulnerable + 21 patched controls = 42 binaries)
     train_dir = Path(root_dir) / "data" / "train_binaries"
     by_cwe_vuln = defaultdict(list)
     by_cwe_patched = defaultdict(list)
@@ -328,16 +382,19 @@ def select_stratified_targets():
         )
         return ranked
 
-    for idx_c, cwe in enumerate(sorted(by_cwe_vuln.keys())):
+    for cwe in sorted(by_cwe_vuln.keys()):
         v_list = _prefer_stdin_or_direct(by_cwe_vuln[cwe])
-        targets.append(("multi_cwe_vuln", str(v_list[0]), idx_c < 8))
+        # All 21 vulnerable Juliet CWE testcases paired head-to-head
+        targets.append(("multi_cwe_vuln", str(v_list[0]), True))
         if by_cwe_patched[cwe]:
             p_list = _prefer_stdin_or_direct(by_cwe_patched[cwe])
-            targets.append(("multi_cwe_patched", str(p_list[0]), idx_c < 4))
+            # 21 negative control patched testcases evaluated with Guided
+            targets.append(("multi_cwe_patched", str(p_list[0]), False))
         elif len(v_list) > 1:
             targets.append(("multi_cwe_vuln", str(v_list[1]), False))
 
-    # 4. Real-World Open-Source CVE stripped binaries (PrimeVul: 15 pre-patch vuln + 15 post-patch fixed = 30)
+    # 4. Real-World Open-Source CVE stripped binaries (PrimeVul: 15 pre-patch vuln + 15 post-patch fixed = 30 binaries)
+    # Both pre-patch and post-patch pairs are evaluated head-to-head (all 30 paired)
     pv_dir = Path(root_dir) / "data" / "primevul_binaries"
     pv_vuln = sorted(p for p in pv_dir.glob("*_VULN_O0.out") if not p.name.startswith("._"))
     seen_projs = defaultdict(int)
@@ -351,66 +408,138 @@ def select_stratified_targets():
             chosen_pv.append((vp, fp))
         if len(chosen_pv) >= 15:
             break
-    for i, (vp, fp) in enumerate(chosen_pv):
-        targets.append(("primevul_cve_vuln", str(vp), i < 6))
-        targets.append(("primevul_cve_fixed", str(fp), i < 4))
+    for vp, fp in chosen_pv:
+        targets.append(("primevul_cve_vuln", str(vp), True))
+        targets.append(("primevul_cve_fixed", str(fp), True))
 
-    # 5. Production macOS/BSD System Utilities (11 stripped system binaries -> total = 90 binaries)
+    # 5. Production macOS/BSD System Utilities (11 stripped system binaries -> all 11 paired)
     rw_dir = Path(root_dir) / "data" / "real_world_binaries"
     preferred_rw = [
         "real_bzip2.bin", "real_gzip.bin", "real_sed.bin", "real_patch.bin",
         "real_diff.bin", "real_hexdump.bin", "real_sort.bin", "real_uniq.bin",
         "real_tr.bin", "real_wc.bin", "real_cut.bin",
     ]
-    for idx_r, rname in enumerate(preferred_rw):
+    for rname in preferred_rw:
         rp = rw_dir / rname
         if rp.exists():
-            targets.append(("production_system", str(rp), idx_r < 4))
+            targets.append(("production_system", str(rp), True))
 
     return targets
+
+
+def run_paired_bootstrap_analysis(paired_runs: list, n_boot: int = 1000, seed: int = 42) -> dict:
+    rng = np.random.default_rng(seed)
+    n = len(paired_runs)
+    if n == 0:
+        return {}
+
+    boot_speedups = []
+    boot_state_reds = []
+    boot_step_reds = []
+    boot_time_speedups = []
+
+    for _ in range(n_boot):
+        sample_idx = rng.integers(0, n, size=n)
+        sample = [paired_runs[i] for i in sample_idx]
+
+        sum_u_time = sum(s["unguided_time_s"] for s in sample)
+        sum_g_time = sum(s["gnn_guided_time_s"] for s in sample)
+        boot_speedups.append(sum_u_time / max(sum_g_time, 1e-4))
+
+        sum_u_states = sum(s.get("unguided_states", 0) for s in sample)
+        sum_g_states = sum(s.get("gnn_guided_states", 0) for s in sample)
+        boot_state_reds.append((1.0 - (sum_g_states / max(sum_u_states, 1))) * 100.0)
+
+        s_both_steps = [
+            (s["unguided_steps_to_vuln"], s["gnn_guided_steps_to_vuln"])
+            for s in sample
+            if s.get("unguided_steps_to_vuln") is not None and s.get("gnn_guided_steps_to_vuln") is not None
+        ]
+        if s_both_steps:
+            u_st_mean = np.mean([x[0] for x in s_both_steps])
+            g_st_mean = np.mean([x[1] for x in s_both_steps])
+            boot_step_reds.append(u_st_mean / max(g_st_mean, 1e-4))
+
+        s_both_times = [
+            (s["unguided_time_to_vuln_ms"], s["gnn_guided_time_to_vuln_ms"])
+            for s in sample
+            if s.get("unguided_time_to_vuln_ms") is not None and s.get("gnn_guided_time_to_vuln_ms") is not None
+        ]
+        if s_both_times:
+            u_tm_mean = np.mean([x[0] for x in s_both_times])
+            g_tm_mean = np.mean([x[1] for x in s_both_times])
+            boot_time_speedups.append(u_tm_mean / max(g_tm_mean, 1e-4))
+
+    return {
+        "n_resamples": n_boot,
+        "seed": seed,
+        "speedup_x": {
+            "mean": round(float(np.mean(boot_speedups)), 3),
+            "ci_95": [round(float(np.percentile(boot_speedups, 2.5)), 3), round(float(np.percentile(boot_speedups, 97.5)), 3)],
+        },
+        "state_reduction_pct": {
+            "mean": round(float(np.mean(boot_state_reds)), 2),
+            "ci_95": [round(float(np.percentile(boot_state_reds, 2.5)), 2), round(float(np.percentile(boot_state_reds, 97.5)), 2)],
+        },
+        "steps_to_vuln_reduction_ratio": {
+            "mean": round(float(np.mean(boot_step_reds)), 3) if boot_step_reds else None,
+            "ci_95": [round(float(np.percentile(boot_step_reds, 2.5)), 3), round(float(np.percentile(boot_step_reds, 97.5)), 3)] if boot_step_reds else None,
+        },
+        "time_to_vuln_speedup_ratio": {
+            "mean": round(float(np.mean(boot_time_speedups)), 3) if boot_time_speedups else None,
+            "ci_95": [round(float(np.percentile(boot_time_speedups, 2.5)), 3), round(float(np.percentile(boot_time_speedups, 97.5)), 3)] if boot_time_speedups else None,
+        },
+    }
 
 
 def run_benchmark(output_path: str = None):
     if output_path is None:
         output_path = os.path.join(root_dir, "benchmark_symbolic_results.json")
 
-    print("=" * 75)
-    print("NeuroZ3 — End-to-End Neuro-Symbolic & Z3 SMT Verification Benchmark")
-    print("=" * 75)
+    print("=" * 80)
+    print("NeuroZ3 — End-to-End Neuro-Symbolic & Z3 SMT Verification Benchmark (Phase 4)")
+    print("=" * 80)
 
     model, temp, thresh = load_trained_gnn()
     print(f"[+] Loaded trained 40-dim VulnGNN (T={temp:.4f}, threshold={thresh:.4f})")
 
     targets = select_stratified_targets()
-    print(f"[+] Selected {len(targets)} real stripped binaries across 5 benchmark strata")
+    paired_target_count = sum(1 for t in targets if t[2])
+    print(f"[+] Selected {len(targets)} real stripped binaries across 5 benchmark strata ({paired_target_count} paired head-to-head)")
 
     results_by_group = defaultdict(list)
     flat_results = []
 
     for idx, (group, bpath, do_unguided) in enumerate(targets):
         bname = os.path.basename(bpath)
-        print(f"[{idx+1:03d}/{len(targets):03d}] ({group:18s}) {bname[:42]:42s} ...", end=" ", flush=True)
+        paired_tag = "[PAIRED]" if do_unguided else "[GUIDED]"
+        print(f"[{idx+1:03d}/{len(targets):03d}] {paired_tag} ({group:18s}) {bname[:38]:38s} ...", end=" ", flush=True)
         res = benchmark_single_binary(bpath, model, thresh, max_steps=90, compare_unguided=do_unguided)
         res["group"] = group
         flat_results.append(res)
         results_by_group[group].append(res)
         sp_str = f"| Speedup: {res['speedup_ratio']:.2f}x" if res["speedup_ratio"] is not None else ""
+        st_str = f"| StRed: {res['state_reduction_pct']}%" if res.get("state_reduction_pct") is not None else ""
         print(
-            f"[{res['status']}] Guided={res['gnn_guided_time_s']:.2f}s "
-            f"| Nodes={res['cfg_nodes']:4d} | FlagFn={res['gnn_flagged_functions']}/{res['user_functions']} "
-            f"| Vulns={res['vuln_count']} | SAT={res['solver_sat_count']} {sp_str}",
+            f"[{res['status']}] G_Time={res['gnn_guided_time_s']:.2f}s (St={res['gnn_guided_states']}) "
+            f"| Vulns={res['vuln_count']} | SAT={res['solver_sat_count']} "
+            f"| LiveCrash={res['verified_live_crashes']} {sp_str} {st_str}",
             flush=True,
         )
 
+    # 1. Global Metrics across all 90 binaries
     total_guided_time = sum(r["gnn_guided_time_s"] for r in flat_results)
     total_nodes = sum(r["cfg_nodes"] for r in flat_results)
     total_vulns = sum(r["vuln_count"] for r in flat_results)
     total_sat = sum(r["solver_sat_count"] for r in flat_results)
     success_count = sum(1 for r in flat_results if r["status"] == "SUCCESS")
+    total_live_crashes = sum(r.get("verified_live_crashes", 0) for r in flat_results)
 
-    paired_runs = [r for r in flat_results if r["unguided_time_s"] is not None and r["status"] == "SUCCESS"]
-    sum_guided_paired = sum(r["gnn_guided_time_s"] for r in paired_runs)
-    sum_unguided_paired = sum(r["unguided_time_s"] for r in paired_runs)
+    all_guided_solver_counts = {"SAT": 0, "UNSAT": 0, "UNKNOWN": 0, "TIMEOUT": 0, "ERROR": 0}
+    for r in flat_results:
+        for k, v in r.get("gnn_guided_solver_counts", {}).items():
+            all_guided_solver_counts[k] = all_guided_solver_counts.get(k, 0) + v
+
     all_solver_ms = [
         v["solver_time_ms"]
         for r in flat_results
@@ -418,36 +547,142 @@ def run_benchmark(output_path: str = None):
         if v.get("solver_time_ms", 0.0) > 0
     ]
 
+    # 2. Head-to-Head Paired Evaluation (N=69)
+    paired_runs = [r for r in flat_results if r.get("unguided_time_s") is not None and r["status"] == "SUCCESS"]
+    sum_guided_paired = sum(r["gnn_guided_time_s"] for r in paired_runs)
+    sum_unguided_paired = sum(r["unguided_time_s"] for r in paired_runs)
+    sum_guided_states = sum(r.get("gnn_guided_states", 0) for r in paired_runs)
+    sum_unguided_states = sum(r.get("unguided_states", 0) for r in paired_runs)
+
+    all_unguided_solver_counts = {"SAT": 0, "UNSAT": 0, "UNKNOWN": 0, "TIMEOUT": 0, "ERROR": 0}
+    for r in paired_runs:
+        for k, v in r.get("unguided_solver_counts", {}).items():
+            all_unguided_solver_counts[k] = all_unguided_solver_counts.get(k, 0) + v
+
+    speedup_list = [r["speedup_ratio"] for r in paired_runs if r.get("speedup_ratio") is not None]
+    state_red_list = [r["state_reduction_pct"] for r in paired_runs if r.get("state_reduction_pct") is not None]
+
+    guided_steps_list = [r["gnn_guided_steps_to_vuln"] for r in paired_runs if r.get("gnn_guided_steps_to_vuln") is not None]
+    unguided_steps_list = [r["unguided_steps_to_vuln"] for r in paired_runs if r.get("unguided_steps_to_vuln") is not None]
+
+    guided_time_vuln_list = [r["gnn_guided_time_to_vuln_ms"] for r in paired_runs if r.get("gnn_guided_time_to_vuln_ms") is not None]
+    unguided_time_vuln_list = [r["unguided_time_to_vuln_ms"] for r in paired_runs if r.get("unguided_time_to_vuln_ms") is not None]
+
+    both_found_steps = [
+        (r["unguided_steps_to_vuln"], r["gnn_guided_steps_to_vuln"])
+        for r in paired_runs
+        if r.get("unguided_steps_to_vuln") is not None and r.get("gnn_guided_steps_to_vuln") is not None
+    ]
+    both_found_times = [
+        (r["unguided_time_to_vuln_ms"], r["gnn_guided_time_to_vuln_ms"])
+        for r in paired_runs
+        if r.get("unguided_time_to_vuln_ms") is not None and r.get("gnn_guided_time_to_vuln_ms") is not None
+    ]
+
+    # 3. Paired 1,000x Bootstrap Confidence Intervals
+    bootstrap_ci = run_paired_bootstrap_analysis(paired_runs, n_boot=1000, seed=42)
+
     summary = {
-        "total_binaries": len(flat_results),
-        "successful_scans": success_count,
-        "failed_scans": len(flat_results) - success_count,
-        "total_gnn_guided_time_s": round(total_guided_time, 2),
-        "avg_gnn_guided_time_per_binary_s": round(total_guided_time / max(len(flat_results), 1), 3),
-        "paired_head_to_head_count": len(paired_runs),
-        "paired_unguided_total_time_s": round(sum_unguided_paired, 2),
-        "paired_gnn_guided_total_time_s": round(sum_guided_paired, 2),
-        "overall_symbolic_speedup_x": round(sum_unguided_paired / max(sum_guided_paired, 1e-4), 2),
-        "mean_z3_solver_time_ms": round(sum(all_solver_ms) / len(all_solver_ms), 3) if all_solver_ms else 0.0,
-        "median_z3_solver_time_ms": round(sorted(all_solver_ms)[len(all_solver_ms) // 2], 3) if all_solver_ms else 0.0,
-        "total_cfg_nodes": total_nodes,
-        "total_vulnerabilities_detected": total_vulns,
-        "total_sat_proofs": total_sat,
+        "benchmark_metadata": {
+            "phase": "Phase 4 Neuro-Symbolic Integration and Guided Symbolic Execution Benchmark",
+            "date": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "total_binaries": len(flat_results),
+            "paired_binaries": len(paired_runs),
+            "guided_scheduler": "MaxHeap (H(s) = node_risk + gamma*reachable_risk - lambda*depth)",
+            "unguided_scheduler": "Depth-First Search (DFS standard baseline)",
+            "max_steps_budget": 90,
+            "alarm_timeout_seconds": 15,
+        },
+        "global_results": {
+            "total_binaries": len(flat_results),
+            "successful_scans": success_count,
+            "failed_scans": len(flat_results) - success_count,
+            "total_gnn_guided_time_s": round(total_guided_time, 2),
+            "avg_gnn_guided_time_per_binary_s": round(total_guided_time / max(len(flat_results), 1), 3),
+            "total_cfg_nodes": total_nodes,
+            "total_vulnerabilities_detected": total_vulns,
+            "total_sat_proofs": total_sat,
+            "total_verified_live_crashes": total_live_crashes,
+            "mean_z3_solver_time_ms": round(float(np.mean(all_solver_ms)), 3) if all_solver_ms else 0.0,
+            "median_z3_solver_time_ms": round(float(np.median(all_solver_ms)), 3) if all_solver_ms else 0.0,
+            "all_binaries_guided_solver_counts": all_guided_solver_counts,
+        },
+        "paired_head_to_head": {
+            "paired_binary_count": len(paired_runs),
+            "paired_unguided_total_time_s": round(sum_unguided_paired, 2),
+            "paired_gnn_guided_total_time_s": round(sum_guided_paired, 2),
+            "overall_symbolic_speedup_x": round(sum_unguided_paired / max(sum_guided_paired, 1e-4), 2),
+            "speedup_95_ci": bootstrap_ci.get("speedup_x", {}).get("ci_95"),
+            "paired_unguided_total_states": sum_unguided_states,
+            "paired_gnn_guided_total_states": sum_guided_states,
+            "overall_state_reduction_pct": round((1.0 - (sum_guided_states / max(sum_unguided_states, 1))) * 100, 2),
+            "overall_state_reduction_ratio": round(sum_unguided_states / max(sum_guided_states, 1), 2),
+            "state_reduction_pct_95_ci": bootstrap_ci.get("state_reduction_pct", {}).get("ci_95"),
+            "mean_speedup_per_binary": round(float(np.mean(speedup_list)), 2) if speedup_list else 0.0,
+            "median_speedup_per_binary": round(float(np.median(speedup_list)), 2) if speedup_list else 0.0,
+            "mean_state_reduction_pct_per_binary": round(float(np.mean(state_red_list)), 2) if state_red_list else 0.0,
+            "median_state_reduction_pct_per_binary": round(float(np.median(state_red_list)), 2) if state_red_list else 0.0,
+            "steps_to_first_vuln": {
+                "guided_mean": round(float(np.mean(guided_steps_list)), 2) if guided_steps_list else None,
+                "guided_median": round(float(np.median(guided_steps_list)), 2) if guided_steps_list else None,
+                "unguided_mean": round(float(np.mean(unguided_steps_list)), 2) if unguided_steps_list else None,
+                "unguided_median": round(float(np.median(unguided_steps_list)), 2) if unguided_steps_list else None,
+                "paired_steps_reduction_ratio_mean": round(float(np.mean([u / max(g, 1) for u, g in both_found_steps])), 2) if both_found_steps else None,
+                "paired_steps_reduction_95_ci": bootstrap_ci.get("steps_to_vuln_reduction_ratio", {}).get("ci_95"),
+            },
+            "time_to_first_vuln_ms": {
+                "guided_mean": round(float(np.mean(guided_time_vuln_list)), 2) if guided_time_vuln_list else None,
+                "guided_median": round(float(np.median(guided_time_vuln_list)), 2) if guided_time_vuln_list else None,
+                "unguided_mean": round(float(np.mean(unguided_time_vuln_list)), 2) if unguided_time_vuln_list else None,
+                "unguided_median": round(float(np.median(unguided_time_vuln_list)), 2) if unguided_time_vuln_list else None,
+                "paired_time_speedup_mean": round(float(np.mean([u / max(g, 1e-4) for u, g in both_found_times])), 2) if both_found_times else None,
+                "paired_time_speedup_95_ci": bootstrap_ci.get("time_to_vuln_speedup_ratio", {}).get("ci_95"),
+            },
+            "timeouts": {
+                "unguided_timeout_count": sum(1 for r in paired_runs if r.get("unguided_timed_out")),
+                "guided_timeout_count": sum(1 for r in paired_runs if r.get("gnn_guided_timed_out")),
+            },
+            "frontier_size": {
+                "guided_max_frontier_mean": round(float(np.mean([r.get("gnn_guided_max_frontier", 0) for r in paired_runs])), 2),
+                "unguided_max_frontier_mean": round(float(np.mean([r.get("unguided_max_frontier", 0) for r in paired_runs])), 2),
+            },
+            "solver_status_comparison": {
+                "guided": {
+                    k: sum(r.get("gnn_guided_solver_counts", {}).get(k, 0) for r in paired_runs)
+                    for k in ["SAT", "UNSAT", "UNKNOWN", "TIMEOUT", "ERROR"]
+                },
+                "unguided": all_unguided_solver_counts,
+            },
+            "bootstrap_analysis": bootstrap_ci,
+        },
         "by_group": {
             g: {
                 "count": len(items),
+                "paired_count": sum(1 for i in items if i.get("unguided_time_s") is not None),
                 "total_nodes": sum(i["cfg_nodes"] for i in items),
                 "total_vulns": sum(i["vuln_count"] for i in items),
                 "binaries_with_vuln": sum(1 for i in items if i["vuln_count"] > 0),
                 "total_sat": sum(i["solver_sat_count"] for i in items),
+                "verified_live_crashes": sum(i.get("verified_live_crashes", 0) for i in items),
                 "avg_guided_time_s": round(sum(i["gnn_guided_time_s"] for i in items) / max(len(items), 1), 3),
                 "avg_unguided_time_s": round(
                     sum(i["unguided_time_s"] for i in items if i["unguided_time_s"] is not None)
                     / max(sum(1 for i in items if i["unguided_time_s"] is not None), 1),
                     3,
-                )
-                if any(i["unguided_time_s"] is not None for i in items)
-                else None,
+                ) if any(i.get("unguided_time_s") is not None for i in items) else None,
+                "overall_group_speedup_x": round(
+                    sum(i["unguided_time_s"] for i in items if i["unguided_time_s"] is not None)
+                    / max(sum(i["gnn_guided_time_s"] for i in items if i["unguided_time_s"] is not None), 1e-4),
+                    2,
+                ) if any(i.get("unguided_time_s") is not None for i in items) else None,
+                "total_guided_states": sum(i.get("gnn_guided_states", 0) for i in items),
+                "total_unguided_states": sum(i.get("unguided_states", 0) for i in items if i.get("unguided_states") is not None)
+                if any(i.get("unguided_states") is not None for i in items) else None,
+                "group_state_reduction_pct": round(
+                    (1.0 - (sum(i.get("gnn_guided_states", 0) for i in items if i.get("unguided_states") is not None)
+                            / max(sum(i.get("unguided_states", 0) for i in items if i.get("unguided_states") is not None), 1))) * 100,
+                    2,
+                ) if any(i.get("unguided_states") is not None for i in items) else None,
             }
             for g, items in results_by_group.items()
         },
@@ -457,19 +692,25 @@ def run_benchmark(output_path: str = None):
     with open(output_path, "w") as f:
         json.dump(final_payload, f, indent=2)
 
-    print("\n" + "=" * 75)
-    print("SYMBOLIC & NEURO-SYMBOLIC BENCHMARK SUMMARY")
-    print("=" * 75)
-    print(f"Total Real Binaries Scanned: {summary['total_binaries']} ({summary['successful_scans']} SUCCESS)")
-    print(f"Total CFG Basic Blocks:      {summary['total_cfg_nodes']}")
-    print(f"Total Vulnerabilities Found: {summary['total_vulnerabilities_detected']} ({summary['total_sat_proofs']} Z3 SAT proofs)")
-    print(f"Mean Z3 Solver Latency:      {summary['mean_z3_solver_time_ms']} ms (median {summary['median_z3_solver_time_ms']} ms)")
-    print(
-        f"Head-to-Head ({summary['paired_head_to_head_count']} bins): "
-        f"Unguided {summary['paired_unguided_total_time_s']}s vs GNN-Guided {summary['paired_gnn_guided_total_time_s']}s "
-        f"-> {summary['overall_symbolic_speedup_x']}x Speedup"
-    )
-    print(f"[+] Saved -> {output_path}")
+    print("\n" + "=" * 80)
+    print("PHASE 4: SYMBOLIC & NEURO-SYMBOLIC BENCHMARK SUMMARY")
+    print("=" * 80)
+    print(f"Total Real Binaries Scanned:    {summary['global_results']['total_binaries']} ({summary['global_results']['successful_scans']} SUCCESS)")
+    print(f"Total CFG Basic Blocks:         {summary['global_results']['total_cfg_nodes']}")
+    print(f"Total Vulnerabilities Detected: {summary['global_results']['total_vulnerabilities_detected']} ({summary['global_results']['total_sat_proofs']} Z3 SAT proofs)")
+    print(f"Total Verified Live Crashes:    {summary['global_results']['total_verified_live_crashes']}")
+    print(f"Mean Z3 SMT Solver Latency:     {summary['global_results']['mean_z3_solver_time_ms']} ms (median {summary['global_results']['median_z3_solver_time_ms']} ms)")
+    print("-" * 80)
+    p_info = summary["paired_head_to_head"]
+    print(f"Head-to-Head Comparison ({p_info['paired_binary_count']} Binaries):")
+    print(f"  Wall-Clock Time:   Unguided {p_info['paired_unguided_total_time_s']}s vs Guided {p_info['paired_gnn_guided_total_time_s']}s")
+    print(f"  Speedup Ratio:     {p_info['overall_symbolic_speedup_x']}x (95% CI: [{p_info['speedup_95_ci'][0]}, {p_info['speedup_95_ci'][1]}])")
+    print(f"  States Explored:   Unguided {p_info['paired_unguided_total_states']} vs Guided {p_info['paired_gnn_guided_total_states']}")
+    print(f"  State Reduction:   {p_info['overall_state_reduction_pct']}% (95% CI: [{p_info['state_reduction_pct_95_ci'][0]}%, {p_info['state_reduction_pct_95_ci'][1]}%])")
+    print(f"  15s Timeouts:      Unguided {p_info['timeouts']['unguided_timeout_count']} vs Guided {p_info['timeouts']['guided_timeout_count']}")
+    print(f"  Guided Solver:     {p_info['solver_status_comparison']['guided']}")
+    print(f"  Unguided Solver:   {p_info['solver_status_comparison']['unguided']}")
+    print(f"[+] Complete results written -> {output_path}")
 
 
 if __name__ == "__main__":
