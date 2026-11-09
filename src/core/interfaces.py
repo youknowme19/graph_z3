@@ -96,7 +96,55 @@ _SIGNAL_NAMES: Dict[int, str] = {
     10: "SIGBUS",
     11: "SIGSEGV",
     12: "SIGSYS",
+    15: "SIGTERM",
 }
+
+_FORTIFY_CHK_SYMBOLS = (
+    b"___strcpy_chk",
+    b"___strncpy_chk",
+    b"___strcat_chk",
+    b"___strncat_chk",
+    b"___memcpy_chk",
+    b"___memmove_chk",
+    b"___sprintf_chk",
+    b"___snprintf_chk",
+    b"___vsnprintf_chk",
+    b"__strcpy_chk",
+    b"__memcpy_chk",
+    b"__snprintf_chk",
+)
+
+_CMD_INJECTION_CANARY_TOKEN = "41337"
+
+
+def _classify_var_channel(var_name: str) -> str:
+    """Map a symbolic variable name to the exact input channel used during symbolic execution."""
+    low = str(var_name or "").strip().lower()
+    if low.startswith(("arg_", "buf_arg_", "buf_len_arg_")):
+        return "function_arg"
+    if low.startswith("argv"):
+        return "argv"
+    if low.startswith(("env", "taint_getenv")):
+        return "env"
+    if low.startswith((
+        "stdin", "taint_read", "taint_pread", "taint_fgets", "taint_gets",
+        "taint_fread", "taint_scanf", "taint_sys_read", "taint_recv", "taint_recvfrom",
+    )):
+        return "stdin"
+    return "stdin"
+
+
+def _binary_has_fortify_chk_symbol(binary_path: str) -> Optional[str]:
+    """Return the first matched _FORTIFY_SOURCE *_chk symbol present in the binary image, or None."""
+    try:
+        with open(binary_path, "rb") as fh:
+            data = fh.read()
+        for sym in _FORTIFY_CHK_SYMBOLS:
+            if sym in data:
+                return sym.decode("ascii", errors="ignore")
+    except Exception:
+        pass
+    return None
 
 
 def verify_live_crash(
@@ -105,62 +153,187 @@ def verify_live_crash(
     vuln_type: str = "",
     timeout_s: float = 2.0,
     is_targeted_func: bool = False,
+    input_channel: str = "stdin",
+    argv_payloads: Optional[List[bytes]] = None,
+    env_payloads: Optional[Dict[str, bytes]] = None,
 ) -> Dict[str, Any]:
     """
     Independently replay a synthesized witness payload against the native target binary
-    via subprocess execution and verify whether it triggers an authentic crash signal.
+    via subprocess execution through the exact input channel used during symbolic execution.
 
-    A witness is considered verified ONLY when the native binary terminates with a crash
-    signal (e.g. SIGSEGV, SIGABRT, SIGTRAP, SIGBUS, SIGILL, SIGFPE) or sanitizer fault.
-    Timeouts, missing payloads, or normal exits are never counted as verified crashes.
+    Requirements enforced:
+    1. Replays strictly through `input_channel` ("stdin", "argv", "env", "stdin+argv").
+       Never feeds the same witness through both stdin and argv unless `input_channel == "stdin+argv"`.
+       In-memory function arguments ("function_arg") are not replayed via CLI/stdin.
+    2. Records `input_channel`, `witness_sha256`, `returncode`, `terminating_signal`, and `replay_mode`.
+    3. Performs a differential benign-control probe on the same channel and replay mode to distinguish
+       witness-triggered crashes from unrelated/unconditional startup crashes.
+    4. Never classifies `SIGTRAP` or any other signal as proof of a particular vulnerability without
+       corroborating evidence (e.g., for `SIGTRAP` on `STACK_OVERFLOW`/`OOB_WRITE`, requires binary
+       `_FORTIFY_SOURCE` `*_chk` symbol presence AND sub-boundary truncation survival).
+    5. Separately tracks command-injection execution (`injected_command_executed`) and process
+       termination (`target_process_terminated`).
     """
     import os
     import subprocess
 
-    if not payload:
+    channel_norm = str(input_channel or "stdin").strip().lower()
+    if is_targeted_func and channel_norm == "stdin" and not argv_payloads and not env_payloads:
+        # When called directly for an isolated function-level harness without channel override
+        pass
+
+    # Compute witness SHA-256 over the channel payload(s) actually replayed
+    hash_material = bytearray()
+    if channel_norm in ("stdin", "stdin+argv") and payload:
+        hash_material.extend(bytes(payload))
+    if channel_norm in ("argv", "stdin+argv"):
+        for ap in (argv_payloads if argv_payloads is not None else ([bytes(payload)] if payload else [])):
+            hash_material.extend(bytes(ap))
+    if channel_norm == "env":
+        if env_payloads:
+            for k in sorted(env_payloads.keys()):
+                hash_material.extend(k.encode("utf-8") + b"=" + bytes(env_payloads[k]))
+        elif payload:
+            hash_material.extend(bytes(payload))
+    if channel_norm == "function_arg" and payload:
+        hash_material.extend(bytes(payload))
+
+    witness_sha256 = hashlib.sha256(bytes(hash_material)).hexdigest() if hash_material else None
+
+    def _base_record(
+        attempted: bool,
+        crashed: bool,
+        rc: Optional[int],
+        sig_name: Optional[str],
+        timed_out: bool,
+        replay_mode: str,
+        reason: str,
+        benign_crashed: Optional[bool] = None,
+        unrelated: bool = False,
+        expected_vuln: bool = False,
+        evidence: Optional[List[str]] = None,
+        cmd_executed: bool = False,
+        stdout_text: str = "",
+    ) -> Dict[str, Any]:
         return {
-            "attempted": False,
-            "crashed": False,
-            "returncode": None,
-            "signal": None,
-            "timed_out": False,
-            "method": "none",
-            "reason": "Empty witness payload",
+            "attempted": bool(attempted),
+            "input_channel": channel_norm,
+            "witness_sha256": witness_sha256,
+            "crashed": bool(crashed),
+            "target_process_terminated": bool(crashed),
+            "expected_vuln_crash": bool(expected_vuln),
+            "unrelated_crash": bool(unrelated),
+            "benign_control_crashed": benign_crashed,
+            "corroborating_evidence": list(evidence or []),
+            "injected_command_executed": bool(cmd_executed),
+            "returncode": rc,
+            "terminating_signal": sig_name,
+            "signal": sig_name,
+            "timed_out": bool(timed_out),
+            "replay_mode": replay_mode,
+            "method": replay_mode,
+            "stdout_snippet": stdout_text[:200] if stdout_text else "",
+            "reason": reason,
         }
+
+    if channel_norm == "function_arg":
+        return _base_record(
+            attempted=False,
+            crashed=False,
+            rc=None,
+            sig_name=None,
+            timed_out=False,
+            replay_mode="none",
+            reason="In-memory function argument witness requires a function-level harness; not replayed via stdin/argv",
+        )
+
+    if not hash_material:
+        return _base_record(
+            attempted=False,
+            crashed=False,
+            rc=None,
+            sig_name=None,
+            timed_out=False,
+            replay_mode="none",
+            reason="Empty witness payload",
+        )
 
     if not binary_path or not os.path.isfile(binary_path):
-        return {
-            "attempted": False,
-            "crashed": False,
-            "returncode": None,
-            "signal": None,
-            "timed_out": False,
-            "method": "none",
-            "reason": "Binary file not found",
-        }
+        return _base_record(
+            attempted=False,
+            crashed=False,
+            rc=None,
+            sig_name=None,
+            timed_out=False,
+            replay_mode="none",
+            reason="Binary file not found",
+        )
 
     if binary_path.endswith(".o") or not os.access(binary_path, os.X_OK):
-        return {
-            "attempted": False,
-            "crashed": False,
-            "returncode": None,
-            "signal": None,
-            "timed_out": False,
-            "method": "none",
-            "reason": "Target is a non-executable object file",
-        }
+        return _base_record(
+            attempted=False,
+            crashed=False,
+            rc=None,
+            sig_name=None,
+            timed_out=False,
+            replay_mode="none",
+            reason="Target is a non-executable object file",
+        )
 
-    def _run_once(env_override: Optional[Dict[str, str]] = None, method_label: str = "native") -> Dict[str, Any]:
+    def _cstr_arg(raw_b: bytes) -> str:
+        # OS execve cannot pass NUL bytes inside argv strings; truncate at first NUL byte.
+        return bytes(raw_b).split(b"\x00", 1)[0].decode("latin-1")
+
+    def _run_channel(
+        stdin_bytes: Optional[bytes],
+        argv_list: Optional[List[bytes]],
+        env_map: Optional[Dict[str, bytes]],
+        env_override: Optional[Dict[str, str]] = None,
+        replay_mode: str = "native",
+    ) -> Dict[str, Any]:
+        cmd = [binary_path]
+        run_input: Optional[bytes] = None
+        proc_env = dict(env_override) if env_override is not None else None
+
+        if channel_norm == "stdin":
+            run_input = bytes(stdin_bytes or b"")
+        elif channel_norm == "argv":
+            eff_argv = argv_list if argv_list is not None else ([stdin_bytes] if stdin_bytes is not None else [])
+            cmd.extend(_cstr_arg(a) for a in eff_argv)
+            run_input = None
+        elif channel_norm == "stdin+argv":
+            eff_argv = argv_list or []
+            cmd.extend(_cstr_arg(a) for a in eff_argv)
+            run_input = bytes(stdin_bytes or b"")
+        elif channel_norm == "env":
+            if proc_env is None:
+                proc_env = dict(os.environ)
+            eff_env = env_map if env_map is not None else ({"INPUT": stdin_bytes} if stdin_bytes is not None else {})
+            for k, v in eff_env.items():
+                proc_env[str(k)] = _cstr_arg(bytes(v))
+            run_input = None
+        else:
+            return _base_record(
+                attempted=False,
+                crashed=False,
+                rc=None,
+                sig_name=None,
+                timed_out=False,
+                replay_mode="none",
+                reason=f"Unsupported input_channel '{channel_norm}'",
+            )
+
         try:
             proc = subprocess.run(
-                [binary_path],
-                input=bytes(payload),
+                cmd,
+                input=run_input,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=timeout_s,
-                env=env_override,
+                env=proc_env,
             )
             rc = proc.returncode
+            stdout_text = proc.stdout.decode("utf-8", errors="replace") if proc.stdout else ""
             stderr_text = proc.stderr.decode("utf-8", errors="replace") if proc.stderr else ""
             sig_num = None
             if rc < 0:
@@ -180,53 +353,250 @@ def verify_live_crash(
                 "attempted": True,
                 "crashed": bool(crashed),
                 "returncode": rc,
-                "signal": sig_name,
+                "sig_name": sig_name,
                 "timed_out": False,
-                "method": method_label,
-                "reason": (
-                    f"Process terminated with {sig_name} (rc={rc})"
-                    if crashed
-                    else f"Process exited without crash (rc={rc})"
-                ),
+                "replay_mode": replay_mode,
+                "stdout_text": stdout_text,
+                "stderr_text": stderr_text,
+                "sanitizer_fault": sanitizer_fault,
+                "error": None,
             }
         except subprocess.TimeoutExpired:
             return {
                 "attempted": True,
                 "crashed": False,
                 "returncode": None,
-                "signal": None,
+                "sig_name": None,
                 "timed_out": True,
-                "method": method_label,
-                "reason": f"Execution timed out after {timeout_s}s",
+                "replay_mode": replay_mode,
+                "stdout_text": "",
+                "stderr_text": "",
+                "sanitizer_fault": False,
+                "error": f"Execution timed out after {timeout_s}s",
             }
         except OSError as exc:
             return {
                 "attempted": False,
                 "crashed": False,
                 "returncode": None,
-                "signal": None,
+                "sig_name": None,
                 "timed_out": False,
-                "method": method_label,
-                "reason": f"OS execution error: {exc}",
+                "replay_mode": replay_mode,
+                "stdout_text": "",
+                "stderr_text": "",
+                "sanitizer_fault": False,
+                "error": f"OS execution error: {exc}",
             }
 
-    res = _run_once(env_override=None, method_label="native")
-    if res["crashed"] or res["timed_out"] or not res["attempted"]:
-        return res
+    eff_argv_payloads = argv_payloads if argv_payloads is not None else ([bytes(payload)] if channel_norm == "argv" else [])
+    eff_env_payloads = env_payloads if env_payloads is not None else ({"INPUT": bytes(payload)} if channel_norm == "env" else {})
+
+    raw_res = _run_channel(
+        stdin_bytes=bytes(payload) if channel_norm in ("stdin", "stdin+argv") else None,
+        argv_list=eff_argv_payloads,
+        env_map=eff_env_payloads,
+        env_override=None,
+        replay_mode="native",
+    )
+    active_env_override: Optional[Dict[str, str]] = None
+
+    if not raw_res["attempted"] or raw_res["timed_out"]:
+        return _base_record(
+            attempted=raw_res["attempted"],
+            crashed=False,
+            rc=raw_res["returncode"],
+            sig_name=None,
+            timed_out=raw_res["timed_out"],
+            replay_mode=raw_res["replay_mode"],
+            reason=raw_res["error"] or "Execution did not complete",
+        )
 
     # On macOS, standard system malloc does not immediately unmap small freed heap chunks;
     # re-verify heap safety violations under built-in GuardMalloc (/usr/lib/libgmalloc.dylib).
     gmalloc_path = "/usr/lib/libgmalloc.dylib"
-    if vuln_type in ("USE_AFTER_FREE", "DOUBLE_FREE", "INVALID_FREE", "OOB_WRITE", "OOB_READ") and os.path.exists(gmalloc_path):
+    if (
+        not raw_res["crashed"]
+        and vuln_type in ("USE_AFTER_FREE", "DOUBLE_FREE", "INVALID_FREE", "OOB_WRITE", "OOB_READ")
+        and os.path.exists(gmalloc_path)
+    ):
         env_gm = dict(os.environ)
         env_gm["DYLD_INSERT_LIBRARIES"] = gmalloc_path
-        gm_res = _run_once(env_override=env_gm, method_label="native+libgmalloc")
+        gm_res = _run_channel(
+            stdin_bytes=bytes(payload) if channel_norm in ("stdin", "stdin+argv") else None,
+            argv_list=eff_argv_payloads,
+            env_map=eff_env_payloads,
+            env_override=env_gm,
+            replay_mode="native+libgmalloc",
+        )
         if gm_res["crashed"]:
-            return gm_res
+            raw_res = gm_res
+            active_env_override = env_gm
 
-    if is_targeted_func and not res["crashed"]:
-        res["reason"] = f"{res['reason']} (targeted function entry may not be reachable via default main/stdin harness)"
-    return res
+    # Run differential benign-control probe on the exact same channel and replay mode
+    benign_probe = _run_channel(
+        stdin_bytes=b"0\n" if channel_norm in ("stdin", "stdin+argv") else None,
+        argv_list=[b"0"] if channel_norm in ("argv", "stdin+argv") else [],
+        env_map={"INPUT": b"0"} if channel_norm == "env" else {},
+        env_override=active_env_override,
+        replay_mode=raw_res["replay_mode"],
+    )
+    benign_crashed = bool(benign_probe.get("crashed", False))
+    evidence: List[str] = []
+
+    # Check command-injection execution separately from process termination
+    vtype_upper = str(vuln_type or "").upper()
+    is_cmd_vuln = ("CMD_INJECTION" in vtype_upper) or ("CONTROLLED_EXEC" in vtype_upper)
+    cmd_executed = False
+    if is_cmd_vuln:
+        # Command execution is verified ONLY when the evaluated arithmetic canary ("41337")
+        # appears in stdout, is NOT present as a literal in the input bytes, and does NOT appear on benign input.
+        raw_out = raw_res.get("stdout_text", "")
+        benign_out = benign_probe.get("stdout_text", "")
+        if (
+            _CMD_INJECTION_CANARY_TOKEN in raw_out
+            and (_CMD_INJECTION_CANARY_TOKEN.encode("ascii") not in bytes(hash_material))
+            and (_CMD_INJECTION_CANARY_TOKEN not in benign_out)
+        ):
+            cmd_executed = True
+            evidence.append(f"evaluated_shell_arithmetic_canary({_CMD_INJECTION_CANARY_TOKEN})_in_stdout")
+            evidence.append("differential_benign_control_did_not_emit_canary")
+
+    if not raw_res["crashed"]:
+        reason_msg = f"Process exited without crash (rc={raw_res['returncode']})"
+        if cmd_executed:
+            reason_msg = (
+                f"Injected command executed (verified canary {_CMD_INJECTION_CANARY_TOKEN} in stdout); "
+                f"target process exited normally (rc={raw_res['returncode']})"
+            )
+        elif is_targeted_func:
+            reason_msg = f"{reason_msg} (targeted function entry may not be reachable via default main/stdin harness)"
+        return _base_record(
+            attempted=True,
+            crashed=False,
+            rc=raw_res["returncode"],
+            sig_name=None,
+            timed_out=False,
+            replay_mode=raw_res["replay_mode"],
+            reason=reason_msg,
+            benign_crashed=benign_crashed,
+            unrelated=False,
+            expected_vuln=False,
+            evidence=evidence,
+            cmd_executed=cmd_executed,
+            stdout_text=raw_res.get("stdout_text", ""),
+        )
+
+    # Process crashed with a signal: distinguish expected vulnerability crash from unrelated crash
+    sig_name = raw_res["sig_name"]
+    rc = raw_res["returncode"]
+
+    if benign_crashed:
+        return _base_record(
+            attempted=True,
+            crashed=True,
+            rc=rc,
+            sig_name=sig_name,
+            timed_out=False,
+            replay_mode=raw_res["replay_mode"],
+            reason=(
+                f"Unrelated crash: binary also crashed with {benign_probe.get('sig_name')} "
+                f"on benign control input"
+            ),
+            benign_crashed=True,
+            unrelated=True,
+            expected_vuln=False,
+            evidence=["benign_control_also_crashed"],
+            cmd_executed=cmd_executed,
+            stdout_text=raw_res.get("stdout_text", ""),
+        )
+
+    evidence.append("differential_benign_control_survived")
+    expected_vuln = False
+
+    if vtype_upper in ("NULL_DEREF", "SYMBOLIC_PC"):
+        if sig_name in ("SIGSEGV", "SIGBUS") or (vtype_upper == "SYMBOLIC_PC" and sig_name == "SIGILL"):
+            expected_vuln = True
+            evidence.append(f"signal_{sig_name}_matches_{vtype_upper}")
+    elif vtype_upper in ("USE_AFTER_FREE", "OOB_READ"):
+        if sig_name in ("SIGSEGV", "SIGBUS") or (
+            sig_name in ("SIGABRT", "SANITIZER_ABORT")
+            and (raw_res["replay_mode"] == "native+libgmalloc" or raw_res.get("sanitizer_fault"))
+        ):
+            expected_vuln = True
+            evidence.append(f"signal_{sig_name}_under_{raw_res['replay_mode']}_matches_{vtype_upper}")
+    elif vtype_upper in ("DOUBLE_FREE", "INVALID_FREE"):
+        if sig_name in ("SIGABRT", "SIGSEGV", "SIGBUS", "SANITIZER_ABORT"):
+            expected_vuln = True
+            if raw_res.get("sanitizer_fault") or "malloc" in raw_res.get("stderr_text", "").lower():
+                evidence.append("allocator_diagnostic_in_stderr")
+            evidence.append(f"signal_{sig_name}_matches_{vtype_upper}")
+    elif vtype_upper in ("STACK_OVERFLOW", "OOB_WRITE", "CANARY"):
+        if sig_name in ("SIGSEGV", "SIGBUS", "SIGABRT", "SANITIZER_ABORT"):
+            expected_vuln = True
+            evidence.append(f"signal_{sig_name}_matches_{vtype_upper}")
+        elif sig_name == "SIGTRAP":
+            # Never classify SIGTRAP as proof of STACK_OVERFLOW / OOB_WRITE without corroborating evidence:
+            # 1. Binary must contain a _FORTIFY_SOURCE *_chk symbol (macOS ARM64 __chk_fail_overflow raises SIGTRAP via brk #0x1).
+            # 2. A sub-boundary truncated prefix of the witness (8 bytes) must NOT trigger SIGTRAP.
+            fortify_sym = _binary_has_fortify_chk_symbol(binary_path)
+            if fortify_sym and len(payload) > 8:
+                trunc_probe = _run_channel(
+                    stdin_bytes=bytes(payload[:8]) if channel_norm in ("stdin", "stdin+argv") else None,
+                    argv_list=[bytes(payload[:8])] if channel_norm in ("argv", "stdin+argv") else [],
+                    env_map={"INPUT": bytes(payload[:8])} if channel_norm == "env" else {},
+                    env_override=active_env_override,
+                    replay_mode=raw_res["replay_mode"],
+                )
+                if not trunc_probe.get("crashed", False):
+                    expected_vuln = True
+                    evidence.append(f"fortify_chk_symbol_present({fortify_sym})")
+                    evidence.append("sub_boundary_truncated_witness_8B_survived")
+    elif "FORMAT_STRING" in vtype_upper:
+        if sig_name in ("SIGABRT", "SIGSEGV", "SIGBUS"):
+            # Verify crash disappears when '%' format specifiers are replaced with benign 'A'
+            sanitized_payload = bytes(payload).replace(b"%", b"A")
+            sanitized_probe = _run_channel(
+                stdin_bytes=sanitized_payload if channel_norm in ("stdin", "stdin+argv") else None,
+                argv_list=[sanitized_payload] if channel_norm in ("argv", "stdin+argv") else [],
+                env_map={"INPUT": sanitized_payload} if channel_norm == "env" else {},
+                env_override=active_env_override,
+                replay_mode=raw_res["replay_mode"],
+            )
+            if not sanitized_probe.get("crashed", False):
+                expected_vuln = True
+                evidence.append(f"signal_{sig_name}_matches_FORMAT_STRING")
+                evidence.append("format_specifier_stripped_witness_survived")
+    elif is_cmd_vuln:
+        # Command injection crash alone is NOT proof of command execution unless canary was also evaluated
+        expected_vuln = bool(cmd_executed)
+    elif not vtype_upper:
+        # Generic crash check when vuln_type is unspecified (still requires non-SIGTRAP or corroboration + benign survival)
+        if sig_name in ("SIGSEGV", "SIGBUS", "SIGABRT", "SIGFPE", "SIGILL", "SANITIZER_ABORT"):
+            expected_vuln = True
+            evidence.append(f"signal_{sig_name}_differential_crash")
+
+    unrelated = not expected_vuln
+    reason_str = (
+        f"Verified {vtype_upper or 'crash'}: process terminated with {sig_name} (rc={rc}, evidence={','.join(evidence)})"
+        if expected_vuln
+        else f"Unverified/unrelated crash signal {sig_name} (rc={rc}) for vuln_type='{vuln_type}' — insufficient corroborating evidence"
+    )
+
+    return _base_record(
+        attempted=True,
+        crashed=True,
+        rc=rc,
+        sig_name=sig_name,
+        timed_out=False,
+        replay_mode=raw_res["replay_mode"],
+        reason=reason_str,
+        benign_crashed=benign_crashed,
+        unrelated=unrelated,
+        expected_vuln=expected_vuln,
+        evidence=evidence,
+        cmd_executed=cmd_executed,
+        stdout_text=raw_res.get("stdout_text", ""),
+    )
 
 
 def _fmt_constant(value: int, bits: int) -> str:
@@ -989,6 +1359,7 @@ class AnalysisBackendProvider:
         heap_counter = 0
         max_frontier_size = 0
         timed_out_flag = False
+        popped_priorities: List[Dict[str, Any]] = []
 
         def _frontier_len() -> int:
             return len(max_heap) if self.scheduler_mode == "maxheap" else len(dfs_stack)
@@ -1007,7 +1378,15 @@ class AnalysisBackendProvider:
 
         def _pop_frontier() -> Tuple[Any, Optional[ExecutionState], int, Tuple[int, ...]]:
             if self.scheduler_mode == "maxheap":
-                _, _, _, st_obj, par_state, d, hist = heapq.heappop(max_heap)
+                neg_prio, _, _, st_obj, par_state, d, hist = heapq.heappop(max_heap)
+                prio_val = float(-neg_prio)
+                eff_risk = prio_val + (self.depth_penalty_lambda * float(d))
+                popped_priorities.append({
+                    "address": hex(int(st_obj.addr)),
+                    "depth": int(d),
+                    "priority": round(prio_val, 6),
+                    "reachable_risk": round(eff_risk, 6),
+                })
                 return st_obj, par_state, d, hist
             return dfs_stack.pop()
 
@@ -1237,7 +1616,7 @@ class AnalysisBackendProvider:
                         execution_depth=depth,
                         symbolic_variables="None",
                         path_constraints="",
-                        solver_status="UNSAT",
+                        solver_status="ERROR",
                         model_information=f"Execution error: {str(e)}",
                         explanation=f"Execution stopped at {addr_hex}: {str(e)}",
                         next_state="Errored (Simulation halted)",
@@ -1456,6 +1835,8 @@ class AnalysisBackendProvider:
             if first_vuln_idx is not None and first_vuln_idx < len(step_timestamps_ms)
             else None
         )
+        self.scheduler_telemetry["popped_priorities"] = popped_priorities
+        self.scheduler_telemetry["reachable_risk_nodes_scored"] = sum(1 for v in reachable_risk_map.values() if v > 0.0)
 
         self._trace_cache = states
         return states
@@ -1557,8 +1938,10 @@ class AnalysisBackendProvider:
                     f"For '{name}' ({size_bytes} B), {len(constrained)} byte(s) constrained, "
                     f"{len(unconstrained)} byte(s) free. "
                 )
-        else:
+        elif result["status"] == "UNSAT":
             explanation_parts.append("Z3 proved path constraints are unsatisfiable; this path is dead/unreachable.")
+        else:
+            explanation_parts.append(f"Z3 solver returned {result['status']}; satisfiability could not be proven.")
 
         explanation = "".join(explanation_parts)
 
@@ -1702,8 +2085,10 @@ class AnalysisBackendProvider:
                                 constrained, unconstrained = get_byte_status_with_extra(
                                     raw_state, sym_var, extra_constraints=extra_constraints_ast
                                 )
+                                var_channel = _classify_var_channel(name)
                                 exploit_vars.append({
                                     "name": name,
+                                    "channel": var_channel,
                                     "hex": hex_repr,
                                     "ascii": ascii_repr,
                                     "raw": list(val),
@@ -1712,7 +2097,7 @@ class AnalysisBackendProvider:
                                     "size": len(val),
                                 })
                                 all_bytes.extend(val)
-                                self._emit("ASSIGN", f"  SOLVED  {name} ({len(val)} B) = [{hex_repr}]  ascii=[{ascii_repr}]")
+                                self._emit("ASSIGN", f"  SOLVED  {name} [{var_channel}] ({len(val)} B) = [{hex_repr}]  ascii=[{ascii_repr}]")
 
                         # Second pass: if path had 0 branch constraints on input (unconditional reachability),
                         # use solved assignment for primary input variable from Z3 model (never fabricate bytes).
@@ -1727,8 +2112,10 @@ class AnalysisBackendProvider:
                                 if val is not None and isinstance(val, (bytes, bytearray)) and len(val) > 0:
                                     hex_repr = ' '.join(f'{b:02x}' for b in val)
                                     ascii_repr = ''.join(chr(b) if 32 <= b < 127 else '.' for b in val)
+                                    var_channel = _classify_var_channel(name)
                                     exploit_vars.append({
                                         "name": name,
+                                        "channel": var_channel,
                                         "hex": hex_repr,
                                         "ascii": ascii_repr,
                                         "raw": list(val),
@@ -1817,37 +2204,135 @@ class AnalysisBackendProvider:
                 "remediation": "Perform sanity checks on arithmetic and pointer bounds.",
             })
 
-            if solver_status == "SAT" and len(all_bytes) > 0:
-                self._emit("INFO", f"  Replaying synthesized witness ({len(all_bytes)} B) against native binary...")
+            # Separate witness bytes strictly by input channel used during symbolic execution
+            stdin_channel_bytes = bytearray()
+            argv_channel_payloads: List[bytes] = []
+            env_channel_payloads: Dict[str, bytes] = {}
+            func_arg_bytes = bytearray()
+
+            for ev in exploit_vars:
+                ch = ev.get("channel") or _classify_var_channel(ev.get("name", ""))
+                raw_b = bytes(ev.get("raw", ()))
+                if ch == "stdin":
+                    stdin_channel_bytes.extend(raw_b)
+                elif ch == "argv":
+                    argv_channel_payloads.append(raw_b)
+                elif ch == "env":
+                    env_channel_payloads["INPUT"] = env_channel_payloads.get("INPUT", b"") + raw_b
+                elif ch == "function_arg":
+                    func_arg_bytes.extend(raw_b)
+
+            if stdin_channel_bytes and argv_channel_payloads:
+                detected_channel = "stdin+argv"
+            elif stdin_channel_bytes:
+                detected_channel = "stdin"
+            elif argv_channel_payloads:
+                detected_channel = "argv"
+            elif env_channel_payloads:
+                detected_channel = "env"
+            elif func_arg_bytes:
+                detected_channel = "function_arg"
+            else:
+                detected_channel = "none"
+
+            if detected_channel == "function_arg":
+                reproduce_cmd = ""
+            elif detected_channel == "argv" and argv_channel_payloads:
+                arg0_nums = list(argv_channel_payloads[0].split(b"\x00", 1)[0])
+                reproduce_cmd = (
+                    f'./{self.original_filename} '
+                    f'"$(python3 -c "import sys; sys.stdout.buffer.write(bytes({arg0_nums}))")"'
+                )
+
+            vtype_upper = str(state_obj.vuln_type or "").upper()
+            is_cmd_injection = ("CMD_INJECTION" in vtype_upper) or ("CONTROLLED_EXEC" in vtype_upper)
+            taint_reached_sink = bool(
+                state_obj.vuln_type.startswith("TAINT_")
+                or any(ev.get("name", "").startswith("taint_") for ev in exploit_vars)
+            )
+            sat_witness_generated = bool(solver_status == "SAT" and len(all_bytes) > 0)
+
+            if sat_witness_generated:
+                primary_payload = (
+                    bytes(stdin_channel_bytes)
+                    if detected_channel in ("stdin", "stdin+argv")
+                    else (bytes(func_arg_bytes) if detected_channel == "function_arg" else bytes(all_bytes))
+                )
+                self._emit(
+                    "INFO",
+                    f"  Replaying synthesized witness ({len(all_bytes)} B) via channel '{detected_channel}' against native binary...",
+                )
                 crash_verification = verify_live_crash(
                     self.binary_path,
-                    bytes(all_bytes),
+                    primary_payload,
                     vuln_type=state_obj.vuln_type,
                     is_targeted_func=bool(getattr(self, "_target_func_addr", None) is not None),
+                    input_channel=detected_channel,
+                    argv_payloads=argv_channel_payloads if argv_channel_payloads else None,
+                    env_payloads=env_channel_payloads if env_channel_payloads else None,
                 )
-                if crash_verification.get("crashed"):
+                if crash_verification.get("expected_vuln_crash"):
                     self._emit(
                         "SUCCESS",
-                        f"  Live crash verified: {crash_verification.get('signal')} via {crash_verification.get('method')}",
+                        f"  Live crash verified: {crash_verification.get('terminating_signal')} via {crash_verification.get('replay_mode')}",
+                    )
+                elif crash_verification.get("injected_command_executed"):
+                    self._emit(
+                        "SUCCESS",
+                        f"  Injected command execution verified via {crash_verification.get('replay_mode')} "
+                        f"(target_process_terminated={crash_verification.get('target_process_terminated')})",
                     )
                 else:
-                    self._emit("WARN", f"  Witness did not trigger native crash: {crash_verification.get('reason')}")
+                    self._emit("WARN", f"  Witness verification failed: {crash_verification.get('reason')}")
             else:
                 crash_verification = {
                     "attempted": False,
+                    "input_channel": detected_channel,
+                    "witness_sha256": None,
                     "crashed": False,
+                    "target_process_terminated": False,
+                    "expected_vuln_crash": False,
+                    "unrelated_crash": False,
+                    "benign_control_crashed": None,
+                    "corroborating_evidence": [],
+                    "injected_command_executed": False,
                     "returncode": None,
+                    "terminating_signal": None,
                     "signal": None,
                     "timed_out": False,
+                    "replay_mode": "none",
                     "method": "none",
+                    "stdout_snippet": "",
                     "reason": f"No witness synthesized (solver_status={solver_status})",
                 }
 
-            exploit_verified = bool(
-                solver_status == "SAT"
-                and len(all_bytes) > 0
-                and crash_verification.get("crashed", False)
-            )
+            injected_command_executed = bool(crash_verification.get("injected_command_executed", False))
+            target_process_terminated = bool(crash_verification.get("target_process_terminated", False))
+            expected_vuln_crash = bool(crash_verification.get("expected_vuln_crash", False))
+
+            if is_cmd_injection:
+                exploit_verified = bool(
+                    taint_reached_sink
+                    and sat_witness_generated
+                    and injected_command_executed
+                )
+            else:
+                exploit_verified = bool(
+                    sat_witness_generated
+                    and expected_vuln_crash
+                )
+
+            command_injection_verification = {
+                "taint_reached_sink": taint_reached_sink if is_cmd_injection else False,
+                "sat_witness_generated": sat_witness_generated if is_cmd_injection else False,
+                "injected_command_executed": injected_command_executed,
+                "target_process_terminated": target_process_terminated,
+                "input_channel": crash_verification.get("input_channel", detected_channel),
+                "witness_sha256": crash_verification.get("witness_sha256"),
+                "returncode": crash_verification.get("returncode"),
+                "terminating_signal": crash_verification.get("terminating_signal"),
+                "replay_mode": crash_verification.get("replay_mode", "none"),
+            }
 
             self._emit("INFO", "  Generating fix recommendation...")
             partial_report = {
@@ -1859,11 +2344,19 @@ class AnalysisBackendProvider:
                 "vuln_details":       state_obj.vuln_details,
                 "solver_status":      solver_status,
                 "solver_time_ms":     solver_time_ms,
+                "input_channel":      crash_verification.get("input_channel", detected_channel),
+                "witness_sha256":     crash_verification.get("witness_sha256"),
                 "exploit_vars":       exploit_vars,
                 "crash_integers":     list(all_bytes) if all_bytes else [],
                 "crash_length":       len(all_bytes) if all_bytes else 0,
                 "reproduce_cmd":      reproduce_cmd,
                 "crash_verification": crash_verification,
+                "taint_reached_sink": taint_reached_sink,
+                "sat_witness_generated": sat_witness_generated,
+                "injected_command_executed": injected_command_executed,
+                "target_process_terminated": target_process_terminated,
+                "expected_vuln_crash": expected_vuln_crash,
+                "command_injection_verification": command_injection_verification,
                 "exploit_verified":   exploit_verified,
                 "confidence":         c_info["confidence"],
                 "root_cause":         c_info["root_cause"],

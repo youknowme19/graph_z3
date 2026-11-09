@@ -149,7 +149,7 @@ def _build_sink_witness_constraints(state, sink_hit: TaintSinkHit, arg_expr) -> 
     if "FORMAT_STRING" in cat:
         payload = b"%n%n%n%n%s%s%s%s"
     elif "CMD_INJECTION" in cat or "EXEC" in cat:
-        payload = b"'; kill -SEGV $PPID #"
+        payload = b"'; echo $((41300+37)) #"
     else:
         return []
 
@@ -338,7 +338,12 @@ def track_simproc_after(state):
                         inject_taint(state, clean_name, site, buf_ptr, int(length) - 1)
                         state.memory.store(buf_ptr + int(length) - 1, b"\x00", inspect=False)
                     else:
-                        inject_taint(state, clean_name, site, buf_ptr, int(length))
+                        src = inject_taint(state, clean_name, site, buf_ptr, int(length))
+                        if clean_name in ("read", "pread", "recv", "recvfrom") and src.byte_count > 0:
+                            arch = state.arch.name
+                            ret_reg = "x0" if "AARCH64" in arch else ("rax" if "AMD64" in arch else ("r0" if "ARM" in arch else "eax"))
+                            if hasattr(state.regs, ret_reg):
+                                setattr(state.regs, ret_reg, claripy.BVV(src.byte_count, state.arch.bits))
             else:
                 # Variadic sources (scanf) or return-value sources (getenv)
                 var_name = f"taint_{clean_name}_{hex(site)}_retval"
@@ -546,7 +551,7 @@ def check_copy_overflow(state, clean_name, dest_ptr, src_ptr, n_arg=None) -> Tup
                         for v in getattr(char_val, "variables", set())
                     ):
                         has_attacker_sym = True
-                    overflow_Fill.append(char_val == 0x41)
+                    overflow_Fill.append(char_val != 0)
 
             min_overflow_constraints = []
             for i in range(effective_dest_size + 1):

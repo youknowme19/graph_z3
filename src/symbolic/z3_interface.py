@@ -147,9 +147,8 @@ class Z3Interface:
             elif is_sat:
                 status = "SAT"
                 # Witness beautification: try constraining symbolic inputs to printable ASCII inside a temporary scope
-                solver.push()
+                beautify_constraints = []
                 try:
-                    beautify_constraints = []
                     for name, sym_var in (symbolic_variables or {}).items():
                         if not hasattr(sym_var, "size"):
                             continue
@@ -160,30 +159,29 @@ class Z3Interface:
                         for i in range(size_bytes):
                             byte_expr = z3.Extract((i + 1) * 8 - 1, i * 8, z3_var)
                             beautify_constraints.append(z3.And(byte_expr >= 0x20, byte_expr <= 0x7e))
-                    if beautify_constraints:
+                except Exception:
+                    beautify_constraints = []
+
+                if beautify_constraints:
+                    solver.push()
+                    try:
                         solver.add(beautify_constraints)
                         if solver.check() == z3.sat:
                             z3_model = solver.model()
-                        else:
+                    except Exception:
+                        z3_model = None
+                    finally:
+                        try:
                             solver.pop()
-                            solver.check()
+                        except Exception:
+                            pass
+
+                if z3_model is None:
+                    try:
+                        if solver.check() == z3.sat:
                             z3_model = solver.model()
-                    else:
-                        z3_model = solver.model()
-                except Exception:
-                    try:
-                        solver.pop()
                     except Exception:
-                        pass
-                    if solver.check() == z3.sat:
-                        z3_model = solver.model()
-                else:
-                    # Pop temporary beautification constraints if still on stack so cached solver stays clean
-                    try:
-                        if beautify_constraints and z3_model is not None:
-                            solver.pop()
-                    except Exception:
-                        pass
+                        z3_model = None
             else:
                 status = "UNSAT"
 
@@ -198,7 +196,7 @@ class Z3Interface:
                 'solver_time_ms': solver_time_ms,
                 'queries_count': len(all_constraints),
                 'z3_statistics': stats_str,
-                'solver_obj': solver if not extra_constraints else None,
+                'solver_obj': solver if (is_sat and not extra_constraints) else None,
             }
 
             # If satisfiable, extract values from the Z3 model
