@@ -223,6 +223,7 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
                 gnn_node_scores=node_risk_map,
                 scheduler_mode="maxheap",
                 depth_penalty_lambda=0.02,
+                timeout_seconds=15.0,
                 _shared_loader=loader,
             )
             vulns = guided_backend.scan_vulnerabilities()
@@ -230,12 +231,14 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
             guided_timed_out = True
         finally:
             signal.alarm(0)
+        guided_tel = getattr(guided_backend, "scheduler_telemetry", {}) if guided_backend else {}
+        if guided_tel.get("timed_out"):
+            guided_timed_out = True
         guided_sym_s = 15.0 if guided_timed_out else (time.perf_counter() - t_g0)
         total_guided_s = load_time_s + (gnn_ms / 1000.0) + guided_sym_s
         result["gnn_guided_time_s"] = round(total_guided_s, 3)
         result["analysis_time_s"] = round(total_guided_s, 3)
         result["gnn_guided_timed_out"] = guided_timed_out
-        guided_tel = getattr(guided_backend, "scheduler_telemetry", {}) if guided_backend else {}
         result["gnn_guided_states"] = guided_tel.get("states_explored", 0)
         result["gnn_guided_steps_to_vuln"] = guided_tel.get("steps_to_first_vuln")
         result["gnn_guided_time_to_vuln_ms"] = guided_tel.get("time_to_first_vuln_ms")
@@ -257,6 +260,7 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
                     gnn_vulnerable_functions=None,
                     gnn_node_scores=None,
                     scheduler_mode="dfs",
+                    timeout_seconds=15.0,
                     _shared_loader=loader,
                 )
                 u_vulns = unguided_backend.scan_vulnerabilities()
@@ -264,6 +268,9 @@ def benchmark_single_binary(binary_path: str, model, thresh: float, max_steps: i
                 u_timed_out = True
             finally:
                 signal.alarm(0)
+            unguided_tel = getattr(unguided_backend, "scheduler_telemetry", {}) if unguided_backend else {}
+            if unguided_tel.get("timed_out"):
+                u_timed_out = True
             unguided_sym_s = 15.0 if u_timed_out else (time.perf_counter() - t_u0)
             total_unguided_s = load_time_s + unguided_sym_s
             unguided_tel = getattr(unguided_backend, "scheduler_telemetry", {}) if unguided_backend else {}

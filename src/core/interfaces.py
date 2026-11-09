@@ -1114,6 +1114,11 @@ def get_byte_status_with_extra(state, sym_var, extra_constraints=None) -> Tuple[
     return constrained_bytes, unconstrained_bytes
 
 
+class SymbolicTimeout(Exception):
+    """Raised when symbolic execution or constraint solving exceeds timeout budget."""
+    pass
+
+
 class AnalysisBackendProvider:
     """
     Adapter that wires the UI up to the real analysis backend:
@@ -2029,6 +2034,7 @@ class AnalysisBackendProvider:
         Scans the execution trace for vulnerable states and computes exact crash inputs via Z3.
         """
         self._emit("INFO", "--- Vulnerability scan starting ---")
+        t_scan_start = time.perf_counter()
         trace = self.get_execution_trace()
         self._emit("INFO", f"Trace complete: {len(trace)} execution state(s) analysed.")
 
@@ -2040,6 +2046,10 @@ class AnalysisBackendProvider:
         for idx, state_obj in enumerate(trace):
             if not state_obj.is_vulnerable:
                 continue
+            if self.timeout_seconds is not None and (time.perf_counter() - t_scan_start) >= self.timeout_seconds:
+                self.scheduler_telemetry["timed_out"] = True
+                self._emit("WARN", f"Scan solving loop exceeded timeout ({self.timeout_seconds:.2f}s).")
+                break
             addr = state_obj.instruction_address
             dedup_key = (addr, state_obj.vuln_type, state_obj.previous_block)
             if dedup_key in seen_addrs:
@@ -2504,10 +2514,11 @@ class AnalysisBackendProvider:
                     break
                 remaining_timeout = None
                 if self.timeout_seconds is not None:
-                    remaining_timeout = self.timeout_seconds - (total_elapsed_ms / 1000.0)
-                    if remaining_timeout <= 0:
+                    elapsed_wall = time.perf_counter() - t_scan_start
+                    if elapsed_wall >= self.timeout_seconds:
                         self.scheduler_telemetry["timed_out"] = True
                         break
+                    remaining_timeout = max(0.1, self.timeout_seconds - elapsed_wall)
                 try:
                     sub_provider = AnalysisBackendProvider(
                         self.binary_path,
@@ -2544,6 +2555,9 @@ class AnalysisBackendProvider:
                     for sr in sub_reports:
                         if not any(r["address"] == sr["address"] and r["vuln_type"] == sr["vuln_type"] for r in reports):
                             reports.append(sr)
+                except (KeyboardInterrupt, SystemExit, SymbolicTimeout):
+                    self.scheduler_telemetry["timed_out"] = True
+                    raise
                 except Exception:
                     pass
 
