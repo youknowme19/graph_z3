@@ -522,7 +522,20 @@ def process_real_system_binary(name: str, bin_dir: str, real_graph_dir: str) -> 
     from src.graph.feature_extractor import FEATURE_NAMES
 
     src_path = f"/usr/bin/{name}"
-    if not os.path.exists(src_path):
+    # On macOS, several binaries in /usr/bin (e.g. m4, strings, nm, size) are xcrun wrapper stubs.
+    # Resolve the genuine native binary from Apple CommandLineTools if available.
+    clt_dir = "/Library/Developer/CommandLineTools/usr/bin"
+    dev_map = {
+        "m4": f"{clt_dir}/m4",
+        "strings": f"{clt_dir}/strings",
+        "nm": f"{clt_dir}/nm-classic",
+        "size": f"{clt_dir}/size-classic",
+    }
+    if name in dev_map and os.path.exists(dev_map[name]):
+        src_path = dev_map[name]
+    elif os.path.exists(f"{clt_dir}/{name}"):
+        src_path = os.path.realpath(f"{clt_dir}/{name}")
+    elif not os.path.exists(src_path):
         return {"status": "SKIP", "name": name}
 
     out_bin = os.path.join(bin_dir, f"real_{name}.bin")

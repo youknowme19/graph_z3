@@ -142,6 +142,7 @@ def _evaluate_model(model, loader, criterion, device, temperature=None, threshol
     top3_hits = 0
     top5_hits = 0
     top10_hits = 0
+    mrr_sum = 0.0
     vuln_graph_count = 0
     clean_graph_count = 0
     clean_graph_false_alarms = 0
@@ -184,6 +185,9 @@ def _evaluate_model(model, loader, criterion, device, temperature=None, threshol
                         top5_hits += 1
                     if g_targets[ranked_idx[:10]].sum() > 0:
                         top10_hits += 1
+                    vuln_ranks = np.where(g_targets[ranked_idx] == 1)[0]
+                    if len(vuln_ranks) > 0:
+                        mrr_sum += 1.0 / float(vuln_ranks[0] + 1)
                     try:
                         auc = float(roc_auc_score(g_targets, g_probs))
                         ap = float(average_precision_score(g_targets, g_probs))
@@ -235,6 +239,7 @@ def _evaluate_model(model, loader, criterion, device, temperature=None, threshol
         "top3_hit_rate": float(top3_hits / max(vuln_graph_count, 1)),
         "top5_hit_rate": float(top5_hits / max(vuln_graph_count, 1)),
         "top10_hit_rate": float(top10_hits / max(vuln_graph_count, 1)),
+        "mrr": float(mrr_sum / max(vuln_graph_count, 1)),
         "vuln_graphs": int(vuln_graph_count),
         "clean_graphs": int(clean_graph_count),
         "clean_binary_fpr": float(clean_graph_false_alarms / max(clean_graph_count, 1)),

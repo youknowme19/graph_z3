@@ -1,13 +1,14 @@
 try:
     import torch
     import torch.nn.functional as F
-    from torch_geometric.nn import SAGEConv, GATConv, LayerNorm, global_mean_pool, global_max_pool
+    from torch_geometric.nn import SAGEConv, GATConv, GINConv, LayerNorm, global_mean_pool, global_max_pool
 except ImportError:
     # Fallback to avoid syntax errors if torch/PyG not installed yet
     torch = None
     F = None
     SAGEConv = object
     GATConv = object
+    GINConv = object
     LayerNorm = object
     global_mean_pool = None
     global_max_pool = None
@@ -40,7 +41,10 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
         num_layers=3, 
         encoder='sage',
         heads=4,
-        dropout=0.3
+        dropout=0.3,
+        use_global_ctx=True,
+        use_feature_gate=True,
+        bidirectional=True
     ):
         if torch is None:
             raise ImportError("PyTorch and PyTorch Geometric must be installed to use VulnGNN.")
@@ -51,6 +55,9 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
         self.num_layers = num_layers
         self.encoder_type = encoder
         self.dropout = dropout
+        self.use_global_ctx = use_global_ctx
+        self.use_feature_gate = use_feature_gate
+        self.bidirectional = bidirectional
         
         # Input projection to hidden_dim (mode='node' guarantees exact batch vs single-graph equivalence)
         self.input_proj = torch.nn.Linear(input_dim, hidden_dim)
@@ -58,7 +65,7 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
         
         # GNN layers (bidirectional control-flow message passing: forward + backward CFG edges)
         self.convs = torch.nn.ModuleList()
-        self.rev_convs = torch.nn.ModuleList()
+        self.rev_convs = torch.nn.ModuleList() if bidirectional else None
         self.norms = torch.nn.ModuleList()
         
         for i in range(num_layers):
@@ -78,28 +85,35 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
                     dropout=dropout,
                     add_self_loops=True,
                     concat=True
-                )
+                ) if bidirectional else None
             else:
                 conv = SAGEConv(hidden_dim, hidden_dim, normalize=True)
-                rev_conv = SAGEConv(hidden_dim, hidden_dim, normalize=True)
+                rev_conv = SAGEConv(hidden_dim, hidden_dim, normalize=True) if bidirectional else None
             
             self.convs.append(conv)
-            self.rev_convs.append(rev_conv)
+            if bidirectional:
+                self.rev_convs.append(rev_conv)
             self.norms.append(LayerNorm(hidden_dim, mode='node'))
 
         # Global binary/CFG context conditioning (captures whole-function guard vs sink balance)
-        self.global_ctx_proj = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim * 2, hidden_dim),
-            torch.nn.ReLU(),
-        )
+        if use_global_ctx:
+            self.global_ctx_proj = torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim * 2, hidden_dim),
+                torch.nn.ReLU(),
+            )
+        else:
+            self.global_ctx_proj = None
         
         # Feature importance gating (learns which features matter)
-        self.feature_gate = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, hidden_dim // 4),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_dim // 4, hidden_dim),
-            torch.nn.Sigmoid()
-        )
+        if use_feature_gate:
+            self.feature_gate = torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim, hidden_dim // 4),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim // 4, hidden_dim),
+                torch.nn.Sigmoid()
+            )
+        else:
+            self.feature_gate = None
         
         # Classification head with residual
         self.classifier = torch.nn.Sequential(
@@ -148,14 +162,21 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         
-        rev_edge_index = edge_index.flip(0) if edge_index.numel() > 0 else edge_index
+        if self.bidirectional and self.rev_convs is not None:
+            rev_edge_index = edge_index.flip(0) if edge_index.numel() > 0 else edge_index
+            conv_iter = zip(self.convs, self.rev_convs, self.norms)
+        else:
+            conv_iter = ((c, None, n) for c, n in zip(self.convs, self.norms))
 
-        # Bidirectional CFG GNN layers (forward control-flow + backward dominator/guard flow) with residuals
-        for i, (conv, rconv, norm) in enumerate(zip(self.convs, self.rev_convs, self.norms)):
+        # Control-flow message passing with residuals
+        for i, (conv, rconv, norm) in enumerate(conv_iter):
             residual = x
             x_fwd = conv(x, edge_index)
-            x_bwd = rconv(x, rev_edge_index)
-            x = 0.5 * (x_fwd + x_bwd)
+            if rconv is not None:
+                x_bwd = rconv(x, rev_edge_index)
+                x = 0.5 * (x_fwd + x_bwd)
+            else:
+                x = x_fwd
             x = norm(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
@@ -164,16 +185,18 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
                 x = x + residual
 
         # Condition node embeddings on global CFG summary
-        if batch is None:
-            batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
-        g_mean = global_mean_pool(x, batch)
-        g_max = global_max_pool(x, batch)
-        g_ctx = self.global_ctx_proj(torch.cat([g_mean, g_max], dim=-1))
-        x = x + 0.25 * g_ctx[batch]
+        if self.use_global_ctx and self.global_ctx_proj is not None:
+            if batch is None:
+                batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+            g_mean = global_mean_pool(x, batch)
+            g_max = global_max_pool(x, batch)
+            g_ctx = self.global_ctx_proj(torch.cat([g_mean, g_max], dim=-1))
+            x = x + 0.25 * g_ctx[batch]
         
         # Feature gating - learn to weight important dimensions
-        gate = self.feature_gate(x)
-        x = x * gate
+        if self.use_feature_gate and self.feature_gate is not None:
+            gate = self.feature_gate(x)
+            x = x * gate
         
         embeddings = x
         
@@ -206,6 +229,8 @@ class VulnGNN(torch.nn.Module if torch is not None else object):
         Get feature importance scores via the learned gate.
         Returns: [num_nodes, hidden_dim] gate values (0-1)
         """
+        if self.feature_gate is None:
+            return torch.ones((x.size(0), self.hidden_dim), device=x.device)
         with torch.no_grad():
             self.eval()
             x = self.input_proj(x)
@@ -283,8 +308,235 @@ class VulnGNNSimple(torch.nn.Module if torch is not None else object):
         return self.temperature.item()
 
 
-def create_model(input_dim=40, hidden_dim=128, num_layers=3, encoder='sage', **kwargs):
+class MLPBaseline(torch.nn.Module if torch is not None else object):
+    """
+    3-Layer Multilayer Perceptron Node Classifier.
+    Evaluates vulnerability prediction purely from 40-dimensional node feature vectors
+    WITHOUT any graph message passing, isolating the empirical contribution of graph topology.
+    """
+    def __init__(self, input_dim=40, hidden_dim=128, dropout=0.3):
+        if torch is None:
+            raise ImportError("PyTorch must be installed to use MLPBaseline.")
+        super(MLPBaseline, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.dropout = dropout
+
+        self.fc1 = torch.nn.Linear(input_dim, hidden_dim)
+        self.norm1 = LayerNorm(hidden_dim, mode='node')
+        self.fc2 = torch.nn.Linear(hidden_dim, hidden_dim)
+        self.norm2 = LayerNorm(hidden_dim, mode='node')
+        self.classifier = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim, hidden_dim // 2),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(dropout),
+            torch.nn.Linear(hidden_dim // 2, 2)
+        )
+        self.register_parameter('temperature', torch.nn.Parameter(torch.ones(1) * 1.0))
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, torch.nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    torch.nn.init.zeros_(m.bias)
+
+    def forward(self, x, edge_index=None, batch=None, return_embeddings=False):
+        h = self.fc1(x)
+        h = self.norm1(h)
+        h = F.relu(h)
+        h = F.dropout(h, p=self.dropout, training=self.training)
+
+        h = self.fc2(h)
+        h = self.norm2(h)
+        h = F.relu(h)
+        h = F.dropout(h, p=self.dropout, training=self.training)
+
+        logits = self.classifier(h)
+        if return_embeddings:
+            return logits, h
+        return logits
+
+    def predict_proba(self, x, edge_index=None, batch=None):
+        logits = self.forward(x, edge_index, batch)
+        calibrated_logits = logits / self.temperature.clamp(min=0.01)
+        return F.softmax(calibrated_logits, dim=1)
+
+    def set_temperature(self, temperature: float):
+        self.temperature.data.fill_(max(0.01, temperature))
+
+    def get_temperature(self) -> float:
+        return self.temperature.item()
+
+
+class UnidirectionalVulnGNN(VulnGNN):
+    """
+    Unidirectional GraphSAGE Baseline.
+    Propagates messages strictly along forward CFG edges (edge_index) without reverse edges.
+    """
+    def __init__(self, input_dim=40, hidden_dim=128, num_layers=3, dropout=0.3, **kwargs):
+        kwargs['bidirectional'] = False
+        super(UnidirectionalVulnGNN, self).__init__(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            num_layers=num_layers,
+            encoder='sage',
+            dropout=dropout,
+            **kwargs
+        )
+
+
+class GINVulnGNN(torch.nn.Module if torch is not None else object):
+    """
+    Bidirectional Graph Isomorphism Network (GIN) for Vulnerability Detection.
+    Evaluates sum-aggregation GIN with multi-layer perceptron edge updates.
+    """
+    def __init__(
+        self,
+        input_dim=40,
+        hidden_dim=128,
+        num_layers=3,
+        dropout=0.3,
+        use_global_ctx=True,
+        use_feature_gate=True,
+        bidirectional=True
+    ):
+        if torch is None:
+            raise ImportError("PyTorch and PyTorch Geometric must be installed to use GINVulnGNN.")
+        super(GINVulnGNN, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dropout = dropout
+        self.use_global_ctx = use_global_ctx
+        self.use_feature_gate = use_feature_gate
+        self.bidirectional = bidirectional
+
+        self.input_proj = torch.nn.Linear(input_dim, hidden_dim)
+        self.input_norm = LayerNorm(hidden_dim, mode='node')
+
+        self.convs = torch.nn.ModuleList()
+        self.rev_convs = torch.nn.ModuleList() if bidirectional else None
+        self.norms = torch.nn.ModuleList()
+
+        for _ in range(num_layers):
+            mlp_fwd = torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim, hidden_dim),
+            )
+            self.convs.append(GINConv(mlp_fwd, train_eps=True))
+            if bidirectional:
+                mlp_bwd = torch.nn.Sequential(
+                    torch.nn.Linear(hidden_dim, hidden_dim),
+                    torch.nn.ReLU(),
+                    torch.nn.Linear(hidden_dim, hidden_dim),
+                )
+                self.rev_convs.append(GINConv(mlp_bwd, train_eps=True))
+            self.norms.append(LayerNorm(hidden_dim, mode='node'))
+
+        if use_global_ctx:
+            self.global_ctx_proj = torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim * 2, hidden_dim),
+                torch.nn.ReLU(),
+            )
+        else:
+            self.global_ctx_proj = None
+
+        if use_feature_gate:
+            self.feature_gate = torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim, hidden_dim // 4),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim // 4, hidden_dim),
+                torch.nn.Sigmoid(),
+            )
+        else:
+            self.feature_gate = None
+
+        self.classifier = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim, hidden_dim // 2),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(dropout),
+            torch.nn.Linear(hidden_dim // 2, hidden_dim // 4),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(dropout),
+            torch.nn.Linear(hidden_dim // 4, 2),
+        )
+        self.register_parameter('temperature', torch.nn.Parameter(torch.ones(1) * 1.0))
+        self._init_weights()
+
+    def _init_weights(self):
+        for module in self.modules():
+            if isinstance(module, torch.nn.Linear):
+                torch.nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    torch.nn.init.zeros_(module.bias)
+
+    def forward(self, x, edge_index, batch=None, return_embeddings=False):
+        x = self.input_proj(x)
+        x = self.input_norm(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+
+        if self.bidirectional and self.rev_convs is not None:
+            rev_edge_index = edge_index.flip(0) if edge_index.numel() > 0 else edge_index
+            conv_iter = zip(self.convs, self.rev_convs, self.norms)
+        else:
+            conv_iter = ((c, None, n) for c, n in zip(self.convs, self.norms))
+
+        for i, (conv, rconv, norm) in enumerate(conv_iter):
+            residual = x
+            x_fwd = conv(x, edge_index)
+            if rconv is not None:
+                x_bwd = rconv(x, rev_edge_index)
+                x = 0.5 * (x_fwd + x_bwd)
+            else:
+                x = x_fwd
+            x = norm(x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+            if i > 0:
+                x = x + residual
+
+        if self.use_global_ctx and self.global_ctx_proj is not None:
+            if batch is None:
+                batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+            g_mean = global_mean_pool(x, batch)
+            g_max = global_max_pool(x, batch)
+            g_ctx = self.global_ctx_proj(torch.cat([g_mean, g_max], dim=-1))
+            x = x + 0.25 * g_ctx[batch]
+
+        if self.use_feature_gate and self.feature_gate is not None:
+            gate = self.feature_gate(x)
+            x = x * gate
+
+        embeddings = x
+        logits = self.classifier(x)
+        if return_embeddings:
+            return logits, embeddings
+        return logits
+
+    def predict_proba(self, x, edge_index, batch=None):
+        logits = self.forward(x, edge_index, batch)
+        calibrated_logits = logits / self.temperature.clamp(min=0.01)
+        return F.softmax(calibrated_logits, dim=1)
+
+    def set_temperature(self, temperature: float):
+        self.temperature.data.fill_(max(0.01, temperature))
+
+    def get_temperature(self) -> float:
+        return self.temperature.item()
+
+
+def create_model(input_dim=40, hidden_dim=128, num_layers=3, encoder='sage', model_type='vulngnn', **kwargs):
     """Factory function to create model with consistent defaults."""
+    if model_type == 'mlp':
+        return MLPBaseline(input_dim=input_dim, hidden_dim=hidden_dim, dropout=kwargs.get('dropout', 0.3))
+    elif model_type == 'gin' or encoder == 'gin':
+        return GINVulnGNN(input_dim=input_dim, hidden_dim=hidden_dim, num_layers=num_layers, **kwargs)
+    elif model_type == 'unidirectional' or kwargs.get('bidirectional') is False:
+        return UnidirectionalVulnGNN(input_dim=input_dim, hidden_dim=hidden_dim, num_layers=num_layers, **kwargs)
     return VulnGNN(
         input_dim=input_dim,
         hidden_dim=hidden_dim,

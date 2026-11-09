@@ -1,6 +1,7 @@
 import pyvex
 import networkx as nx
 import math
+from collections import defaultdict
 from typing import List, Optional, Set
 
 # Instruction categories for semantic features
@@ -157,14 +158,12 @@ def extract_node_features(node, nx_graph, loader=None, state=None) -> List[float
     scc_size = 0.0
     # scc_size is updated efficiently in update_graph_features()
 
-    num_predecessors = float(in_degree)
-    num_successors = float(out_degree)
+    # Dominator tree depth and back-edge count (replacing redundant duplicate degree features)
+    dominator_tree_depth = 0.0
+    back_edge_count = 0.0
     
     # Betweenness centrality proxy: in_degree * out_degree
     flow_centrality = float(in_degree * out_degree)
-    
-    # Post-dominance: reverse graph out-degree is mathematically equal to in_degree
-    exit_degree = float(in_degree)
     
     # Is entry/exit block
     is_entry_block = 1.0 if nx_graph.has_node(addr) and in_degree == 0 else 0.0
@@ -368,7 +367,27 @@ def extract_node_features(node, nx_graph, loader=None, state=None) -> List[float
     # ============================================================
     vex_density = (float(total_vex_stmts) / max(float(num_instructions), 1.0)) * 500.0
     avg_constraint_complexity = vex_density
-    max_constraint_depth = 0.0  # Updated in update_graph_features with local guard density when state is None
+    branch_condition_complexity = 0.0
+    try:
+        if block and block.vex:
+            cond_score = 0.0
+            for stmt in block.vex.statements:
+                stmt_str = str(stmt)
+                if "Cmp" in stmt_str:
+                    if "64" in stmt_str:
+                        cond_score += 2.0
+                    elif "32" in stmt_str:
+                        cond_score += 1.5
+                    else:
+                        cond_score += 1.0
+                if any(op in stmt_str for op in ("And", "Or", "Xor")):
+                    cond_score += 0.5
+            if getattr(block.vex, "jumpkind", None) in ("Ijk_Boring", "Ijk_Call") and out_degree > 1:
+                cond_score += 1.0
+            branch_condition_complexity = cond_score
+    except Exception:
+        pass
+
     num_unique_variables = 1.0 if ('clean_self_api' in locals() and _matches_api(clean_self_api, DEALLOC_FUNCS)) else 0.0
     has_concrete_model = vex_div_mod_ops
     solver_time_estimate = has_zero_const_op * 5000.0
@@ -380,12 +399,12 @@ def extract_node_features(node, nx_graph, loader=None, state=None) -> List[float
             if constraints:
                 total_size = sum(len(str(c)) for c in constraints)
                 avg_constraint_complexity = float(total_size / len(constraints))
-                max_constraint_depth = float(max(len(str(c)) for c in constraints))
+                branch_condition_complexity += float(max(len(str(c)) for c in constraints)) / 100.0
 
                 var_names = set()
                 for c in constraints:
                     if hasattr(c, 'leaf_asts'):
-                        for leaf in c.leaf_asts():
+                        for leaf in (c.leaf_asts() if callable(c.leaf_asts) else c.leaf_asts):
                             if hasattr(leaf, 'op') and leaf.op == 'BVS':
                                 var_names.add(leaf.args[0])
                 num_unique_variables = float(len(var_names))
@@ -407,8 +426,8 @@ def extract_node_features(node, nx_graph, loader=None, state=None) -> List[float
         _normalize(depth_from_entry, 0, 500),   # 2: depth_from_entry
         is_loop_header,                          # 3: is_loop_header
         _normalize(scc_size, 1, 50),            # 4: scc_size
-        _normalize(num_predecessors, 0, 20),    # 5: num_predecessors
-        _normalize(num_successors, 0, 20),      # 6: num_successors
+        _normalize(dominator_tree_depth, 0, 20), # 5: dominator_tree_depth
+        _normalize(back_edge_count, 0, 5),      # 6: back_edge_count
         _normalize(flow_centrality, 0, 400),    # 7: flow_centrality
 
         # B. Instruction Count/Complexity (6)
@@ -444,12 +463,12 @@ def extract_node_features(node, nx_graph, loader=None, state=None) -> List[float
         _normalize(stack_depth, 0, 100000),            # 33: stack_depth (normalized)
 
         # E. Symbolic Execution State (6)
-        _normalize(avg_constraint_complexity, 0, 10000), # 34: avg_constraint_complexity
-        _normalize(max_constraint_depth, 0, 5000),       # 35: max_constraint_depth
-        _normalize(num_unique_variables, 0, 50),         # 36: num_unique_variables
-        has_concrete_model,                               # 37: has_concrete_model
-        _normalize(solver_time_estimate, 0, 10000),      # 38: solver_time_estimate
-        path_satisfiability,                              # 39: path_satisfiability
+        _normalize(avg_constraint_complexity, 0, 10000),         # 34: avg_constraint_complexity
+        _normalize(branch_condition_complexity, 0, 10),          # 35: branch_condition_complexity
+        _normalize(num_unique_variables, 0, 50),                 # 36: num_unique_variables
+        has_concrete_model,                                       # 37: has_concrete_model
+        _normalize(solver_time_estimate, 0, 10000),              # 38: solver_time_estimate
+        path_satisfiability,                                      # 39: path_satisfiability
     ]
 
     # Sanity check: exactly 40 features
@@ -496,6 +515,67 @@ def update_graph_features(nx_graph, entry_addr=None):
             func_min_addr[fb] = min(func_min_addr.get(fb, n), n)
             func_max_addr[fb] = max(func_max_addr.get(fb, n), n)
 
+    # Precompute dominator tree depths and back-edges per function CFG subgraph
+    dom_depth_map = {}
+    back_edge_map = defaultdict(int)
+    func_node_map = defaultdict(list)
+    for n in nx_graph.nodes():
+        fb = func_base.get(n, '')
+        func_node_map[fb].append(n)
+
+    for fb, fn_nodes in func_node_map.items():
+        if not fb or len(fn_nodes) <= 1:
+            continue
+        try:
+            H = nx_graph.subgraph(fn_nodes)
+            cand_entries = [n for n in fn_nodes if H.in_degree(n) == 0]
+            entry = cand_entries[0] if cand_entries else func_min_addr.get(fb, fn_nodes[0])
+            if entry in H:
+                idoms = nx.immediate_dominators(H, entry)
+                for n in fn_nodes:
+                    d = 0
+                    curr = n
+                    visited = set()
+                    while curr != entry and curr in idoms and curr not in visited:
+                        visited.add(curr)
+                        curr = idoms[curr]
+                        d += 1
+                    dom_depth_map[n] = float(d)
+
+                # Compute dominator ancestors for reducible natural loops
+                dom_ancestors = {}
+                for n in fn_nodes:
+                    ancs = set()
+                    curr = n
+                    while curr in idoms and curr != entry and curr not in ancs:
+                        ancs.add(idoms[curr])
+                        curr = idoms[curr]
+                    dom_ancestors[n] = ancs
+
+                # Compute DFS back-edges for generalized loop detection (including irreducible graphs)
+                dfs_visited = set()
+                dfs_stack = set()
+                dfs_back_edges = set()
+
+                def _find_dfs_back_edges(u):
+                    dfs_visited.add(u)
+                    dfs_stack.add(u)
+                    for succ in H.successors(u):
+                        if succ in dfs_stack:
+                            dfs_back_edges.add((u, succ))
+                        elif succ not in dfs_visited:
+                            _find_dfs_back_edges(succ)
+                    dfs_stack.remove(u)
+
+                _find_dfs_back_edges(entry)
+
+                for u, v in H.edges():
+                    if (u, v) in dfs_back_edges or v in dom_ancestors.get(u, set()) or v == u:
+                        back_edge_map[u] += 1
+                        back_edge_map[v] += 1
+        except Exception:
+            pass
+
     taint_seed_nodes = []
     dealloc_seed_nodes = []
 
@@ -512,8 +592,8 @@ def update_graph_features(nx_graph, entry_addr=None):
         feats[1] = _normalize(out_d, 0, 20)
         feats[3] = 1.0 if nd.get('is_loop_header', False) else 0.0
         feats[4] = _normalize(scc_size_map.get(node, 1.0), 1, 50)
-        feats[5] = _normalize(in_d, 0, 20)
-        feats[6] = _normalize(out_d, 0, 20)
+        feats[5] = _normalize(dom_depth_map.get(node, 0.0), 0.0, 20.0)
+        feats[6] = _normalize(float(back_edge_map.get(node, 0)), 0.0, 5.0)
         feats[7] = _normalize(in_d * out_d, 0, 400)
 
         # Relative intra-function offset in slot 39
@@ -613,7 +693,7 @@ def update_graph_features(nx_graph, entry_addr=None):
                     nxt_frontier.append(pred)
             frontier = nxt_frontier
         feats[27] = _normalize(float(guard_count), 0.0, 6.0)
-        feats[35] = _normalize(float(guard_count) * 1000.0, 0.0, 5000.0)
+        feats[35] = min(1.0, feats[35] + _normalize(float(guard_count), 0.0, 10.0) * 0.3)
 
 
 # ============================================================
@@ -627,8 +707,8 @@ FEATURE_NAMES = [
     "depth_from_entry",
     "is_loop_header",
     "scc_size",
-    "num_predecessors",
-    "num_successors",
+    "dominator_tree_depth",
+    "back_edge_count",
     "flow_centrality",
     
     # B. Instruction Count/Complexity (6)
@@ -665,7 +745,7 @@ FEATURE_NAMES = [
     
     # E. Symbolic Execution State (6)
     "avg_constraint_complexity",
-    "max_constraint_depth",
+    "branch_condition_complexity",
     "num_unique_variables",
     "has_concrete_model",
     "solver_time_estimate",

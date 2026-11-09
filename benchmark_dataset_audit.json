@@ -1,0 +1,208 @@
+{
+  "dataset_splits_audit": {
+    "juliet_total_graphs": 2681,
+    "juliet_train_graphs": 1876,
+    "juliet_val_graphs": 402,
+    "juliet_test_graphs": 403,
+    "leakage_train_val": 0,
+    "leakage_train_test": 0,
+    "leakage_val_test": 0,
+    "primevul_total_graphs": 2480,
+    "cross_corpus_leakage": 0
+  },
+  "dwarf_mapping_audit": {
+    "juliet_vuln_total": 2450,
+    "juliet_vuln_mapped": 2450,
+    "juliet_mapping_rate_pct": 100.0,
+    "juliet_patched_total": 231,
+    "juliet_patched_clean": 231,
+    "primevul_vuln_total": 1240,
+    "primevul_vuln_mapped": 1190,
+    "primevul_mapping_rate_pct": 95.97,
+    "primevul_patched_total": 1240,
+    "primevul_patched_clean": 1240
+  },
+  "compiler_inlining_evaluation": {
+    "cwe120_buffer_overflow": {
+      "O0": {
+        "status": "SUCCESS",
+        "nodes": 26,
+        "edges": 34,
+        "inlining_enabled": true,
+        "size_bytes": 33768
+      },
+      "O1": {
+        "status": "SUCCESS",
+        "nodes": 20,
+        "edges": 28,
+        "inlining_enabled": true,
+        "size_bytes": 33720
+      },
+      "O2": {
+        "status": "SUCCESS",
+        "nodes": 20,
+        "edges": 28,
+        "inlining_enabled": true,
+        "size_bytes": 33720
+      },
+      "Os": {
+        "status": "SUCCESS",
+        "nodes": 20,
+        "edges": 28,
+        "inlining_enabled": true,
+        "size_bytes": 33720
+      }
+    },
+    "cwe134_format_string": {
+      "O0": {
+        "status": "SUCCESS",
+        "nodes": 21,
+        "edges": 28,
+        "inlining_enabled": true,
+        "size_bytes": 33720
+      },
+      "O1": {
+        "status": "SUCCESS",
+        "nodes": 17,
+        "edges": 22,
+        "inlining_enabled": true,
+        "size_bytes": 33720
+      },
+      "O2": {
+        "status": "SUCCESS",
+        "nodes": 17,
+        "edges": 22,
+        "inlining_enabled": true,
+        "size_bytes": 33720
+      },
+      "Os": {
+        "status": "SUCCESS",
+        "nodes": 17,
+        "edges": 22,
+        "inlining_enabled": true,
+        "size_bytes": 33720
+      }
+    },
+    "cwe416_use_after_free": {
+      "O0": {
+        "status": "SUCCESS",
+        "nodes": 28,
+        "edges": 35,
+        "inlining_enabled": true,
+        "size_bytes": 33688
+      },
+      "O1": {
+        "status": "SUCCESS",
+        "nodes": 26,
+        "edges": 35,
+        "inlining_enabled": true,
+        "size_bytes": 33624
+      },
+      "O2": {
+        "status": "SUCCESS",
+        "nodes": 23,
+        "edges": 35,
+        "inlining_enabled": true,
+        "size_bytes": 33624
+      },
+      "Os": {
+        "status": "SUCCESS",
+        "nodes": 19,
+        "edges": 25,
+        "inlining_enabled": true,
+        "size_bytes": 33624
+      }
+    },
+    "cwe476_null_deref": {
+      "O0": {
+        "status": "SUCCESS",
+        "nodes": 18,
+        "edges": 23,
+        "inlining_enabled": true,
+        "size_bytes": 33536
+      },
+      "O1": {
+        "status": "SUCCESS",
+        "nodes": 10,
+        "edges": 11,
+        "inlining_enabled": true,
+        "size_bytes": 33536
+      },
+      "O2": {
+        "status": "SUCCESS",
+        "nodes": 10,
+        "edges": 11,
+        "inlining_enabled": true,
+        "size_bytes": 33536
+      },
+      "Os": {
+        "status": "SUCCESS",
+        "nodes": 10,
+        "edges": 11,
+        "inlining_enabled": true,
+        "size_bytes": 33536
+      }
+    },
+    "cwe78_command_injection": {
+      "O0": {
+        "status": "SUCCESS",
+        "nodes": 26,
+        "edges": 34,
+        "inlining_enabled": true,
+        "size_bytes": 33784
+      },
+      "O1": {
+        "status": "SUCCESS",
+        "nodes": 20,
+        "edges": 28,
+        "inlining_enabled": true,
+        "size_bytes": 33736
+      },
+      "O2": {
+        "status": "SUCCESS",
+        "nodes": 20,
+        "edges": 28,
+        "inlining_enabled": true,
+        "size_bytes": 33736
+      },
+      "Os": {
+        "status": "SUCCESS",
+        "nodes": 20,
+        "edges": 28,
+        "inlining_enabled": true,
+        "size_bytes": 33736
+      }
+    },
+    "secure_program": {
+      "O0": {
+        "status": "SUCCESS",
+        "nodes": 31,
+        "edges": 42,
+        "inlining_enabled": true,
+        "size_bytes": 33760
+      },
+      "O1": {
+        "status": "SUCCESS",
+        "nodes": 28,
+        "edges": 40,
+        "inlining_enabled": true,
+        "size_bytes": 33744
+      },
+      "O2": {
+        "status": "SUCCESS",
+        "nodes": 28,
+        "edges": 40,
+        "inlining_enabled": true,
+        "size_bytes": 33744
+      },
+      "Os": {
+        "status": "SUCCESS",
+        "nodes": 24,
+        "edges": 32,
+        "inlining_enabled": true,
+        "size_bytes": 33744
+      }
+    }
+  },
+  "timestamp": "2026-11-09 16:44:11"
+}
