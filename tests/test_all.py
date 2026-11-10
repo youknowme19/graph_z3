@@ -23,6 +23,11 @@ from symbolic.z3_interface import Z3Interface
 from core.fix_advisor import FixAdvisor
 import claripy
 
+try:
+    from tests.test_timeout_regression import TestTimeoutRegression
+except ImportError:
+    from test_timeout_regression import TestTimeoutRegression
+
 # Allow CI to override via env-var; default to the in-repository benchmark binary.
 _benchmark_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_benchmarks_binary"))
 _test_vuln_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "test_vuln"))

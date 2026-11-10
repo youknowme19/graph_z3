@@ -563,8 +563,8 @@
           "crash_length": 63,
           "exploit_verified": true,
           "crash_classification": "VERIFIED_EXPLOIT",
-          "exploit_title": "Controlled Format String \u2192 Arbitrary Write / Info Leak",
-          "exploit_type": "FMT_STR_ARBITRARY_WRITE",
+          "exploit_title": "Controlled Format String \u2192 Information Disclosure",
+          "exploit_type": "FMT_STR_INFORMATION_DISCLOSURE",
           "cvss": 3.6,
           "reliability": "HIGH"
         }
@@ -997,7 +997,7 @@
           "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 6.7,
+          "cvss": 0.0,
           "reliability": "LOW"
         },
         {
@@ -1283,7 +1283,7 @@
           "crash_classification": "UNRELATED_CRASH",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 6.7,
+          "cvss": 0.0,
           "reliability": "LOW"
         }
       ],
@@ -1293,8 +1293,8 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 18.706,
-      "peak_cvss": 6.7,
-      "composite_risk_score": 6.7,
+      "peak_cvss": 0.0,
+      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -1510,7 +1510,7 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 6.7,
+          "cvss": 0.0,
           "reliability": "LOW"
         }
       ],
@@ -1520,8 +1520,8 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 53.309,
-      "peak_cvss": 6.7,
-      "composite_risk_score": 6.7,
+      "peak_cvss": 0.0,
+      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3601,7 +3601,7 @@
           "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 6.7,
+          "cvss": 0.0,
           "reliability": "LOW"
         }
       ],
@@ -3611,8 +3611,8 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 27.916,
-      "peak_cvss": 6.7,
-      "composite_risk_score": 6.7,
+      "peak_cvss": 0.0,
+      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3684,7 +3684,7 @@
           "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 6.7,
+          "cvss": 0.0,
           "reliability": "LOW"
         }
       ],
@@ -3694,8 +3694,8 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 33.227,
-      "peak_cvss": 6.7,
-      "composite_risk_score": 6.7,
+      "peak_cvss": 0.0,
+      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -6486,8 +6486,8 @@
           "crash_length": 112,
           "exploit_verified": false,
           "crash_classification": "NOT_REPLAYABLE",
-          "exploit_title": "Controlled Format String \u2192 Arbitrary Write / Info Leak",
-          "exploit_type": "FMT_STR_ARBITRARY_WRITE",
+          "exploit_title": "Controlled Format String \u2192 Information Disclosure",
+          "exploit_type": "FMT_STR_INFORMATION_DISCLOSURE",
           "cvss": 3.6,
           "reliability": "HIGH"
         },
@@ -6991,7 +6991,7 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 6.7,
+          "cvss": 0.0,
           "reliability": "LOW"
         }
       ],
@@ -7001,8 +7001,8 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 38.178,
-      "peak_cvss": 6.7,
-      "composite_risk_score": 6.7,
+      "peak_cvss": 0.0,
+      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
