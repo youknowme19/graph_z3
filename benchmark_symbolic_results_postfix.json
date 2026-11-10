@@ -829,7 +829,7 @@
           "solver_time_ms": 49.143,
           "crash_length": 63,
           "exploit_verified": true,
-          "crash_classification": "VERIFIED_COMMAND_EXECUTION",
+          "crash_classification": "DEMONSTRATED_COMMAND_EXECUTION",
           "exploit_title": "Command Injection \u2192 Remote Code Execution",
           "exploit_type": "CMD_INJECTION_RCE",
           "reliability": "HIGH"
@@ -976,11 +976,10 @@
           "solver_time_ms": 46.786,
           "crash_length": 15,
           "exploit_verified": false,
-          "crash_classification": "MITIGATED_BY_CANARY",
+          "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "reliability": "LOW",
-          "mitigation_classification": "MITIGATED_BY_CANARY"
+          "reliability": "LOW"
         },
         {
           "vuln_type": "STACK_OVERFLOW",
@@ -992,11 +991,10 @@
           "solver_time_ms": 46.955,
           "crash_length": 15,
           "exploit_verified": false,
-          "crash_classification": "MITIGATED_BY_CANARY",
+          "crash_classification": "UNVERIFIED_ABNORMAL_TERMINATION",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "reliability": "LOW",
-          "mitigation_classification": "MITIGATED_BY_CANARY"
+          "reliability": "LOW"
         },
         {
           "vuln_type": "NULL_DEREF",
@@ -1253,11 +1251,10 @@
           "solver_time_ms": 18.706,
           "crash_length": 32,
           "exploit_verified": false,
-          "crash_classification": "MITIGATED_BY_CANARY",
+          "crash_classification": "UNRELATED_CRASH",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "reliability": "LOW",
-          "mitigation_classification": "MITIGATED_BY_CANARY"
+          "reliability": "LOW"
         }
       ],
       "vuln_count": 1,
@@ -1473,11 +1470,10 @@
           "solver_time_ms": 53.309,
           "crash_length": 48,
           "exploit_verified": false,
-          "crash_classification": "MITIGATED_BY_CANARY",
+          "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "reliability": "LOW",
-          "mitigation_classification": "MITIGATED_BY_CANARY"
+          "reliability": "LOW"
         }
       ],
       "vuln_count": 1,
@@ -3493,11 +3489,10 @@
           "solver_time_ms": 27.916,
           "crash_length": 99,
           "exploit_verified": false,
-          "crash_classification": "MITIGATED_BY_CANARY",
+          "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "reliability": "LOW",
-          "mitigation_classification": "MITIGATED_BY_CANARY"
+          "reliability": "LOW"
         }
       ],
       "vuln_count": 1,
@@ -3574,11 +3569,10 @@
           "solver_time_ms": 33.227,
           "crash_length": 99,
           "exploit_verified": false,
-          "crash_classification": "MITIGATED_BY_CANARY",
+          "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "reliability": "LOW",
-          "mitigation_classification": "MITIGATED_BY_CANARY"
+          "reliability": "LOW"
         }
       ],
       "vuln_count": 1,
@@ -6770,11 +6764,10 @@
           "solver_time_ms": 38.178,
           "crash_length": 48,
           "exploit_verified": false,
-          "crash_classification": "MITIGATED_BY_CANARY",
+          "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "reliability": "LOW",
-          "mitigation_classification": "MITIGATED_BY_CANARY"
+          "reliability": "LOW"
         }
       ],
       "vuln_count": 1,
