@@ -477,7 +477,6 @@
           "crash_classification": "UNVERIFIED_ABNORMAL_TERMINATION",
           "exploit_title": "Stack Overflow \u2192 Return Address Overwrite (EIP/RIP control)",
           "exploit_type": "STACK_SMASH_RIP",
-          "cvss": 7.9,
           "reliability": "HIGH"
         }
       ],
@@ -487,8 +486,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 37.18,
-      "peak_cvss": 7.9,
-      "composite_risk_score": 7.9,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -565,7 +562,6 @@
           "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Controlled Format String \u2192 Information Disclosure",
           "exploit_type": "FMT_STR_INFORMATION_DISCLOSURE",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -575,8 +571,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 35.535,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -654,7 +648,6 @@
           "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Use-After-Free \u2014 Heap Type Confusion / Controlled Write",
           "exploit_type": "HEAP_UAF_TYPE_CONFUSION",
-          "cvss": 6.6,
           "reliability": "MEDIUM"
         },
         {
@@ -670,7 +663,6 @@
           "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Use-After-Free \u2014 Heap Type Confusion / Controlled Write",
           "exploit_type": "HEAP_UAF_TYPE_CONFUSION",
-          "cvss": 6.6,
           "reliability": "MEDIUM"
         }
       ],
@@ -680,8 +672,6 @@
       ],
       "solver_sat_count": 2,
       "avg_solver_time_ms": 33.335,
-      "peak_cvss": 6.6,
-      "composite_risk_score": 6.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -758,7 +748,6 @@
           "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 4.2,
           "reliability": "HIGH"
         }
       ],
@@ -768,8 +757,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 23.365,
-      "peak_cvss": 4.2,
-      "composite_risk_score": 4.2,
       "mitigations": [
         "NX",
         "PIE"
@@ -845,7 +832,6 @@
           "crash_classification": "VERIFIED_COMMAND_EXECUTION",
           "exploit_title": "Command Injection \u2192 Remote Code Execution",
           "exploit_type": "CMD_INJECTION_RCE",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -855,8 +841,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 49.143,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -925,8 +909,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -993,12 +975,12 @@
           "solver_status": "SAT",
           "solver_time_ms": 46.786,
           "crash_length": 15,
-          "exploit_verified": true,
-          "crash_classification": "VERIFIED_EXPLOIT",
+          "exploit_verified": false,
+          "crash_classification": "MITIGATED_BY_CANARY",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 0.0,
-          "reliability": "LOW"
+          "reliability": "LOW",
+          "mitigation_classification": "MITIGATED_BY_CANARY"
         },
         {
           "vuln_type": "STACK_OVERFLOW",
@@ -1010,11 +992,11 @@
           "solver_time_ms": 46.955,
           "crash_length": 15,
           "exploit_verified": false,
-          "crash_classification": "UNVERIFIED_ABNORMAL_TERMINATION",
+          "crash_classification": "MITIGATED_BY_CANARY",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 7.4,
-          "reliability": "LOW"
+          "reliability": "LOW",
+          "mitigation_classification": "MITIGATED_BY_CANARY"
         },
         {
           "vuln_type": "NULL_DEREF",
@@ -1029,7 +1011,6 @@
           "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         },
         {
@@ -1045,7 +1026,6 @@
           "crash_classification": "VERIFIED_EXPLOIT",
           "exploit_title": "Use-After-Free \u2014 Heap Type Confusion / Controlled Write",
           "exploit_type": "HEAP_UAF_TYPE_CONFUSION",
-          "cvss": 6.1,
           "reliability": "MEDIUM"
         }
       ],
@@ -1058,8 +1038,6 @@
       ],
       "solver_sat_count": 4,
       "avg_solver_time_ms": 42.665,
-      "peak_cvss": 7.4,
-      "composite_risk_score": 6.96,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -1130,8 +1108,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1196,7 +1172,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 8.4,
           "reliability": "HIGH"
         }
       ],
@@ -1206,8 +1181,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 28.255,
-      "peak_cvss": 8.4,
-      "composite_risk_score": 8.4,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -1280,11 +1253,11 @@
           "solver_time_ms": 18.706,
           "crash_length": 32,
           "exploit_verified": false,
-          "crash_classification": "UNRELATED_CRASH",
+          "crash_classification": "MITIGATED_BY_CANARY",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 0.0,
-          "reliability": "LOW"
+          "reliability": "LOW",
+          "mitigation_classification": "MITIGATED_BY_CANARY"
         }
       ],
       "vuln_count": 1,
@@ -1293,8 +1266,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 18.706,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -1366,7 +1337,6 @@
           "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -1376,8 +1346,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 19.048,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -1444,8 +1412,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1507,11 +1473,11 @@
           "solver_time_ms": 53.309,
           "crash_length": 48,
           "exploit_verified": false,
-          "crash_classification": "NOT_REPLAYABLE",
+          "crash_classification": "MITIGATED_BY_CANARY",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 0.0,
-          "reliability": "LOW"
+          "reliability": "LOW",
+          "mitigation_classification": "MITIGATED_BY_CANARY"
         }
       ],
       "vuln_count": 1,
@@ -1520,8 +1486,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 53.309,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -1588,8 +1552,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1645,8 +1607,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1706,8 +1666,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1763,8 +1721,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1824,8 +1780,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1881,8 +1835,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -1951,7 +1903,6 @@
           "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -1961,8 +1912,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 19.204,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -2034,7 +1983,6 @@
           "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -2044,8 +1992,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 26.679,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -2121,7 +2067,6 @@
           "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -2131,8 +2076,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 19.016,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -2204,7 +2147,6 @@
           "crash_classification": "NORMAL_TERMINATION",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -2214,8 +2156,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 24.496,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -2282,8 +2222,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2339,8 +2277,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2400,8 +2336,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2457,8 +2391,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2518,8 +2450,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2584,7 +2514,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 8.4,
           "reliability": "HIGH"
         }
       ],
@@ -2594,8 +2523,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 45.489,
-      "peak_cvss": 8.4,
-      "composite_risk_score": 8.4,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -2662,8 +2589,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2719,8 +2644,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2789,7 +2712,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 8.4,
           "reliability": "HIGH"
         }
       ],
@@ -2799,8 +2721,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 44.811,
-      "peak_cvss": 8.4,
-      "composite_risk_score": 8.4,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -2863,8 +2783,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2924,8 +2842,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -2981,8 +2897,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3051,7 +2965,6 @@
           "crash_classification": "UNRELATED_CRASH",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -3061,8 +2974,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 18.958,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3134,7 +3045,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 8.4,
           "reliability": "HIGH"
         }
       ],
@@ -3144,8 +3054,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 46.287,
-      "peak_cvss": 8.4,
-      "composite_risk_score": 8.4,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3212,8 +3120,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3269,8 +3175,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3330,8 +3234,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3396,7 +3298,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 8.4,
           "reliability": "HIGH"
         }
       ],
@@ -3406,8 +3307,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 41.657,
-      "peak_cvss": 8.4,
-      "composite_risk_score": 8.4,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3474,8 +3373,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3531,8 +3428,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3598,11 +3493,11 @@
           "solver_time_ms": 27.916,
           "crash_length": 99,
           "exploit_verified": false,
-          "crash_classification": "NORMAL_TERMINATION",
+          "crash_classification": "MITIGATED_BY_CANARY",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 0.0,
-          "reliability": "LOW"
+          "reliability": "LOW",
+          "mitigation_classification": "MITIGATED_BY_CANARY"
         }
       ],
       "vuln_count": 1,
@@ -3611,8 +3506,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 27.916,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3681,11 +3574,11 @@
           "solver_time_ms": 33.227,
           "crash_length": 99,
           "exploit_verified": false,
-          "crash_classification": "NORMAL_TERMINATION",
+          "crash_classification": "MITIGATED_BY_CANARY",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 0.0,
-          "reliability": "LOW"
+          "reliability": "LOW",
+          "mitigation_classification": "MITIGATED_BY_CANARY"
         }
       ],
       "vuln_count": 1,
@@ -3694,8 +3587,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 33.227,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3762,8 +3653,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3828,7 +3717,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 8.4,
           "reliability": "HIGH"
         }
       ],
@@ -3838,8 +3726,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 46.614,
-      "peak_cvss": 8.4,
-      "composite_risk_score": 8.4,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -3906,8 +3792,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -3963,8 +3847,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4024,8 +3906,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4087,8 +3967,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4150,8 +4028,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4213,8 +4089,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4276,8 +4150,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4339,8 +4211,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4402,8 +4272,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4465,8 +4333,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4528,8 +4394,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4591,8 +4455,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4654,8 +4516,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4717,8 +4577,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4780,8 +4638,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4843,8 +4699,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -4915,7 +4769,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Out-of-Bounds Read \u2192 Memory Disclosure / Info Leak",
           "exploit_type": "INFO_LEAK",
-          "cvss": 5.7,
           "reliability": "MEDIUM"
         }
       ],
@@ -4925,8 +4778,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 64.549,
-      "peak_cvss": 5.7,
-      "composite_risk_score": 5.7,
       "mitigations": [
         "NX",
         "PIE"
@@ -5002,7 +4853,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Out-of-Bounds Read \u2192 Memory Disclosure / Info Leak",
           "exploit_type": "INFO_LEAK",
-          "cvss": 5.7,
           "reliability": "MEDIUM"
         }
       ],
@@ -5012,8 +4862,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 58.525,
-      "peak_cvss": 5.7,
-      "composite_risk_score": 5.7,
       "mitigations": [
         "NX",
         "PIE"
@@ -5080,8 +4928,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -5143,8 +4989,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -5215,7 +5059,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 9.0,
           "reliability": "HIGH"
         }
       ],
@@ -5225,8 +5068,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 48.673,
-      "peak_cvss": 9.0,
-      "composite_risk_score": 9.0,
       "mitigations": [
         "NX",
         "PIE"
@@ -5302,7 +5143,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 9.0,
           "reliability": "HIGH"
         }
       ],
@@ -5312,8 +5152,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 50.959,
-      "peak_cvss": 9.0,
-      "composite_risk_score": 9.0,
       "mitigations": [
         "NX",
         "PIE"
@@ -5380,8 +5218,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -5443,8 +5279,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -5506,8 +5340,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -5569,8 +5401,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -5641,7 +5471,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Out-of-Bounds Read \u2192 Memory Disclosure / Info Leak",
           "exploit_type": "INFO_LEAK",
-          "cvss": 5.7,
           "reliability": "MEDIUM"
         }
       ],
@@ -5651,8 +5480,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 44.023,
-      "peak_cvss": 5.7,
-      "composite_risk_score": 5.7,
       "mitigations": [
         "NX",
         "PIE"
@@ -5728,7 +5555,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Out-of-Bounds Read \u2192 Memory Disclosure / Info Leak",
           "exploit_type": "INFO_LEAK",
-          "cvss": 5.7,
           "reliability": "MEDIUM"
         }
       ],
@@ -5738,8 +5564,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 57.702,
-      "peak_cvss": 5.7,
-      "composite_risk_score": 5.7,
       "mitigations": [
         "NX",
         "PIE"
@@ -5815,7 +5639,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 9.0,
           "reliability": "HIGH"
         }
       ],
@@ -5825,8 +5648,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 72.06,
-      "peak_cvss": 9.0,
-      "composite_risk_score": 9.0,
       "mitigations": [
         "NX",
         "PIE"
@@ -5902,7 +5723,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Return-to-Text (ret2text) \u2014 PC redirects into binary code",
           "exploit_type": "RET2TEXT",
-          "cvss": 9.0,
           "reliability": "HIGH"
         }
       ],
@@ -5912,8 +5732,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 80.493,
-      "peak_cvss": 9.0,
-      "composite_risk_score": 9.0,
       "mitigations": [
         "NX",
         "PIE"
@@ -5980,8 +5798,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -6043,8 +5859,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -6115,7 +5929,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         },
         {
@@ -6131,7 +5944,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         },
         {
@@ -6147,7 +5959,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -6157,8 +5968,6 @@
       ],
       "solver_sat_count": 3,
       "avg_solver_time_ms": 46.862,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -6227,8 +6036,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -6290,8 +6097,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -6353,8 +6158,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -6416,8 +6219,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -6488,7 +6289,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Controlled Format String \u2192 Information Disclosure",
           "exploit_type": "FMT_STR_INFORMATION_DISCLOSURE",
-          "cvss": 3.6,
           "reliability": "HIGH"
         },
         {
@@ -6504,7 +6304,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         }
       ],
@@ -6515,8 +6314,6 @@
       ],
       "solver_sat_count": 2,
       "avg_solver_time_ms": 54.534,
-      "peak_cvss": 3.6,
-      "composite_risk_score": 3.6,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -6595,7 +6392,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 3.6,
           "reliability": "HIGH"
         },
         {
@@ -6611,7 +6407,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Invalid Free \u2192 Heap Allocator Metadata Corruption",
           "exploit_type": "HEAP_METADATA_CORRUPT",
-          "cvss": 4.6,
           "reliability": "LOW"
         },
         {
@@ -6627,7 +6422,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Out-of-Bounds Read \u2192 Memory Disclosure / Info Leak",
           "exploit_type": "INFO_LEAK",
-          "cvss": 5.1,
           "reliability": "MEDIUM"
         }
       ],
@@ -6639,8 +6433,6 @@
       ],
       "solver_sat_count": 3,
       "avg_solver_time_ms": 42.329,
-      "peak_cvss": 5.1,
-      "composite_risk_score": 4.9,
       "mitigations": [
         "FORTIFY",
         "NX",
@@ -6720,7 +6512,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 4.2,
           "reliability": "HIGH"
         },
         {
@@ -6736,7 +6527,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 4.2,
           "reliability": "HIGH"
         }
       ],
@@ -6746,8 +6536,6 @@
       ],
       "solver_sat_count": 2,
       "avg_solver_time_ms": 39.515,
-      "peak_cvss": 4.2,
-      "composite_risk_score": 4.2,
       "mitigations": [
         "NX",
         "PIE"
@@ -6823,7 +6611,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Null Pointer Dereference \u2192 Denial of Service",
           "exploit_type": "DOS_CRASH",
-          "cvss": 4.2,
           "reliability": "HIGH"
         },
         {
@@ -6839,7 +6626,6 @@
           "crash_classification": "NOT_REPLAYABLE",
           "exploit_title": "Out-of-Bounds Read \u2192 Memory Disclosure / Info Leak",
           "exploit_type": "INFO_LEAK",
-          "cvss": 5.7,
           "reliability": "MEDIUM"
         }
       ],
@@ -6850,8 +6636,6 @@
       ],
       "solver_sat_count": 2,
       "avg_solver_time_ms": 43.37,
-      "peak_cvss": 5.7,
-      "composite_risk_score": 5.47,
       "mitigations": [
         "NX",
         "PIE"
@@ -6919,8 +6703,6 @@
       "vuln_types": [],
       "solver_sat_count": 0,
       "avg_solver_time_ms": 0.0,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [],
       "exploit_primitives": [],
       "verified_live_crashes": 0,
@@ -6988,11 +6770,11 @@
           "solver_time_ms": 38.178,
           "crash_length": 48,
           "exploit_verified": false,
-          "crash_classification": "NOT_REPLAYABLE",
+          "crash_classification": "MITIGATED_BY_CANARY",
           "exploit_title": "Stack Overflow \u2014 Blocked by Stack Canary",
           "exploit_type": "STACK_SMASH_BLOCKED_BY_CANARY",
-          "cvss": 0.0,
-          "reliability": "LOW"
+          "reliability": "LOW",
+          "mitigation_classification": "MITIGATED_BY_CANARY"
         }
       ],
       "vuln_count": 1,
@@ -7001,8 +6783,6 @@
       ],
       "solver_sat_count": 1,
       "avg_solver_time_ms": 38.178,
-      "peak_cvss": 0.0,
-      "composite_risk_score": 0.0,
       "mitigations": [
         "FORTIFY",
         "NX",

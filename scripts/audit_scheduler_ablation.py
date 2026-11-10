@@ -160,7 +160,9 @@ def run_condition(
     func_vuln_map: dict = None,
     timeout_s: float = 10.0,
     max_steps: int = 80,
+    initial_overhead_s: float = 0.0,
 ) -> dict:
+    rem_timeout = max(0.1, timeout_s - initial_overhead_s)
     AnalysisBackendProvider._timeout_flag = False
     signal.signal(signal.SIGALRM, _alarm_handler)
     t0 = time.perf_counter()
@@ -169,7 +171,7 @@ def run_condition(
     vulns = []
 
     try:
-        signal.setitimer(signal.ITIMER_REAL, timeout_s, 0.5)
+        signal.setitimer(signal.ITIMER_REAL, rem_timeout, 0.5)
         backend = AnalysisBackendProvider(
             binary_path,
             max_steps=max_steps,
@@ -177,7 +179,7 @@ def run_condition(
             gnn_node_scores=node_scores,
             scheduler_mode=scheduler_mode,
             depth_penalty_lambda=0.02,
-            timeout_seconds=timeout_s,
+            timeout_seconds=rem_timeout,
             _shared_loader=loader,
         )
         vulns = backend.scan_vulnerabilities()
@@ -191,17 +193,20 @@ def run_condition(
     if AnalysisBackendProvider._timeout_flag:
         timed_out = True
 
-    elapsed_s = time.perf_counter() - t0
     tel = getattr(backend, "scheduler_telemetry", {}) if backend else {}
     if tel.get("timed_out"):
         timed_out = True
+
+    actual_elapsed = (time.perf_counter() - t0) + initial_overhead_s
+    time_s = min(actual_elapsed, timeout_s) if timed_out else actual_elapsed
 
     solver_counts = tel.get("solver_status_counts", {})
     sat_count = solver_counts.get("SAT", 0)
 
     return {
         "condition": mode_name,
-        "time_s": round(elapsed_s, 3),
+        "time_s": round(time_s, 3),
+        "actual_elapsed_wall_s": round(actual_elapsed, 3),
         "states_explored": tel.get("states_explored", 0),
         "steps_to_first_vuln": tel.get("steps_to_first_vuln"),
         "time_to_first_vuln_ms": tel.get("time_to_first_vuln_ms"),
@@ -291,8 +296,8 @@ def main():
 
         # 1. DFS Baseline
         res_dfs = run_condition(full_path, loader, "dfs", "dfs", timeout_s=10.0, max_steps=80)
-        # 2. GNN MaxHeap
-        res_gnn = run_condition(full_path, loader, "gnn_maxheap", "maxheap", node_scores=gnn_node_scores, func_vuln_map=func_map, timeout_s=10.0, max_steps=80)
+        # 2. GNN MaxHeap (with GNN feature extraction + inference time included in budget)
+        res_gnn = run_condition(full_path, loader, "gnn_maxheap", "maxheap", node_scores=gnn_node_scores, func_vuln_map=func_map, timeout_s=10.0, max_steps=80, initial_overhead_s=(gnn_ms / 1000.0))
         # 3. Random MaxHeap across seeds 42, 1337, 2026
         res_rand_42 = run_condition(full_path, loader, "random_maxheap_42", "maxheap", node_scores=compute_random_scores(cfg, seed=42), timeout_s=10.0, max_steps=80)
         res_rand_1337 = run_condition(full_path, loader, "random_maxheap_1337", "maxheap", node_scores=compute_random_scores(cfg, seed=1337), timeout_s=10.0, max_steps=80)
