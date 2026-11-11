@@ -1,0 +1,41 @@
+{
+  "num_clients": 3,
+  "rounds": 1,
+  "strategy": "fedprox",
+  "proximal_mu": 0.002,
+  "local_epochs": 6,
+  "client_partition_sizes": [
+    1721,
+    1720,
+    1720
+  ],
+  "losses_distributed": [
+    0.16023002865573
+  ],
+  "metrics_distributed": {
+    "accuracy": [
+      0.8117326603410542
+    ],
+    "precision": [
+      0.05355396892344813
+    ],
+    "recall": [
+      0.9757159251178483
+    ],
+    "f1": [
+      0.10149252415888617
+    ],
+    "roc_auc": [
+      0.9468711194742183
+    ],
+    "pr_auc": [
+      0.16333665360507457
+    ],
+    "top1_hit_rate": [
+      0.3936496178018586
+    ],
+    "top5_hit_rate": [
+      0.7757120142883422
+    ]
+  }
+}

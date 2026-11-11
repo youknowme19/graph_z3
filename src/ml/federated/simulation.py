@@ -87,7 +87,7 @@ def partition_dataset_non_iid(
     clients_data: List[List[Any]] = [[] for _ in range(num_clients)]
     for s_idx, silo_items in enumerate(silos):
         for item_idx, item in enumerate(silo_items):
-            target_c = (s_idx if num_clients <= 5 else (s_idx + item_idx)) % num_clients
+            target_c = (s_idx + item_idx) % num_clients
             clients_data[target_c].append(item)
 
     for c_i in range(num_clients):

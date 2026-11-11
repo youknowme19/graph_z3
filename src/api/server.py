@@ -151,7 +151,7 @@ def background_analysis_task(analysis_id: str, binary_path: str, filename: str, 
                     model = create_model(**config)
                     model.load_state_dict(checkpoint['model_state_dict'])
                     temp = float(checkpoint.get('temperature', 1.0))
-                    temp_path = os.path.join(project_root, "model_temperature.json")
+                    temp_path = os.path.join(root_dir, "model_temperature.json")
                     if os.path.exists(temp_path):
                         with open(temp_path) as tf:
                             temp = float(json.load(tf).get("temperature", temp))
@@ -163,7 +163,7 @@ def background_analysis_task(analysis_id: str, binary_path: str, filename: str, 
                         vuln_probs = probs[:, 1].numpy()
 
                     threshold = float(checkpoint.get('threshold', 0.5))
-                    thresh_path = os.path.join(project_root, "model_threshold.json")
+                    thresh_path = os.path.join(root_dir, "model_threshold.json")
                     if os.path.exists(thresh_path):
                         with open(thresh_path) as thf:
                             threshold = float(json.load(thf).get("threshold", threshold))

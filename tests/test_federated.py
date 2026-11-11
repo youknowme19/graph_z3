@@ -13,7 +13,23 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 from src.ml.federated.server import aggregate_eval_metrics, create_federated_strategy, FLWR_AVAILABLE
-from src.ml.federated.simulation import partition_dataset_non_iid, generate_synthetic_cfgs
+from src.ml.federated.simulation import partition_dataset_non_iid
+
+
+def generate_synthetic_cfgs(num_graphs: int = 5, num_nodes: int = 15, feat_dim: int = 11):
+    """Test helper: generates dummy PyG Data graphs for unit verification."""
+    import torch
+    from torch_geometric.data import Data
+    graphs = []
+    for _ in range(num_graphs):
+        x = torch.randn(num_nodes, feat_dim)
+        edge_index = torch.zeros((2, max(1, num_nodes - 1)), dtype=torch.long)
+        for i in range(max(1, num_nodes - 1)):
+            edge_index[0, i] = i
+            edge_index[1, i] = i + 1
+        y = torch.zeros(num_nodes, dtype=torch.long)
+        graphs.append(Data(x=x, edge_index=edge_index, y=y))
+    return graphs
 
 
 class TestFederatedLearning(unittest.TestCase):
