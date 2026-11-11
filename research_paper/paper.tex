@@ -69,29 +69,24 @@
 Coverage-guided fuzzers explore program execution state spaces broadly but blindly, while dynamic symbolic execution (DSE)
 engines reason with mathematical precision but suffer from combinatorial path explosion ($O(2^d)$). Conversely, static
 heuristics generate false alarm rates frequently exceeding 85\% on stripped binaries without source code. We present
-\textbf{NeuroZ3}, an end-to-end neuro-symbolic framework for stripped binary vulnerability discovery and verified exploit
+\textbf{NeuroZ3}, an end-to-end neuro-symbolic framework for stripped binary vulnerability prioritization and verified exploit
 synthesis. NeuroZ3 lifts target binaries across multiple architectures (ARM64 Mach-O, x86-64 ELF, PE32) to attributed Control
 Flow Graphs (CFGs) over Valgrind VEX Intermediate Representation (IR). Basic blocks are evaluated by an inductive Graph Neural
 Network (\textbf{VulnGNN}, employing a 3-layer, 128-dimensional bidirectional GraphSAGE architecture with global CFG context
-pooling over a 40-dimensional structural, instruction, API, taint-reachability, and guard-density feature vector) to predict
-temperature-calibrated exploitability risk probabilities $P(v)$. By scheduling symbolic path exploration via an inductive
-risk-depth heuristic $\mathcal{H}(s)$, NeuroZ3 prunes the basic-block search space by 99.23\% on held-out test binaries
-(1.48\,ms mean GNN inference latency) and by 99.94\% across production system utilities (4.30\,ms mean inference latency),
-accelerating multi-function symbolic verification by 10.4$\times$--28.4$\times$ (and up to 60.2$\times$ against 60\,s
-timeout-capped unguided DSE). High-priority states are submitted to a bounded symbolic execution engine in angr, where the Z3
-SMT solver evaluates formal memory-safety negations $\Phi_{\text{exploit}} = \Pi(s^*) \land \neg \Psi_{\text{safe}}$ and
-synthesizes concrete, replay-confirmed crashing exploit payloads with zero false positives on verified paths. To resolve
-binary data-silo constraints across defense and commercial enterprises, NeuroZ3 integrates privacy-preserving Federated
-Learning via Flower (FedProx and FedAvg) over real stripped binary CFGs, exchanging sub-megabyte (997.26\,KB) parameter
-updates per round. Trained and evaluated on \textbf{5{,}200 real compiled stripped binaries} (\textbf{670{,}464 basic blocks},
-\textbf{913{,}220 CFG edges}, and \textbf{7{,}096 DWARF-verified vulnerable basic blocks} across \textbf{52 CWE families} and
-four optimization levels \texttt{-O0} through \texttt{-Os})---comprising \textbf{2{,}480 real-world open-source CVE stripped
-binaries} from 76 C projects (Linux kernel, OpenSSL, FFmpeg, tcpdump, ImageMagick, etc., paired pre-patch vs.\ post-patch from
-PrimeVul), \textbf{2{,}681 Multi-CWE NIST Juliet v1.3 stripped binaries}, and \textbf{39 production BSD/macOS system
-utilities}---NeuroZ3 achieves a \textbf{0.9737 ROC-AUC}, \textbf{85.89\% Top-5} (\textbf{92.33\% Top-10}) localization hit
-rate on the 819-binary unified held-out test set (\textbf{0.9960 ROC-AUC} and \textbf{97.35\% Top-5} on Multi-CWE;
-\textbf{0.8347 ROC-AUC} and \textbf{81.59\% Top-10} standalone on real-world CVE binaries) and synthesizes 66 confirmed Z3
-exploits across 71 candidate paths (93.0\% yield; mean Z3 latency: 27.04\,ms).
+pooling over a 40-dimensional structural, instruction, API, taint-reachability, and guard-density feature schema) to predict
+temperature-calibrated exploitability risk probabilities $P(v)$. Across an 819-binary unified held-out test set, VulnGNN achieves
+a \textbf{0.9543 ROC-AUC}, \textbf{0.2739 PR-AUC}, and \textbf{83.56\% Top-5} localization hit rate across 5 cross-validation seeds
+(with single-seed peak of \textbf{0.9737 ROC-AUC} and \textbf{85.89\% Top-5}), reducing clean-binary false positive rates by
+28.67 percentage points compared to tabular baselines (14.50\% vs.\ 43.17\%) and pruning 99.23\% of basic blocks from prioritization queues in 1.48\,ms.
+In downstream bounded symbolic execution, learned priority scheduling reorders path exploration and reduces explored states by
+4.5\%--5.4\%. However, rigorous paired Restricted Mean Survival Time (RMST) analysis across 69 paired binaries under a 15.0\,s
+budget demonstrates that GNN guidance does not achieve a statistically significant runtime speedup over Depth-First Search
+($\Delta\text{RMST} = +0.212$\,s, $p = 0.452$) due to priority queue maintenance and inference overhead. Across a 7-tier
+verification taxonomy on 90 binaries, NeuroZ3 synthesizes concrete, replay-verified exploits, demonstrating arbitrary shell command
+execution on command-injection targets and reproducible crashes on memory corruption primitives, while auditing and eliminating 10
+false positive path-feasibility witnesses in patched controls. To resolve data-silo constraints across enterprises, NeuroZ3
+integrates privacy-preserving Federated Learning via Flower (FedProx and FedAvg) over 3{,}604 real stripped binaries across 5
+non-IID silos, exchanging compact 997.26\,KB parameter updates and recovering over 91.28\% of centralized Top-5 localization.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -133,10 +128,11 @@ distributed, non-IID organizational binary silos.
 \textbf{Contributions.}
 \begin{enumerate}
   \item \textbf{Dual-Stage Stripped Binary Neuro-Symbolic Pipeline}: An end-to-end architecture coupling 40-dimensional VEX IR feature extraction and bidirectional GraphSAGE + Global CFG Context Pooling (\textbf{VulnGNN}) with bounded Z3 symbolic execution on stripped binaries without source code or debug symbols.
-  \item \textbf{Large-Scale Real-World Stripped CVE \& Multi-CWE Corpus (5{,}200 Binaries)}: We construct and evaluate on \textbf{5{,}200 real compiled stripped binaries} (670{,}464 basic blocks, 913{,}220 CFG edges across 52 CWEs and \texttt{-O0}/\texttt{-O1}/\texttt{-O2}/\texttt{-Os}), combining \textbf{2{,}480 real-world open-source CVE stripped binaries} from 76 C repositories and 292 CVEs (PrimeVul~\cite{ding2024primevul} pre-patch vulnerable vs.\ post-patch fixed twins), \textbf{2{,}681 Multi-CWE NIST Juliet v1.3 stripped binaries}, and \textbf{39 production system utilities}, with zero synthetic graphs and strict DWARF-pre-strip ground-truth labeling.
-  \item \textbf{Inductive Risk Prioritization \& Search-Space Pruning}: A calibrated risk-depth scheduler $\mathcal{H}(s)$ that achieves \textbf{0.9737 ROC-AUC} and \textbf{85.89\% Top-5} (\textbf{92.33\% Top-10}) localization on the 819-binary held-out test set (\textbf{0.9960 ROC-AUC}, \textbf{97.35\% Top-5} on Multi-CWE; \textbf{0.8347 ROC-AUC}, \textbf{81.59\% Top-10} standalone on real-world CVEs), pruning 99.23\%--99.94\% of basic blocks in 1.48--4.30\,ms per binary.
-  \item \textbf{Formal SMT Exploit Verification}: Memory safety negation predicates $\Phi_{\text{exploit}} = \Pi(s^*) \land \neg \Psi_{\text{safe}}$ formalized across core exploit primitives (\texttt{STACK\_SMASH\_RIP}, \texttt{INVALID\_FREE}, \texttt{OOB\_WRITE}, \texttt{NULL\_DEREF}), synthesizing 66 confirmed exploits across 71 candidates (93.0\% yield, 27.04\,ms mean Z3 latency) with 0.0\% false positives on verified paths.
-  \item \textbf{Non-IID Federated Learning over Real Binary Silos}: A 5-client Non-IID Flower evaluation over 3{,}604 real training binaries partitioned into disjoint CWE and repository silos (Linux kernel CVEs, user-space daemon CVEs, stack/OOB, heap/lifecycle, arithmetic/taint), recovering up to \textbf{80.66\% Top-5} (\textbf{88.15\% Top-10}) localization while exchanging only 997.26\,KB parameter tensors per round.
+  \item \textbf{Large-Scale Real-World Stripped CVE \& Multi-CWE Corpus (5{,}200 Binaries)}: We construct and evaluate on \textbf{5{,}200 real compiled stripped binaries} (670{,}464 basic blocks, 907{,}378 CFG edges across 52 CWEs and \texttt{-O0}/\texttt{-O1}/\texttt{-O2}/\texttt{-Os}), combining \textbf{2{,}480 real-world open-source CVE stripped binaries} from 76 C repositories and 292 CVEs (PrimeVul~\cite{ding2024primevul} pre-patch vulnerable vs.\ post-patch fixed twins), \textbf{2{,}681 Multi-CWE NIST Juliet v1.3 stripped binaries}, and \textbf{39 production system utilities}, with zero synthetic graphs and strict DWARF-pre-strip ground-truth labeling.
+  \item \textbf{Inductive Risk Prioritization \& Baseline Comparison}: A calibrated risk-depth model achieving \textbf{0.9543 ROC-AUC} and \textbf{83.56\% Top-5} localization hit rate across 5 cross-validation seeds on the 819-binary held-out test set (\textbf{0.9737 ROC-AUC} and \textbf{85.89\% Top-5} single-seed peak). While tabular baselines like XGBoost achieve competitive Top-1 hit rates (52.85\% vs.\ 49.81\%), VulnGNN delivers significantly superior Top-5 recall (+4.68\,pp) and dramatically reduces clean-binary false positive rates by 28.67 percentage points (14.50\% vs.\ 43.17\% for XGBoost).
+  \item \textbf{Empirical Analysis of Neuro-Symbolic Guidance Limits}: A rigorous evaluation using Restricted Mean Survival Time (RMST) over 10{,}000 bootstrap resamples and a 4-way scheduler ablation ($N=22$), showing that while GNN heuristics reduce explored states by 4.5\%--5.4\%, priority queue and inference latency offset these gains, resulting in runtime parity with unguided Depth-First Search ($\Delta\text{RMST} = +0.212$\,s, $p = 0.452$).
+  \item \textbf{7-Tier Verification Taxonomy \& Concrete Exploit Synthesis}: Formal memory safety negation predicates evaluated in Z3, validated through a 7-tier verification taxonomy distinguishing path satisfiability from native exploitability. We demonstrate live arbitrary command execution on command injection binaries and 4 reproducible memory crashes, while confirming that all 10 SAT witnesses in patched Juliet controls are symbolic execution false positives.
+  \item \textbf{Non-IID Federated Learning over Real Binary Silos}: A 5-client Non-IID Flower evaluation over 3{,}604 real training binaries partitioned into disjoint CWE and repository silos, recovering up to \textbf{78.40\% Top-5} (\textbf{88.15\% Top-10}) localization with FedProx while exchanging only 997.26\,KB parameter tensors per round.
 \end{enumerate}
 
 \section{Related Work}
@@ -227,7 +223,9 @@ each basic block $v \in \mathcal{V}$ is characterized by a normalized 40-dimensi
   \item \textbf{Symbolic \& Bounds-Check Guard Density ($\mathbf{x}_{\text{sym}} \in \mathbb{R}^8$)}: VEX comparison opcodes (\texttt{CmpEQ}, \texttt{CmpLT}, \texttt{CmpLE}), signed vs.\ unsigned comparison flags, backward-slice conditional guard density (measuring whether upstream blocks sanitize bounds prior to a memory store/load), integer widening/narrowing cast density (\texttt{64to32}, \texttt{32Sto64}, \texttt{1Uto64}), division/modulo opcode indicator, and branch fan-out entropy.
 \end{itemize}
 
-\subsection{Biductive Graph Neural Network with Global Context (VulnGNN)}
+\textbf{Feature Availability and Zero Circular Dependency Guarantee.} All 40 features in $\mathbf{x}_v$ are extracted \emph{strictly statically} from lifted VEX IR and recovered CFG topology during binary ingestion, requiring only $1.48$\,ms per binary. When VulnGNN executes prior to symbolic exploration ($\text{state} = \text{None}$), features in group $\mathbf{x}_{\text{sym}}$ are computed from static VEX opcodes (e.g., comparison statement counts, cast operations, and branch condition types) rather than dynamic solver state. Crucially, feature extraction requires \emph{no} active symbolic execution, no path constraint accumulation, and no SMT solver invocations. There is zero circular dependency or future-state data leakage between the GNN risk model and the downstream symbolic execution scheduler.
+
+\subsection{Bidirectional Graph Neural Network with Global Context (VulnGNN)}
 In real-world CVE patches, a vulnerability fix frequently inserts a bounds check or null guard several basic blocks upstream of a
 memory sink, or modifies a deallocation path downstream. Standard unidirectional GNNs only propagate information along forward
 edges. NeuroZ3 therefore implements a 3-layer, 128-hidden-dimension \textbf{bidirectional GraphSAGE} architecture~\cite{hamilton2017graphsage}
@@ -252,7 +250,7 @@ The context-enriched embedding $\mathbf{z}_v$ passes through a 2-layer MLP with 
 where $T = 0.628$ is optimized via L-BFGS on validation graphs to calibrate probabilities. Training minimizes class-weighted
 \textbf{Focal Cross-Entropy Loss} ($\mathcal{L}_{\text{focal}} = -(1 - p_t)^\gamma w_{y} \log p_t$ with $\gamma = 2.0$ and inverse
 square-root class weight $w_{\text{vuln}} = 16.92$) to handle the severe node imbalance across stripped binaries ($5{,}037$ vulnerable
-blocks vs.\ $445{,}313$ benign blocks in the training split). The complete 3-layer bidirectional model comprises 255{,}300 parameters
+blocks vs.\ $445{,}313$ benign blocks in the training split). The complete 3-layer bidirectional model comprises 255{,}299 parameters
 (997.26\,KB in \texttt{float32}), achieving a mean inference latency of 1.48\,ms per binary.
 
 \begin{figure}[!t]
@@ -281,31 +279,37 @@ using an inductive priority heuristic:
   \label{eq:heuristic}
 \end{equation}
 where $\text{Reachable}(s)$ denotes the forward transitive closure of basic blocks reachable from active state $s$, and
-$\lambda = 0.01$ penalizes deep loops. Candidate states and target functions are prioritized by $\mathcal{H}(s)$; functions and branches
-containing no candidate blocks clearing validation-calibrated risk threshold $\theta = 0.750$ (or Top-$K$ ranked candidates) are
-pruned from symbolic exploration, focusing solver budget strictly on predicted vulnerability regions (Algorithm~\ref{alg:neuroz3}).
+$\lambda = 0.01$ penalizes deep loops. Candidate states and target functions are prioritized by $\mathcal{H}(s)$ in a max-heap
+priority queue $\mathcal{Q}$, focusing exploration on high-risk blocks.
 
-\subsection{Formal SMT Exploit Verification and Payload Synthesis}
+\subsection{Formal SMT Exploit Verification and 7-Tier Taxonomy}
 Upon reaching target basic block $v^*$, NeuroZ3 queries Z3~\cite{demoura2008z3} by conjoining path predicates $\Pi(s^*)$ with
 the negation of memory safety invariant condition $\Psi_{\text{safe}}$:
 \begin{equation}
   \Phi_{\text{exploit}} = \Pi(s^*) \land \neg \Psi_{\text{safe}}.
   \label{eq:smt_condition}
 \end{equation}
-Safety invariants $\Psi_{\text{safe}}$ are formalized across core vulnerability classes:
+Safety invariants $\Psi_{\text{safe}}$ and exploit assertions $\neg \Psi_{\text{safe}}$ are formalized over 64-bit bitvector theories:
 \begin{itemize}
-  \item \textbf{Buffer Overflow (CWE-120/121/122)}: $\Psi_{\text{safe}} \equiv \text{len}(\text{input}) \leq \text{size}(\text{buffer})$.
-  \item \textbf{Use-After-Free / Double Free (CWE-416/415)}: $\Psi_{\text{safe}} \equiv \text{state}(\text{ptr}) \neq \text{FREED}$.
-  \item \textbf{Format String (CWE-134)}: $\Psi_{\text{safe}} \equiv \forall i, \text{arg}[i] \neq \texttt{'\%'}$.
-  \item \textbf{NULL Pointer Dereference (CWE-476/690)}: $\Psi_{\text{safe}} \equiv \text{ptr} \neq \texttt{0x0}$.
+  \item \textbf{Buffer Overflow (CWE-120/121/122)}: Over base address $\mathbf{p}_{\text{base}} \in \text{BV}_{64}$, index offset $\mathbf{i} \in \text{BV}_{64}$, and write length $k$:
+  $\neg \Psi_{\text{BOF}} \equiv (\mathbf{p}_{\text{base}} +_{64} \mathbf{i} +_{64} k >_{u} \mathbf{p}_{\text{base}} +_{64} \mathbf{len}_{64}) \lor (\mathbf{p}_{\text{base}} +_{64} \mathbf{i} <_{u} \mathbf{p}_{\text{base}})$.
+  \item \textbf{Use-After-Free / Double Free (CWE-416/415)}: Over heap shadow map $\mathcal{M}_{\text{heap}}: \text{BV}_{64} \to \{\text{ALLOC}, \text{FREED}\}$:
+  $\neg \Psi_{\text{UAF}} \equiv \text{deref}(\mathbf{p}_{64}) \land (\mathcal{M}_{\text{heap}}[\mathbf{p}_{64}] = \text{FREED})$.
+  \item \textbf{Format String (CWE-134)}: Over string argument bytes $\mathbf{b} \in \text{BV}_8^{L}$:
+  $\neg \Psi_{\text{FMT}} \equiv \exists i < L, \; (\mathbf{b}[i] = 0\text{x}25) \land (\mathbf{b}[i+1] \in \{0\text{x}6E, 0\text{x}73, 0\text{x}70, 0\text{x}78\})$.
+  \item \textbf{NULL Pointer Dereference (CWE-476/690)}: Over access base address:
+  $\neg \Psi_{\text{NULL}} \equiv (\mathbf{p}_{64} = 0\text{x}0) \land \text{deref}(\mathbf{p}_{64})$.
+  \item \textbf{Command Injection (CWE-78)}: Over subshell argument bytes:
+  $\neg \Psi_{\text{CMD}} \equiv \exists i < L, \; \mathbf{b}[i] \in \{0\text{x}3B, 0\text{x}7C, 0\text{x}26, 0\text{x}24, 0\text{x}60\}$ (\texttt{;}, \texttt{|}, \texttt{\&}, \texttt{\$}, \texttt{`}).
 \end{itemize}
-If Z3 evaluates $\Phi_{\text{exploit}}$ as SAT, model $\mathcal{M}$ yields exact byte assignments to symbolic input bitvectors.
-NeuroZ3 compiles these assignments into raw byte arrays and executable Python PoC reproducers. If UNSAT, the path is proven safe
-and discarded, guaranteeing a 0.0\% false positive rate on verified paths. An automated composite CVSS v3.1 score is computed:
-\begin{equation}
-  \text{CVSS}_{\text{composite}} = 0.7 \cdot \max_{v} \text{CVSS}(v) + 0.3 \cdot \frac{1}{|\mathcal{V}_{\text{proven}}|} \sum_{v} \text{CVSS}(v).
-  \label{eq:cvss}
-\end{equation}
+
+\textbf{Path Feasibility vs.\ Exploitability.} Crucially, evaluating $\Phi_{\text{exploit}}$ as SAT in unit-level symbolic execution
+does \emph{not} guarantee an actionable exploit. In stripped binaries analyzed without concrete caller frames, unconstrained caller
+return registers (e.g., ARM64 \texttt{x30}) or symbolic pointer arguments can satisfy negated predicates trivially. To eliminate
+false claims, NeuroZ3 adopts a rigorous \textbf{7-Tier Verification Taxonomy} grounded in native binary replay:
+(L7) Demonstrated Command Execution; (L6) Verified Memory Crash / Live Exploit; (L5) Unverified Abnormal Termination;
+(L4) Unrelated Environment Crash; (L3) Normal Termination / False Positive; (L2) Not Replayable (Missing Harness); and
+(L1) Clean Binary Control.
 
 \begin{algorithm}[!t]
 \caption{NeuroZ3: Neuro-Guided Exploit Verification}
@@ -329,11 +333,10 @@ and discarded, guaranteeing a 0.0\% false positive rate on verified paths. An au
         \STATE $\mathcal{E} \leftarrow \mathcal{E} \cup \{e\}$;\ $\textsc{AppendFinding}(R, e)$
       \ENDIF
     \ENDIF
-  \ELSE
-    \FOR{each successor $s' \in \textsc{Step}(s^*)$}
-      \STATE $\mathcal{Q}.\textsc{Push}(s', \text{key}=\mathcal{H}(s'))$
-    \ENDFOR
   \ENDIF
+  \FOR{each successor $s' \in \textsc{Step}(s^*)$}
+    \STATE $\mathcal{Q}.\textsc{Push}(s', \text{key}=\mathcal{H}(s'))$
+  \ENDFOR
   \STATE $t \leftarrow t + \textsc{Elapsed}()$
 \ENDWHILE
 \RETURN $\mathcal{E}$, $R$
@@ -343,14 +346,14 @@ and discarded, guaranteeing a 0.0\% false positive rate on verified paths. An au
 \subsection{Privacy-Preserving Federated Learning via Flower}
 Because organizations cannot share proprietary binaries, NeuroZ3 implements a Federated Learning architecture using Flower
 (\texttt{flwr}). Distributed enterprise participants $k \in \{1, \dots, K\}$ maintain private local stripped binary corpora and train
-local VulnGNN instances. To mitigate client drift caused by non-IID vulnerability silos and compiler optimization levels
-(\texttt{-O0} through \texttt{-Os}), the coordinator supports both \textbf{FedAvg} and \textbf{FedProx}, optimizing:
+local VulnGNN instances. To mitigate client drift caused by non-IID vulnerability silos, the coordinator supports both \textbf{FedAvg}
+and \textbf{FedProx}, optimizing:
 \begin{equation}
   \min_{\mathbf{w}} h_k(\mathbf{w}; \mathbf{w}^t) = F_k(\mathbf{w}) + \frac{\mu}{2} \|\mathbf{w} - \mathbf{w}^t\|_2^2,
   \label{eq:fedprox}
 \end{equation}
 where $F_k(\mathbf{w})$ is client $k$'s Focal Cross-Entropy loss, $\mathbf{w}^t$ is the global parameter tensor at round $t$,
-and $\mu = 0.002$ scales the proximal penalty across the 255{,}300 network parameters. Only parameter tensors (997.26\,KB) are
+and $\mu = 0.002$ scales the proximal penalty across the 255{,}299 network parameters. Only parameter tensors (997.26\,KB) are
 transmitted over TLS, ensuring zero leakage of binary code, CFG topology, or trade secrets.
 
 \section{Empirical Evaluation}
@@ -358,12 +361,12 @@ transmitted over TLS, ensuring zero leakage of binary code, CFG topology, or tra
 
 \subsection{Evaluation Corpora \& Anti-Leakage Protocol}
 Table~\ref{tab:corpora} details our multi-tier real stripped binary evaluation corpora (\textbf{5{,}200 stripped binaries},
-\textbf{670{,}464 basic blocks}, \textbf{913{,}220 CFG edges} across \textbf{52 unique CWE families}; zero synthetic graphs):
+\textbf{670{,}464 basic blocks}, \textbf{907{,}378 CFG edges} across \textbf{52 unique CWE families}; zero synthetic graphs):
 \begin{itemize}
-  \item \textbf{PrimeVul-CVE ($N = 2{,}480$ stripped binaries)}: Constructed from real-world open-source C security commits in the ICSE 2024 PrimeVul benchmark~\cite{ding2024primevul}. We compiled 310 paired pre-patch (vulnerable) and post-patch (fixed) functions across \textbf{76 real open-source C projects} (including the Linux kernel [$1{,}088$ binaries], OpenSSL [$208$], FFmpeg [$112$], ImageMagick [$104$], tcpdump [$104$], GNU Savannah [$56$], MIT Kerberos \texttt{krb5} [$48$], cURL [$40$], HAProxy [$24$], X.Org Server [$24$], Samba, Ghostscript, Tor, and Radare2), spanning \textbf{292 historical CVEs} and \textbf{36 CWEs} across four compiler optimization levels (\texttt{-O0}, \texttt{-O1}, \texttt{-O2}, \texttt{-Os}), yielding $1{,}240$ vulnerable pre-patch binaries and $1{,}240$ clean post-patch binaries ($106{,}853$ basic blocks, $158{,}014$ edges, $4{,}038$ DWARF commit-diff vulnerable blocks).
+  \item \textbf{PrimeVul-CVE ($N = 2{,}480$ stripped binaries)}: Constructed from real-world open-source C security commits in the ICSE 2024 PrimeVul benchmark~\cite{ding2024primevul}. We compiled 310 paired pre-patch (vulnerable) and post-patch (fixed) functions across \textbf{76 real open-source C projects} (including the Linux kernel [$1{,}088$ binaries], OpenSSL [$208$], FFmpeg [$112$], ImageMagick [$104$], tcpdump [$104$], GNU Savannah [$56$], MIT Kerberos \texttt{krb5} [$48$], cURL [$40$], HAProxy [$24$], X.Org Server [$24$], Samba, Ghostscript, Tor, and Radare2), spanning \textbf{292 historical CVEs} and \textbf{36 CWEs} across four compiler optimization levels (\texttt{-O0}, \texttt{-O1}, \texttt{-O2}, \texttt{-Os}), yielding $1{,}240$ vulnerable pre-patch binaries and $1{,}240$ clean post-patch binaries ($106{,}853$ basic blocks, $158{,}014$ edges, $4{,}038$ DWARF commit-diff vulnerable blocks; 50 unliftable binaries excluded due to missing stubs or corrupt headers).
   \item \textbf{Juliet-MultiCWE ($N = 2{,}681$ stripped binaries)}: Compiled from NIST Juliet Test Suite v1.3~\cite{juliet2010} across \textbf{21 CWE families} (CWE-121, 122, 124, 126, 127, 134, 190, 191, 194, 195, 197, 369, 415, 416, 476, 590, 680, 690, 761, 78, 789) and four optimization levels (\texttt{-O0}: $1{,}508$; \texttt{-O1}: $525$; \texttt{-O2}: $376$; \texttt{-Os}: $272$), comprising $2{,}450$ vulnerable binaries and $231$ hardened (\texttt{-DOMITBAD}) clean negative controls ($530{,}859$ basic blocks, $699{,}483$ edges, $3{,}058$ DWARF vulnerable sink blocks).
   \item \textbf{SysUtils-Prod ($N = 39$ stripped binaries)}: Full production BSD/macOS system utilities (\texttt{bzip2}, \texttt{gzip}, \texttt{sed}, \texttt{awk}, \texttt{patch}, \texttt{diff}, \texttt{file}, \texttt{sort}, \texttt{hexdump}, \texttt{od}, \texttt{m4}, \texttt{nm}, \texttt{strings}, etc.) lifted to $32{,}752$ basic blocks and $49{,}881$ edges.
-  \item \textbf{SymExec-Suite ($N = 37$ verification binaries)}: 30 PE32 x86 and 7 ARM64 Mach-O target binaries for end-to-end Z3 exploit payload synthesis and live process crash verification.
+  \item \textbf{Symbolic Benchmark Suite ($N = 90$ binaries)}: 69 paired vulnerable binaries evaluated under both GNN-Guided and Depth-First Search (DFS) strategies under identical 15.0\,s budgets, plus 21 unpaired patched Juliet control binaries for false-positive auditing.
 \end{itemize}
 \textbf{Zero-Leakage Protocol:} Ground-truth vulnerable basic-block addresses are resolved during corpus construction by mapping commit-diff or sink source lines through DWARF \texttt{--debug-line} tables in temporary build directories prior to deleting \texttt{.dSYM} bundles and executing \texttt{strip}. Train/Val/Test splits ($3{,}604$ / $738$ / $819$ binaries; 70\%/15\%/15\%) are strictly grouped by $(\text{corpus}, \text{CWE}, \text{base\_testcase})$ so that \texttt{-O0}/\texttt{-O1}/\texttt{-O2}/\texttt{-Os} variants and pre-patch/post-patch CVE twins never cross splits.
 
@@ -386,64 +389,62 @@ SysUtils-Prod & 39 stripped BSD/macOS utilities (\texttt{bzip2}, \texttt{gzip}, 
 \end{tabular}
 \end{table}
 
-\subsection{GNN Risk Localization & Ranking Accuracy}
-Table~\ref{tab:gnn} reports basic-block classification and per-binary Top-$K$ ranking metrics on the held-out test split ($819$ binaries,
-$94{,}517$ basic blocks, $1{,}037$ ground-truth vulnerable blocks; positive block rate $1.10\%$), along with 1{,}000-resample bootstrap
-95\% confidence intervals. On the unified held-out test set, VulnGNN achieves a **0.9737 ROC-AUC** ($[0.9617, 0.9834]$), **0.4816 PR-AUC**
-(a $43.8\times$ improvement over random-guess precision $0.0110$), **56.63\% precision**, **0.4656 F1**, a **67.25\% Top-1 hit rate**,
-**85.89\% Top-5 hit rate**, and **92.33\% Top-10 hit rate**. On the 403-binary Multi-CWE held-out subset ($78{,}834$ blocks), VulnGNN
-achieves **0.9960 ROC-AUC**, **0.8252 PR-AUC**, **0.7578 F1**, **83.60\% Top-1**, and **97.35\% Top-5** (**99.74\% Top-10**) localization.
-Evaluated standalone on the challenging PrimeVul real-world open-source CVE corpus ($2{,}480$ binaries across 76 C repositories, $416$
-held-out test binaries where pre-patch and post-patch binaries differ only by commit-level patch lines), VulnGNN achieves **0.8347 ROC-AUC**,
-**60.20\% Top-3**, **69.65\% Top-5**, and **81.59\% Top-10** binary localization.
+\subsection{GNN Risk Localization & Baseline Comparison}
+Table~\ref{tab:gnn} reports basic-block classification and ranking metrics on the unified held-out test split ($819$ binaries,
+$94{,}517$ basic blocks, positive block rate $1.10\%$). To prevent single-seed bias, we report both the \textbf{5-seed cross-validation
+mean $\pm$ standard deviation} and the peak single-seed run (Seed 42). Across 5 random seeds, VulnGNN achieves a mean \textbf{0.9543 ROC-AUC},
+\textbf{0.2739 PR-AUC}, \textbf{0.3006 F1}, \textbf{49.81\% Top-1}, \textbf{83.56\% Top-5}, and \textbf{92.71\% Top-10} hit rate, with a clean-binary
+false positive rate of 14.50\% and an individual basic-block false positive rate of 0.336\%. In the single-seed configuration, VulnGNN
+achieves \textbf{0.9737 ROC-AUC}, \textbf{0.4816 PR-AUC}, \textbf{0.4656 F1}, and \textbf{85.89\% Top-5} localization.
 
 \begin{table}[!t]
 \caption{VulnGNN Held-Out Test Localization Performance ($819$ Test Binaries, $94{,}517$ Basic Blocks)}
 \label{tab:gnn}
 \renewcommand{\arraystretch}{1.0}
 \footnotesize
-\setlength\tabcolsep{2.5pt}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Metric} & \textbf{Unified Test ($n=819$)} & \textbf{Multi-CWE ($n=403$)} & \textbf{Real-CVE Only ($n=416$)} \\
-\midrule
-ROC-AUC                 & \textbf{0.9737} [0.962, 0.983] & \textbf{0.9960} & \textbf{0.8347} \\
-PR-AUC (AP)             & \textbf{0.4816} [0.402, 0.585] & \textbf{0.8252} & 0.1759 \\
-Precision (PPV)         & 56.63\% [49.0\%, 64.5\%]       & 72.36\%         & 18.79\% \\
-Recall                  & 39.54\% [30.2\%, 51.5\%]       & 79.54\%         & 39.04\% \\
-F1-Score                & 0.4656 [0.389, 0.552]          & \textbf{0.7578} & 0.2537 \\
-Top-1 Hit Rate          & \textbf{67.25\%}               & \textbf{83.60\%}& 31.34\% \\
-Top-3 Hit Rate          & \textbf{81.01\%}               & \textbf{96.03\%}& \textbf{60.20\%} \\
-Top-5 Hit Rate          & \textbf{85.89\%}               & \textbf{97.35\%}& \textbf{69.65\%} \\
-Top-10 Hit Rate         & \textbf{92.33\%}               & \textbf{99.74\%}& \textbf{81.59\%} \\
-Blocks Pruned           & \textbf{99.23\%} (1.48\,ms)    & \textbf{99.34\%}& \textbf{92.41\%} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[!t]
-\caption{Comparison with GAT and Classical Static Heuristics ($819$ Held-Out Test Binaries)}
-\label{tab:heuristics}
-\renewcommand{\arraystretch}{1.0}
-\footnotesize
-\setlength\tabcolsep{3pt}
+\setlength\tabcolsep{2.2pt}
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Scoring Method} & \textbf{Prec.} & \textbf{Recall} & \textbf{F1} & \textbf{PR-AUC / Top-1} \\
+\textbf{Metric} & \textbf{5-Seed Mean $\pm$ SD} & \textbf{Seed 42 (Peak)} & \textbf{Multi-CWE} & \textbf{Real-CVE} \\
 \midrule
-\textbf{VulnGNN (Bi-GraphSAGE)}       & \textbf{56.63\%} & 39.54\% & \textbf{0.4656} & \textbf{0.4816 / 67.25\%} \\
-4-Head GAT Baseline~\cite{velickovic2018gat} & 37.03\% & 38.28\% & 0.3765 & 0.3620 / 54.53\% \\
-Heuristic: Unsafe API Call            & 5.53\%  & 9.16\%  & 0.0690 & --- \\
-Heuristic: Computed Store + Taint     & 4.45\%  & 13.69\% & 0.0672 & --- \\
-Heuristic: Instruction Complexity     & 3.10\%  & 11.57\% & 0.0489 & --- \\
-Heuristic: Memory Write (\texttt{Ist\_Store}) & 2.19\% & \textbf{42.72\%} & 0.0416 & --- \\
-Heuristic: CFG Flow Centrality        & 0.76\%  & 2.41\%  & 0.0115 & --- \\
+ROC-AUC                 & 0.9543 $\pm$ 0.007 & \textbf{0.9737} & \textbf{0.9960} & \textbf{0.8347} \\
+PR-AUC (AP)             & 0.2739 $\pm$ 0.041 & \textbf{0.4816} & \textbf{0.8252} & 0.1759 \\
+Precision (PPV)         & 33.75\% $\pm$ 4.2\%& 56.63\%         & 72.36\%         & 18.79\% \\
+Recall                  & 27.35\% $\pm$ 3.8\%& 39.54\%         & 79.54\%         & 39.04\% \\
+F1-Score                & 0.3006 $\pm$ 0.035 & \textbf{0.4656} & \textbf{0.7578} & 0.2537 \\
+Top-1 Hit Rate          & 49.81\% $\pm$ 3.1\%& \textbf{67.25\%}& \textbf{83.60\%}& 31.34\% \\
+Top-3 Hit Rate          & 75.68\% $\pm$ 2.4\%& \textbf{81.01\%}& \textbf{96.03\%}& \textbf{60.20\%} \\
+Top-5 Hit Rate          & 83.56\% $\pm$ 1.8\%& \textbf{85.89\%}& \textbf{97.35\%}& \textbf{69.65\%} \\
+Top-10 Hit Rate         & 92.71\% $\pm$ 1.2\%& \textbf{92.33\%}& \textbf{99.74\%}& \textbf{81.59\%} \\
+Clean Binary FPR        & 14.50\% $\pm$ 2.1\%& 22.04\%         & 8.16\%          & 28.32\% \\
+Blocks Pruned           & 99.23\% (1.48\,ms) & 99.23\%         & 99.34\%         & 92.41\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[!t]
-\caption{Retrained 5-Group Feature Ablation Study ($819$ Test Binaries)}
+\caption{Comprehensive Comparative Benchmark across Architectures ($819$ Held-Out Test Binaries, 5-Seed Means)}
+\label{tab:baselines}
+\renewcommand{\arraystretch}{1.0}
+\footnotesize
+\setlength\tabcolsep{2.0pt}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Model Architecture} & \textbf{F1} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{Top-1} & \textbf{Top-5} & \textbf{Clean FPR} \\
+\midrule
+\textbf{VulnGNN (Proposed)}     & \textbf{0.3006} & \textbf{0.9543} & \textbf{0.2739} & 49.81\% & \textbf{83.56\%} & \textbf{14.50\%} \\
+GIN (Bidirectional)~\cite{xu2018gin}& 0.2903 & 0.9532 & 0.2545 & 47.81\% & \textbf{84.94\%} & 16.75\% \\
+Unidirectional SAGE             & 0.2660 & 0.9446 & 0.2267 & 40.90\% & 80.73\% & 17.08\% \\
+MLP Baseline (No Graph)         & 0.1828 & 0.9037 & 0.1338 & 36.17\% & 72.85\% & 51.08\% \\
+XGBoost (Tabular Baseline)      & 0.2543 & 0.9333 & 0.2114 & \textbf{52.85\%} & 78.88\% & 43.17\% \\
+Static Unsafe Call Sinks        & 0.0736 & 0.5373 & 0.0165 & 5.53\%  & 28.84\% & 25.83\% \\
+Random Ranking Baseline         & 0.0237 & 0.5000 & 0.0120 & 5.62\%  & 19.22\% & 50.00\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Retrained 5-Group Feature Ablation Study ($819$ Test Binaries, Seed 42 Reference Run; Full-Model F1 = 0.4656 vs.\ 5-Seed Mean 0.3006)}
 \label{tab:ablation}
 \renewcommand{\arraystretch}{1.0}
 \footnotesize
@@ -462,31 +463,29 @@ w/o Symbolic \& Guard Density ($\mathbf{x}_{\text{sym}}$, 8d) & 0.4111 & 0.4250 
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:heuristics} compares Bidirectional GraphSAGE against a 4-head Graph Attention Network (GAT)~\cite{velickovic2018gat}
-trained under identical splits and against five classical static heuristics. Bidirectional GraphSAGE outperforms GAT by $+8.91$ F1
-points ($0.4656$ vs.\ $0.3765$) and $+12.72\%$ Top-1 accuracy ($67.25\%$ vs.\ $54.53\%$), while syntactic heuristics suffer severe
-false-positive collapse ($\text{F1} \leq 0.0690$). Table~\ref{tab:ablation} reports a retrained 5-group ablation study in which each
-8-dimensional feature group is zeroed out prior to training from scratch: removing Symbolic \& Guard Density ($\mathbf{x}_{\text{sym}}$)
-or Data-Flow \& Taint Reachability ($\mathbf{x}_{\text{flow}}$) causes the largest degradation ($-5.45$ and $-4.66$ F1 points; $-7.49\%$
-Top-1 accuracy), confirming that backward-slice bounds-check density and multi-hop taint/deallocation reachability are critical for
-distinguishing vulnerable blocks from patched code.
-
-\subsection{Cross-Optimization, 5-Fold CV, \& Zero-Shot Generalization}
-Table~\ref{tab:generalization} evaluates NeuroZ3 across compiler optimization levels (\texttt{-O0} through \texttt{-Os}), 5-Fold
-Stratified Group Cross-Validation across all $5{,}161$ labeled binaries, and two strict zero-shot generalization regimes:
+Table~\ref{tab:baselines} compares VulnGNN against five machine learning and heuristic baselines. Several critical insights emerge:
 \begin{enumerate}
-  \item \textbf{Compiler Optimization Resilience}: Despite aggressive loop unrolling, function inlining, and dead-code elimination at \texttt{-O2} and \texttt{-Os}, VulnGNN maintains a **0.9595 ROC-AUC** (\textbf{82.88\% Top-5}) at \texttt{-O2} and **0.9468 ROC-AUC** (\textbf{79.31\% Top-5}) at \texttt{-Os}.
-  \item \textbf{5-Fold Stratified Group CV}: Across 5 disjoint group folds, VulnGNN achieves a stable mean **0.9707 $\pm$ 0.0047 ROC-AUC**, **0.4236 $\pm$ 0.0292 PR-AUC**, **0.4103 $\pm$ 0.0242 F1**, and **85.88\% $\pm$ 2.30\% Top-5** hit rate.
-  \item \textbf{Zero-Shot Unseen CWE Families}: Trained with CWE-126 (Buffer Over-read), CWE-195 (Signed-to-Unsigned Conversion), and CWE-416 (Use-After-Free) completely held out ($419$ unseen binaries), VulnGNN achieves **0.9762 ROC-AUC**, **0.4208 PR-AUC**, **73.96\% Top-5**, and **84.62\% Top-10** zero-shot localization.
-  \item \textbf{Zero-Shot Unseen Open-Source Repositories}: Trained with five major production C repositories (\texttt{openssl}, \texttt{FFmpeg}, \texttt{tcpdump}, \texttt{haproxy}, and \texttt{ImageMagick}; $552$ stripped CVE binaries) completely excluded from training, VulnGNN achieves **0.7743 ROC-AUC**, **47.66\% Top-5**, **64.84\% Top-10**, and a **6.08\% clean-binary false alarm rate**.
+  \item \textbf{Tabular vs.\ Graph Baselines}: Gradient-boosted decision trees (XGBoost) achieve the highest Top-1 hit rate (\textbf{52.85\%}), outperforming VulnGNN's 5-seed mean ($49.81\%$, paired bootstrap difference $-3.04\%$, 95\% CI: $[-5.10\%, -1.02\%]$). This demonstrates that local instruction opcodes and API sinks provide a strong immediate signal for the single most suspicious block.
+  \item \textbf{Graph Topology Advantage}: VulnGNN significantly outperforms XGBoost on \textbf{Top-5 hit rate} ($83.56\%$ vs.\ $78.88\%$, paired difference $+4.68\%$, 95\% CI: $[+1.85\%, +7.42\%]$) and Mean Reciprocal Rank (5-seed mean of $0.6460$ vs.\ $0.6539$, paired difference $-0.0079$, 95\% CI: [$-0.021, +0.005$], statistically tied; single-seed peak MRR reaches $0.7278$ vs.\ $0.6799$).
+  \item \textbf{Clean Binary Discrimination}: The most decisive advantage of graph message passing is false positive suppression. On clean binaries, XGBoost flags false alarms on \textbf{43.17\%} of binaries, whereas VulnGNN restricts false alarms to \textbf{14.50\%} (a massive 28.67 percentage point reduction; single-seed clean FPR drops by 39.13 percentage points vs.\ unregularized models). By analyzing multi-hop CFG reachability from sanitization guards, VulnGNN recognizes when potential sinks are guarded upstream.
+  \item \textbf{Graph Architecture Comparison}: Bidirectional GraphSAGE and GIN~\cite{xu2018gin} achieve comparable Top-5 accuracy ($83.56\%$ vs.\ $84.94\%$), but VulnGNN achieves a higher F1-score ($0.3006$ vs.\ $0.2903$) and lower clean binary false alarms ($14.50\%$ vs.\ $16.75\%$). Unidirectional message passing degrades Top-1 accuracy to $40.90\%$, confirming the necessity of reverse control-flow edges.
 \end{enumerate}
 
+\subsection{Cross-Optimization, Cross-Validation, & Generalization Limits}
+Table~\ref{tab:generalization} evaluates VulnGNN across compiler optimization levels, 5-Fold Stratified Group Cross-Validation, and
+two generalization regimes: unseen CWE families and zero-overlap unseen repositories.
+\begin{itemize}
+  \item \textbf{Optimization Resilience}: At \texttt{-O2} and \texttt{-Os}, VulnGNN retains strong discrimination (\textbf{0.9595} and \textbf{0.9468 ROC-AUC}; \textbf{82.88\%} and \textbf{79.31\% Top-5}).
+  \item \textbf{Zero-Shot CWE Transfer}: When CWE-126, CWE-195, and CWE-416 are completely withheld ($419$ binaries), VulnGNN achieves \textbf{0.9762 ROC-AUC} and \textbf{73.96\% Top-5} hit rate, demonstrating that underlying bounds-check absence and pointer manipulation patterns transfer across vulnerability categories.
+  \item \textbf{Project-Held-Out Degradation (Cross-Project Domain Shift)}: When evaluated on 12 completely unseen open-source projects ($120$ binaries from projects like \texttt{libpng}, \texttt{binutils}, and \texttt{busybox}), performance exhibits severe degradation: ROC-AUC drops to \textbf{0.7769}, Micro F1 drops to \textbf{0.1431} (Macro F1: \textbf{0.1573}), and clean-binary false positive rate spikes to \textbf{93.75\%} (Macro) / \textbf{95.45\%} (Micro). This documents a fundamental boundary: cross-project differences in memory allocators, error handling conventions, and internal dataflow idioms create substantial domain shift that purely static GNNs cannot bridge zero-shot.
+\end{itemize}
+
 \begin{table}[!t]
-\caption{Cross-Optimization, 5-Fold Group CV, and Zero-Shot Generalization}
+\caption{Cross-Optimization, 5-Fold Group CV, and Cross-Project Generalization}
 \label{tab:generalization}
 \renewcommand{\arraystretch}{1.0}
 \footnotesize
-\setlength\tabcolsep{2.4pt}
+\setlength\tabcolsep{2.2pt}
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Evaluation Regime} & \textbf{Bins} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{F1} & \textbf{Top-1 / Top-5} \\
@@ -498,7 +497,8 @@ Opt.\ Level \texttt{-Os} (Code Size)   & 145 & 0.9468 & 0.3381 & 0.3370 & 58.62\
 \midrule
 \textbf{5-Fold Group CV (Mean$\pm$SD)} & 5{,}161 & \textbf{0.9707$\pm$.005} & 0.4236$\pm$.029 & 0.4103$\pm$.024 & 62.84\% / \textbf{85.88\%} \\
 \textbf{Zero-Shot Unseen CWEs}         & 419 & \textbf{0.9762} & 0.4208 & 0.3792 & 50.89\% / \textbf{73.96\%} \\
-\textbf{Zero-Shot Unseen OSS Repos}    & 552 & \textbf{0.7743} & 0.0671 & ---    & 16.41\% / \textbf{47.66\%} \\
+\textbf{Project-Held-Out (Macro)}      & 120 & 0.7769 & 0.1960 & 0.1573 & 35.76\% / 74.65\% \\
+\textbf{Project-Held-Out (Micro)}      & 120 & 0.7789 & 0.0985 & 0.1431 & 37.04\% / 75.93\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -510,21 +510,21 @@ Opt.\ Level \texttt{-Os} (Code Size)   & 145 & 0.9468 & 0.3381 & 0.3370 & 58.62\
 \begin{tikzpicture}
 \begin{axis}[
   ybar, bar width=9pt, width=\linewidth, height=3.25cm,
-  symbolic x coords={SAGE,GAT,API,Taint,MemW,Cent},
+  symbolic x coords={SAGE,GIN,XGB,GAT,MLP,Heur},
   xtick=data, x tick label style={font=\tiny, rotate=25, anchor=north east},
-  ylabel={Test F1-Score}, ylabel style={font=\scriptsize},
-  y tick label style={font=\tiny}, ymin=0, ymax=0.58,
-  ytick={0,0.2,0.4},
+  ylabel={5-Seed F1-Score}, ylabel style={font=\scriptsize},
+  y tick label style={font=\tiny}, ymin=0, ymax=0.38,
+  ytick={0,0.1,0.2,0.3},
   ymajorgrids, grid style={dashed, gray!30},
   nodes near coords,
   nodes near coords style={font=\tiny\bfseries, text=black, /pgf/number format/.cd, fixed, fixed zerofill, precision=2},
   enlarge x limits=0.14, axis line style={black!60},
 ]
 \addplot[fill=col-teal!85, draw=col-teal!90!black] coordinates
-  {(SAGE,0.466) (GAT,0.376) (API,0.069) (Taint,0.067) (MemW,0.042) (Cent,0.012)};
+  {(SAGE,0.30) (GIN,0.29) (XGB,0.25) (GAT,0.24) (MLP,0.18) (Heur,0.07)};
 \end{axis}
 \end{tikzpicture}
-\par\vspace{-2pt}\scriptsize (a) Bi-GraphSAGE vs.\ GAT \& heuristics
+\par\vspace{-2pt}\scriptsize (a) 5-Seed F1 across architectures
 \end{minipage}
 \hfill
 \begin{minipage}{0.48\linewidth}
@@ -552,206 +552,155 @@ Opt.\ Level \texttt{-Os} (Code Size)   & 145 & 0.9468 & 0.3381 & 0.3370 & 58.62\
 \end{tikzpicture}
 \par\vspace{-2pt}\scriptsize (b) 5-Silo Non-IID FL Top-5 convergence
 \end{minipage}
-\caption{Empirical verification on 819 held-out test binaries: (a) Bi-GraphSAGE vs.\ 4-Head GAT and static heuristics; (b) 5-client Non-IID Federated Learning Top-5 localization convergence over 10 communication rounds.}
+\caption{Empirical verification on held-out test binaries: (a) VulnGNN vs.\ GIN, XGBoost, GAT, MLP, and heuristics; (b) 5-client Non-IID Federated Learning Top-5 localization convergence over 10 communication rounds.}
 \label{fig:evaluation_charts}
 \end{figure}
 
-\subsection{Symbolic Execution, Pruning, and Exploit Verification}
-Table~\ref{tab:symexec} reports end-to-end symbolic verification and Z3 exploit synthesis across the 37 verification binaries.
-NeuroZ3 flagged 71 candidate vulnerable paths; Z3 proved satisfiability on **66 of 71 candidates (93.0\% yield)**, synthesizing
-concrete crashing inputs for each. The remaining 5 candidates reached exploration depth bounds and were pruned without false alarms.
-Mean Z3 SMT solver latency was **27.04\,ms ($\pm$5.94\,ms)** per verification query.
+\subsection{Neuro-Symbolic Guidance, RMST Analysis, & Verification}
+Table~\ref{tab:symexec} reports the paired evaluation of GNN-guided exploration against unguided Depth-First Search (DFS)
+across 69 paired binaries under identical 15.0\,s per-binary wall-clock budgets enforced via kernel \texttt{SIGALRM} timers.
 
 \begin{table}[!t]
-\caption{End-to-End Symbolic Execution and Z3 Verification Results}
+\caption{Paired Neuro-Symbolic Benchmark Results ($N = 69$ Paired Binaries, 15.0\,s Budget)}
 \label{tab:symexec}
 \renewcommand{\arraystretch}{1.0}
 \footnotesize
-\setlength\tabcolsep{2.8pt}
-\begin{tabular}{lccccc}
+\setlength\tabcolsep{2.2pt}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Corpus} & \textbf{N} & \textbf{Candidates} & \textbf{SAT Proven} & \textbf{Scan Time} & \textbf{Z3 Latency} \\
+\textbf{Metric} & \textbf{Guided (GNN)} & \textbf{Unguided (DFS)} & \textbf{Paired Diff} & \textbf{95\% Bootstrap CI} \\
 \midrule
-Target Suite (ARM64) & 6  & 8  & 4           & 0.51\,s  & 8.65\,ms \\
-Juliet Suite (PE32)  & 30 & 61 & 61 (100\%)  & 30.64\,s & 28.91\,ms \\
-Multi-Sink Harness   & 1  & 2  & 1           & 0.60\,s  & 18.42\,ms \\
-\textbf{Total}       & \textbf{37} & \textbf{71} & \textbf{66 (93.0\%)} & \textbf{24.94\,s} & \textbf{27.04$\pm$5.94\,ms} \\
+Total Wall Time (s)     & 328.23\,s & 309.33\,s & +18.90\,s & [-22.5\,s, +58.4\,s] \\
+Mean Runtime / Bin (s)  & 4.757\,s  & 4.483\,s  & +0.274\,s & [-0.346\,s, +0.745\,s] \\
+Total States Explored   & 2{,}042   & 2{,}138   & -96 ($-4.5\%$) & [$-12.4\%$, $+2.1\%$] \\
+Mean States / Bin       & 29.59     & 30.99     & -1.40     & [$-4.12$, $+0.84$] \\
+Timeouts ($\geq 15.0$\,s)& 14 (20.3\%) & 14 (20.3\%) & 0        & Identical \\
+SAT Witnesses Found     & 37        & 37        & 0         & Identical \\
+UNKNOWN Solver Checks   & 0         & 0         & 0         & Identical \\
+\midrule
+\multicolumn{5}{l}{\textbf{Restricted Mean Survival Time (RMST, $\tau = 15.0$\,s, $B=10{,}000$ Resamples)}} \\
+RMST ($\tau = 15.0$\,s) & 4.4534\,s & 4.2413\,s & $+0.2121$\,s & [$-0.3461$\,s, $+0.7446$\,s] \\
+RMST Ratio (DFS / Guided)& \multicolumn{2}{c}{$0.9546\times$} & --- & [$0.8465\times$, $1.0810\times$] \\
+Two-Sided $p$-value     & \multicolumn{2}{c}{$p = 0.452$ (Not Significant)} & --- & Fail to reject $H_0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[!t]
-\caption{Search-Space Reduction Across Stripped Evaluation Tiers}
-\label{tab:searchspace}
+\caption{Four-Way Scheduler Ablation ($N = 22$ Binaries, 10.0\,s Uniform Budget)}
+\label{tab:scheduler_ablation}
 \renewcommand{\arraystretch}{1.0}
 \footnotesize
 \setlength\tabcolsep{2.5pt}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Corpus / Metric} & \textbf{Unguided DSE} & \textbf{NeuroZ3 Guided} & \textbf{Reduction / Speedup} \\
+\textbf{Scheduler Strategy} & \textbf{Total Time} & \textbf{Mean Time} & \textbf{States} & \textbf{Solved (<10s)} \\
 \midrule
-Held-Out Test ($819$ bins)   & 94{,}517 blocks & 728 blocks       & \textbf{99.23\% Pruned} (1.48\,ms) \\
-SysUtils-Prod ($39$ bins)    & 32{,}752 blocks & 20 blocks        & \textbf{99.94\% Pruned} (4.30\,ms) \\
-Multi-Function CWE Bins      & 7.42\,s / bin   & 0.31\,s / bin    & \textbf{10.4$\times$--28.4$\times$ Speedup} \\
-Timeout-Capped DSE Suite     & 31.32\,s\textsuperscript{*} & 0.53\,s / bin & \textbf{60.2$\times$ Speedup} (99.66\%) \\
+Static Sink Heuristic       & 95.66\,s & 4.348\,s & 642 & 15 / 22 (68.2\%) \\
+Random Priority (3-Seed Mean)& 96.30\,s & 4.377\,s & 658 & 15 / 22 (68.2\%) \\
+GNN-Guided MaxHeap          & 96.64\,s & 4.393\,s & 648 & 15 / 22 (68.2\%) \\
+Depth-First Search (DFS)    & 100.24\,s & 4.556\,s & 684 & 15 / 22 (68.2\%) \\
 \bottomrule
 \end{tabular}
-\par\vspace{2pt}\footnotesize\textsuperscript{*}Unguided baseline capped at 60\,s timeout; on production utilities such as \texttt{bzip2} (948 blocks), unguided DSE exceeds 480\,s while NeuroZ3 prunes 99.89\% of blocks in 4.00\,ms.
 \end{table}
 
-Table~\ref{tab:searchspace} quantifies basic-block pruning and symbolic execution acceleration across all evaluation tiers:
+\textbf{Analysis of Neuro-Symbolic Guidance Limits.} Because symbolic execution times are heavily right-censored at the 15.0\,s
+timeout threshold, standard $t$-tests are biased. We conducted a paired Restricted Mean Survival Time (RMST) analysis over 10{,}000
+bootstrap resamples:
 \begin{itemize}
-  \item Across all $819$ held-out test binaries ($94{,}517$ basic blocks), VulnGNN prunes **99.23\%** of basic blocks in **1.48\,ms** per binary.
-  \item Across the 39 production BSD/macOS system utilities ($32{,}752$ basic blocks, including \texttt{file} [$6{,}210$ blocks, 99.97\% pruned in 23.3\,ms], \texttt{awk} [$4{,}444$ blocks, 99.98\% pruned in 19.8\,ms], \texttt{diff} [$3{,}057$ blocks, 100\% pruned in 10.2\,ms], \texttt{patch} [$2{,}775$ blocks, 100\% pruned in 11.6\,ms], \texttt{sort} [$2{,}723$ blocks, 100\% pruned in 10.5\,ms], \texttt{gzip} [$1{,}664$ blocks, 99.94\% pruned in 7.6\,ms], and \texttt{sed} [$1{,}413$ blocks, 100\% pruned in 6.4\,ms]), NeuroZ3 achieves a mean basic-block pruning ratio of **99.94\%** at **4.30\,ms** mean GNN inference time per binary.
-  \item On multi-function stripped Juliet binaries ($23$--$29$ user functions per binary), restricting targeted symbolic execution to GNN-flagged functions reduces mean scan time from $7.42$\,s to $0.31$\,s (**10.4$\times$--28.4$\times$ speedup**), and up to **60.2$\times$** against 60\,s timeout-capped unguided exploration.
+  \item Guided RMST is $4.4534$\,s vs.\ DFS RMST of $4.2413$\,s, yielding a paired difference of $+0.2121$\,s (95\% CI: [$-0.3461$\,s, $+0.7446$\,s], $p = 0.452$) and a ratio of $0.9546\times$ (95\% CI: [$0.8465$, $1.0810$]).
+  \item Because the confidence intervals span zero difference and unity ratio, there is \textbf{no statistically significant runtime difference} between GNN guidance and DFS.
+  \item In our 4-way scheduler ablation on 22 binaries under a 10.0\,s cap (Table~\ref{tab:scheduler_ablation}), Static Heuristics (95.66\,s), Random Priority (96.30\,s), and GNN Guidance (96.64\,s) achieve virtually identical total times.
+  \item \textbf{Scientific Finding}: GNN guidance successfully steers exploration towards candidate basic blocks and reduces explored states by $4.5\%$, but maintaining priority queues and evaluating GNN embeddings introduces latency that offsets state reduction. Heuristic steering does not mitigate combinatorial path explosion on deep loop structures.
 \end{itemize}
 
-\textbf{Case Study \& Negative Controls.} On an ARM64 target containing an unbounded \texttt{strcpy} into a stack buffer, VulnGNN
-ranked the vulnerable sink block Top-1; angr reached the block in 0.52\,s, and Z3 solved $\Phi_{\text{exploit}}$ in 9.1\,ms,
-synthesizing a 40-byte crashing payload overwriting the saved link register (\texttt{STACK\_SMASH\_RIP}, CVSS 7.9). Conversely,
-hardened negative control binaries (\texttt{secure\_program.bin} and \texttt{-DOMITBAD} patched binaries) yielded zero Z3 SAT proofs
-under identical settings, validating that formal SMT verification eliminates false alarms on safe paths. Table~\ref{tab:primitives}
-classifies the synthesized exploit primitives.
-
 \begin{table}[!t]
-\caption{Synthesized Exploit Primitives and Bypassed Mitigations}
-\label{tab:primitives}
+\caption{Empirical Exploit Verification Taxonomy ($N = 90$ Binaries, 47 Findings)}
+\label{tab:verification_taxonomy}
 \renewcommand{\arraystretch}{1.0}
 \footnotesize
 \setlength\tabcolsep{2.2pt}
-\begin{tabular}{lccp{2.4cm}}
+\begin{tabular}{lccl}
 \toprule
-\textbf{Primitive} & \textbf{CVSS} & \textbf{Mitigations Bypassed} & \textbf{Exploit Mechanism} \\
+\textbf{Taxonomy Level} & \textbf{Bins} & \textbf{Findings} & \textbf{Empirical Criteria \& Representative Targets} \\
 \midrule
-\texttt{STACK\_SMASH\_RIP} & 7.9 & Stack Canary & Unbounded buffer write corrupting return address \\
-\texttt{INVALID\_FREE}     & 7.5 & Heap Guard   & Double-free / pointer redirection \\
-\texttt{OOB\_WRITE}        & 6.1 & None         & Out-of-bounds index store \\
-\texttt{NULL\_DEREF}       & 5.3 & None         & DoS crash via zero-address dereference \\
+L7: Command Execution   & 1  & 1  & Native subshell execution (\texttt{cwe78\_command\_injection}) \\
+L6: Verified Crash      & 4  & 7  & Reproducible SIGSEGV (\texttt{cwe134}, \texttt{cwe416}, \texttt{cwe476}) \\
+L5: Abnormal Term.      & 1  & 2  & Non-zero exit code (\texttt{cwe122\_heap\_overflow}) \\
+L4: Unrelated Crash     & 2  & 2  & Missing environment/socket configuration \\
+L3: Normal Termination  & 7  & 7  & Clean exit code 0 (Confirmed False Positives) \\
+L2: Not Replayable      & 21 & 28 & Unit-level functions lacking test harness \\
+L1: Clean Control       & 54 & 0  & Clean control binaries (No SAT findings) \\
+\midrule
+\textbf{Total Corpus}   & \textbf{90} & \textbf{47} & \textbf{Mutually exclusive and exhaustive} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Pipeline Reliability at Scale (5{,}200 Stripped Binaries)}
-\label{sec:scale}
-Table~\ref{tab:scale} summarizes end-to-end ingestion, CFG lifting, feature extraction, and verification reliability across both our
-5{,}200-binary stripped ARM64 corpus and the multi-tier repository stress test (3{,}885 Juliet targets). Across all 5{,}200 stripped
-binaries (PrimeVul-CVE, Juliet-MultiCWE, and SysUtils-Prod), VEX IR CFG recovery and 40-dimensional graph serialization succeeded on
-100\% of compiled binaries with zero unhandled exceptions. Table~\ref{tab:cwecoverage} summarizes representative per-CWE held-out
-test performance across major vulnerability families.
-
-\begin{table}[!t]
-\caption{Pipeline Reliability Across Large-Scale Binary Tiers}
-\label{tab:scale}
-\renewcommand{\arraystretch}{1.0}
-\footnotesize
-\setlength\tabcolsep{2.5pt}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Reliability Metric} & \textbf{5{,}200-Bin Corpus} & \textbf{Moderate Tier} & \textbf{Heavy Z3 Tier} \\
-\midrule
-Binaries Processed     & 5{,}200 (ARM64)  & 3{,}885 (Juliet) & 37 (Verification) \\
-Successful Completion  & 5{,}200 (100.0\%)& 3{,}881 (99.90\%)& 37 (100.0\%) \\
-Timeouts / Crashes     & 0                & 0                & 0 \\
-Mean / Median Runtime  & 0.15\,s (CFG+40d)& 3.73\,s          & 2.65\,s \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[!t]
-\caption{Per-CWE Held-Out Test Performance Across All 21 Multi-CWE Families and Major Real-World CVE Classes (52 Unique CWEs Total)}
-\label{tab:cwecoverage}
-\renewcommand{\arraystretch}{0.95}
-\footnotesize
-\setlength\tabcolsep{2.1pt}
-\begin{tabular}{llcccc}
-\toprule
-\textbf{CWE} & \textbf{Vulnerability Class} & \textbf{ROC-AUC} & \textbf{F1} & \textbf{Top-1} & \textbf{Top-5} \\
-\midrule
-\multicolumn{6}{l}{\textit{All 21 Multi-CWE Families (NIST Juliet v1.3 + Shared Real-World CVEs)}} \\
-CWE-761 & Free Ptr Not at Start of Buffer & 0.9999 & 0.9714 & 100.0\% & 100.0\% \\
-CWE-195 & Signed-to-Unsigned Conversion   & 0.9999 & 0.9268 & 93.75\% & 100.0\% \\
-CWE-680 & Integer Overflow to Buffer Ovfl & 0.9994 & 0.8837 & 100.0\% & 100.0\% \\
-CWE-78  & OS Command Injection (Taint)    & 0.9996 & 0.8358 & 100.0\% & 100.0\% \\
-CWE-191 & Integer Underflow               & 0.9994 & 0.8261 & 90.48\% & 100.0\% \\
-CWE-121 & Stack-Based Buffer Overflow     & 0.9990 & 0.7907 & 83.87\% & 100.0\% \\
-CWE-369 & Divide by Zero                  & 0.9986 & 0.7857 & 95.45\% & 100.0\% \\
-CWE-127 & Buffer Under-read               & 0.9991 & 0.7805 & 77.78\% & 100.0\% \\
-CWE-789 & Uncontrolled Memory Allocation  & 0.9988 & 0.7727 & 83.33\% & 100.0\% \\
-CWE-197 & Numeric Truncation Error        & 0.9987 & 0.7647 & 92.31\% & 100.0\% \\
-CWE-416 & Use-After-Free (Multi-CWE+CVE)  & 0.9833 & 0.7568 & 70.00\% & 85.00\% \\
-CWE-690 & Unchecked Return to NULL Deref  & 0.9991 & 0.7368 & 87.50\% & 100.0\% \\
-CWE-190 & Integer Overflow (Multi-CWE+CVE)& 0.9952 & 0.6984 & 80.00\% & 100.0\% \\
-CWE-124 & Buffer Underwrite               & 0.9983 & 0.6667 & 63.16\% & 100.0\% \\
-CWE-415 & Double Free (Multi-CWE+CVE)     & 0.9834 & 0.6667 & 61.11\% & 66.67\% \\
-CWE-194 & Unexpected Sign Extension       & 0.9958 & 0.6154 & 73.33\% & 100.0\% \\
-CWE-134 & Uncontrolled Format String      & 0.9845 & 0.6111 & 80.00\% & 92.00\% \\
-CWE-590 & Free of Memory Not on Heap      & 0.9971 & 0.5517 & 71.43\% & 100.0\% \\
-CWE-122 & Heap-Based Buffer Overflow      & 0.9696 & 0.5294 & 75.00\% & 89.29\% \\
-CWE-126 & Buffer Over-read                & 0.9960 & 0.4706 & 58.82\% & 100.0\% \\
-CWE-476 & NULL Pointer Deref (Multi+CVE)  & 0.9680 & 0.4490 & 51.85\% & 66.67\% \\
-\midrule
-\multicolumn{6}{l}{\textit{Additional Real-World Open-Source CVE Families (PrimeVul)}} \\
-CWE-327 & Broken/Risky Crypto (Real CVEs) & 0.9979 & 0.2500 & 100.0\% & 100.0\% \\
-CWE-189 & Numeric Errors (Real CVEs)      & 0.8816 & ---    & 80.00\% & 100.0\% \\
-CWE-264 & Permissions / Access Control    & 0.8728 & 0.3158 & 37.50\% & 100.0\% \\
-CWE-362 & Race Condition (Real CVEs)      & 0.8660 & 0.1333 & 75.00\% & 100.0\% \\
-CWE-284 & Improper Access Control (CVEs)  & 0.8149 & ---    & 75.00\% & 100.0\% \\
-CWE-125 & Out-of-Bounds Read (Real CVEs)  & 0.7946 & ---    & 55.00\% & 80.00\% \\
-CWE-787 & Out-of-Bounds Write (Real CVEs) & 0.7784 & ---    & 0.00\%  & 100.0\% \\
-CWE-119 & Memory Buffer Bounds (Real CVEs)& 0.7696 & 0.1299 & 25.00\% & 52.78\% \\
-CWE-20  & Improper Input Validation (CVEs)& 0.7184 & ---    & 37.50\% & 75.00\% \\
-\bottomrule
-\end{tabular}
-\end{table}
+\textbf{Exploit Synthesis and Patched Control Audit.} Table~\ref{tab:verification_taxonomy} classifies all 90 evaluated binaries
+and 47 vulnerability findings across our 7-tier verification taxonomy:
+\begin{enumerate}
+  \item \textbf{Demonstrated Command Execution (Case Study)}: On stripped binary \texttt{cwe78\_command\_injection.bin} (ARM64/x86), VulnGNN assigned basic block \texttt{main+0x44} an exploitability score of $P(v) = 0.942$ (ranked Top-1). Guided symbolic exploration reached \texttt{system()} in 12 steps. Z3 evaluated negated invariant $\neg \Psi_{\text{CMD}}$ as SAT, solving path constraints over 32 symbolic input bytes and synthesizing payload \texttt{'; echo \$((40000+1337)); echo '}. Native execution spawned a child subshell emitting token \texttt{41337} in stdout. On the patched twin binary, input sanitation rendered $\Phi_{\text{exploit}}$ UNSAT, confirming complete remediation.
+  \item \textbf{Memory Corruption Crashes}: 4 binaries produced verified native crashes under synthesized inputs (\texttt{cwe134\_format\_string}, \texttt{cwe416\_use\_after\_free}, \texttt{cwe476\_null\_deref}, and \texttt{test\_benchmarks\_binary}).
+  \item \textbf{Audit of Patched Juliet Controls (10/10 False Positives)}: In 21 patched Juliet control binaries, Z3 produced 10 SAT witnesses. A manual audit revealed that all 10 were false positives caused by unconstrained caller frames (symbolic link register \texttt{x30} or unconstrained stack arguments). Replaying all 10 on natively compiled binaries yielded clean normal termination with exit code 0 (\texttt{NORMAL\_TERMINATION}). In \texttt{CWE761}, source inspection confirmed that \texttt{free(orig)} is located strictly outside the search loop, disproving double-free hypotheses.
+\end{enumerate}
 
 \subsection{Non-IID Federated Learning Over Real Binary Silos}
-To evaluate privacy-preserving collaborative training under realistic organizational heterogeneity without any synthetic graphs, we
-partitioned all $3{,}604$ real training binaries across **5 disjoint organizational silos**:
-(1) Silo 1 ($426$ binaries): Stack \& Out-of-Bounds Memory Safety (CWE-121/124/126/127);
-(2) Silo 2 ($622$ binaries): Heap \& Pointer Lifecycle (CWE-122/415/416/476/590/690/761/789);
-(3) Silo 3 ($828$ binaries): Arithmetic \& Input-Taint (CWE-190/191/194/195/197/680/134/78/369);
-(4) Silo 4 ($704$ binaries): Linux Kernel Real-World CVEs (\texttt{linux} repository); and
-(5) Silo 5 ($1{,}024$ binaries): User-Space Open-Source Daemons \& Libraries Real-World CVEs (\texttt{openssl}, \texttt{FFmpeg}, \texttt{tcpdump}, \texttt{ImageMagick}, \texttt{haproxy}, etc.).
+To evaluate privacy-preserving collaborative training under realistic organizational heterogeneity without synthetic data,
+we partitioned all $3{,}604$ real training binaries across **5 disjoint organizational silos**:
+(1) Silo 1 ($426$ binaries): Stack \& Buffer Overflows;
+(2) Silo 2 ($622$ binaries): Heap \& Pointer Lifecycle;
+(3) Silo 3 ($828$ binaries): Arithmetic \& Taint;
+(4) Silo 4 ($704$ binaries): Linux Kernel Real-World CVEs; and
+(5) Silo 5 ($1{,}024$ binaries): User-Space System Daemons \& Libraries.
 
-Each client trained locally for 6 epochs per communication round over 10 rounds, exchanging 997.26\,KB parameter tensors per round,
-and the aggregated global model was evaluated on the unified $819$-binary held-out test set (Fig.~\ref{fig:evaluation_charts}b).
-From Round 1 to Round 10, **FedProx** ($\mu = 0.002$) improved held-out Top-5 localization from 48.08\% to **78.40\%** (Top-10: **88.15\%**,
-ROC-AUC: **0.9218**, Recall: **45.81\%**) while mean client training loss decayed monotonically from $0.1512$ to $0.0970$. **FedAvg**
-($\mu = 0.0$) reached **80.66\% Top-5** (Top-10: **87.11\%**, ROC-AUC: **0.9233**, Precision: **24.52\%**, Recall: $37.90\%$). Notably,
-FedProx achieved $+7.91\%$ higher recall and $+1.04\%$ higher Top-10 hit rate than FedAvg under 6-epoch non-IID client drift, while
-both federated strategies recovered over 91\% of centralized Top-5 localization performance ($80.66\%$ / $78.40\%$ vs.\ $85.89\%$
-centralized) without sharing any raw binaries or CFGs.
+\begin{table}[!t]
+\caption{Non-IID Federated Learning Performance across 5 Silos (3{,}604 Binaries)}
+\label{tab:federated}
+\renewcommand{\arraystretch}{1.0}
+\footnotesize
+\setlength\tabcolsep{2.2pt}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Strategy} & \textbf{Top-5} & \textbf{Top-10} & \textbf{ROC-AUC} & \textbf{Recall} & \textbf{Prec.} & \textbf{Bandwidth} \\
+\midrule
+Centralized VulnGNN     & 85.89\% & 92.33\% & 0.9737 & 39.54\% & 56.63\% & Centralized Upload \\
+FedProx ($\mu = 0.002$) & 78.40\% & 88.15\% & 0.9218 & \textbf{45.81\%} & 19.02\% & 997.26\,KB / round \\
+FedAvg ($\mu = 0.0$)    & \textbf{80.66\%} & 87.11\% & 0.9233 & 37.90\% & 24.52\% & 997.26\,KB / round \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each client trained locally for 6 epochs per communication round over 10 rounds, exchanging 997.26\,KB parameter tensors per round
+(Table~\ref{tab:federated} and Fig.~\ref{fig:evaluation_charts}b). Over 10 rounds, \textbf{FedProx} ($\mu = 0.002$) reached \textbf{78.40\% Top-5}
+and \textbf{88.15\% Top-10} localization with \textbf{0.9218 ROC-AUC}, while \textbf{FedAvg} reached \textbf{80.66\% Top-5}. FedProx achieved
+$+7.91\%$ higher recall than FedAvg, recovering over \textbf{91.28\%} of centralized Top-5 localization without centralizing proprietary binaries.
 
 \section{Discussion and Threats to Validity}
 \label{sec:limits}
 
-\textbf{Real-World CVE vs.\ Controlled Multi-CWE Localization.} Our dual-corpus evaluation reveals an important empirical distinction
-between controlled benchmark binaries (Juliet-MultiCWE: $0.9960$ ROC-AUC, $83.60\%$ Top-1, $97.35\%$ Top-5) and real-world open-source
-CVE binaries (PrimeVul-CVE standalone: $0.8347$ ROC-AUC, $31.34\%$ Top-1, $69.65\%$ Top-5, $81.59\%$ Top-10). In real-world patches
-from projects such as the Linux kernel and OpenSSL, pre-patch and post-patch functions share $>95\%$ identical basic blocks and
-frequently differ only by a single inter-procedural state check or macro expansion, making single-block Top-1 classification
-substantially harder~\cite{ding2024primevul}. Crucially, however, because NeuroZ3 uses GNN risk scores to prioritize Top-$K$
-candidate zones for symbolic verification rather than relying on GNN classification alone, a $69.65\%$ Top-5 ($81.59\%$ Top-10)
-ranking hit rate on real-world CVEs still prunes over $92\%$ of basic blocks prior to SMT solving.
+\textbf{Neuro-Symbolic Guidance Trade-offs.} Our RMST analysis provides a clear negative result: while GNN risk scores accurately
+prioritize basic blocks for inspection, using them to guide dynamic symbolic execution does not produce a wall-clock speedup over
+simple DFS. Symbolic execution bottlenecks stem from state copying, complex path constraint accumulation, and SMT solver DPLL(T)
+decision procedures on loops, which priority heuristics cannot compress.
 
-\textbf{Internal \& External Validity.} Indirect jumps resolved statically via \texttt{CFGFast} can under-approximate call graphs in
-heavily virtualized C++ binaries; NeuroZ3 mitigates this via bounded emulated refinement. While our 5{,}200-binary corpus spans 76
-open-source C projects, 52 CWEs, and four optimization levels (\texttt{-O0} through \texttt{-Os}), packed or obfuscated malware
-binaries require dedicated unpacking stages prior to VEX IR lifting.
+\textbf{Domain Shift in Unseen Software Projects.} While VulnGNN generalizes across compiler optimization levels and unseen CWE
+families within known codebases, evaluating on completely unseen projects (Project-Held-Out) degrades F1 from 0.30 to 0.14. Real-world
+software projects employ disparate architectural patterns and custom memory abstractions that require domain adaptation or
+federated fine-tuning.
 
-\textbf{Ethics \& Reproducibility.} NeuroZ3 is engineered for authorized security auditing and DevSecOps remediation via SARIF 2.1.0.
-All corpus builders (\texttt{build\_primevul\_real\_corpus.py}, \texttt{build\_large\_corpus.py}), 40-dimensional feature extractors,
-GNN training scripts, and evaluation harnesses are included for deterministic reproduction.
+\textbf{Path Satisfiability vs.\ Native Exploitability.} Unit-level symbolic execution frequently reports SAT for unsafe properties
+due to under-constrained initial states. Establishing exploitability requires validating synthesized payloads through native execution
+harnesses, as formalized in our 7-tier taxonomy.
 
 \section{Conclusion}
 
-NeuroZ3 demonstrates that coupling inductive 40-dimensional bidirectional Graph Neural Networks with SMT-backed dynamic symbolic
-execution effectively overcomes the path explosion bottleneck in stripped binary vulnerability analysis. Trained and validated across
-\textbf{5{,}200 real compiled stripped binaries} (670{,}464 basic blocks across 76 real-world open-source C projects, 292 CVEs, 52
-CWE families, and \texttt{-O0}--\texttt{-Os} optimization levels), NeuroZ3 achieves a **0.9737 unified ROC-AUC** (**85.89\% Top-5**,
-**92.33\% Top-10** hit rate; **0.9960 ROC-AUC** and **97.35\% Top-5** on Multi-CWE; **0.8347 ROC-AUC** and **81.59\% Top-10** on
-standalone real-world CVEs), prunes 99.23\%--99.94\% of basic blocks in milliseconds, synthesizes concrete Z3-proven exploits with
-zero false positives on verified paths, and enables privacy-preserving cross-enterprise training via Non-IID Federated Learning.
+NeuroZ3 couples inductive 40-dimensional bidirectional Graph Neural Networks with bounded symbolic execution and privacy-preserving
+Federated Learning on stripped binaries. Evaluated on 5{,}200 real compiled binaries across 76 open-source projects, 52 CWEs, and
+four optimization levels, VulnGNN achieves a 0.9543 ROC-AUC and 83.56\% Top-5 localization (5-seed mean), significantly suppressing clean-binary
+false alarms compared to tabular baselines. Our rigorous paired RMST analysis documents the limits of heuristic search steering,
+while our 7-tier verification taxonomy validates synthesized exploit payloads through empirical native execution. Finally,
+Federated Learning enables multi-enterprise collaboration, recovering >91\% of centralized localization with sub-megabyte payloads.
 
 \balance
 \footnotesize
@@ -760,7 +709,7 @@ zero false positives on verified paths, and enables privacy-preserving cross-ent
 \bibitem{ding2024primevul}
 Y.~Ding, Y.~Fu, O.~Ibrahim, C.~Sitawarin, X.~Chen, B.~Alomair, D.~Wagner, B.~Ray, and Y.~Chen,
 ``Vulnerability detection with code language models: How far are we?''
-in \emph{Proc.\ IEEE/ACM 46th Int.\ Conf.\ Software Engineering (ICSE)}, 2024, pp.~1--13. doi:~10.1145/3597503.3639186.
+in \emph{Proc.\ IEEE/ACM 46th Int.\ Conf.\ Software Engineering (ICSE)}, 2024, pp.~1--13.
 
 \bibitem{velickovic2018gat}
 P.~Veli\v{c}kovi\'{c}, G.~Cucurull, A.~Casanova, A.~Romero, P.~Li\`{o}, and Y.~Bengio,
@@ -775,79 +724,67 @@ in \emph{Proc.\ 31st Int.\ Conf.\ Neural Information Processing Systems (NeurIPS
 \bibitem{demoura2008z3}
 L.~de~Moura and N.~Bj{\o}rner,
 ``Z3: An efficient SMT solver,''
-in \emph{Proc.\ Int.\ Conf.\ Tools and Algorithms for the Construction and Analysis of Systems (TACAS)}, Lecture Notes in
-Comput.\ Sci., vol.~4963, 2008, pp.~337--340. doi:~10.1007/978-3-540-78800-3\_24.
+in \emph{Proc.\ Int.\ Conf.\ Tools and Algorithms for the Construction and Analysis of Systems (TACAS)}, 2008, pp.~337--340.
 
 \bibitem{sun2026gnnse}
 H.~Sun, X.~Yu, J.~Li, Y.~Xu, J.~Yu, H.~Li, Y.~Li, and Y.-A.~Tan,
 ``Smart contract vulnerability detection based on symbolic execution and graph neural networks,''
-\emph{Comput.\ Mater.\ Continua}, vol.~86, no.~2, pp.~1--15, Dec.~2025. doi:~10.32604/cmc.2025.070930.
+\emph{Comput.\ Mater.\ Continua}, vol.~86, no.~2, pp.~1--15, 2025.
 
 \bibitem{malkawi2026ai}
 M.~Malkawi and R.~Alhajj,
 ``AI-powered vulnerability detection and patch management in cybersecurity: A systematic review,''
-\emph{Mach.\ Learn.\ Knowl.\ Extr.}, vol.~8, no.~1, Art.\ no.~19, Jan.~2026. doi:~10.3390/make8010019.
+\emph{Mach.\ Learn.\ Knowl.\ Extr.}, vol.~8, no.~1, Art.\ no.~19, 2026.
 
 \bibitem{zhang2026gnn}
 C.~Zhang and W.~Li,
 ``Enhancing graph neural network vulnerability detection via dynamic edge removal and NLP integration,''
-\emph{Int.\ J.\ Comput.\ Commun.\ Control}, vol.~21, no.~1, Art.\ no.~6905, Feb.~2026. doi:~10.15837/ijccc.2026.1.6905.
+\emph{Int.\ J.\ Comput.\ Commun.\ Control}, vol.~21, no.~1, Art.\ no.~6905, 2026.
 
 \bibitem{bailey2025survey}
 J.~Bailey and C.~Nicholas,
 ``Symbolic execution in practice: A survey of applications in vulnerability, malware, firmware, and protocol analysis,''
-arXiv preprint, arXiv:2508.06643, Aug.~2025. doi:~10.48550/arXiv.2508.06643.
+arXiv preprint, arXiv:2508.06643, 2025.
 
 \bibitem{jia2025graphspd}
 X.~Jia, J.~Du, M.~Fang, H.~Liu, Y.~Li, and F.~Jiang,
 ``Vulnerability detection with graph enhancement and global dependency representation learning,''
 \emph{Autom.\ Softw.\ Eng.}, vol.~32, no.~1, Art.\ no.~14, 2025.
 
-\bibitem{ponzi2025gnn}
-V.~Ponzi and C.~Napoli,
-``Graph neural networks: Architectures, applications, and future directions,''
-\emph{IEEE Access}, vol.~13, pp.~62870--62891, Apr.~2025. doi:~10.1109/ACCESS.2025.3558752.
-
 \bibitem{berrios2025zeroday}
 S.~I.~Berrios~Vasquez et~al.,
 ``Zero-day threat mitigation via deep learning in cloud environments,''
-\emph{MDPI Appl.\ Sci.}, vol.~15, no.~14, Art.\ no.~7885, Jul.~2025. doi:~10.3390/app15147885.
+\emph{MDPI Appl.\ Sci.}, vol.~15, no.~14, Art.\ no.~7885, 2025.
 
 \bibitem{neurosymbolic2025}
 S.~B.~Hakim, M.~Adil, A.~Velasquez, S.~Xu, and H.~H.~Song,
 ``Neuro-symbolic AI for cybersecurity: State of the art, challenges, and opportunities,''
-arXiv preprint, arXiv:2509.06921, Sep.~2025. doi:~10.48550/arXiv.2509.06921.
+arXiv preprint, arXiv:2509.06921, 2025.
 
 \bibitem{scherb2024divide}
 C.~Scherb, L.~B.~Heitz, and H.~Grieder,
 ``Divide and conquer based symbolic vulnerability detection,''
-arXiv preprint, arXiv:2409.13478, Sep.~2024. doi:~10.48550/arXiv.2409.13478.
+arXiv preprint, arXiv:2409.13478, 2024.
 
 \bibitem{wang2023deepvulseeker}
 J.~Wang, H.~Xiao, S.~Zhong, and Y.~Xiao,
 ``DeepVulSeeker: A novel vulnerability identification framework via code graph structure and pre-training mechanism,''
-\emph{Future Gener.\ Comput.\ Syst.}, vol.~148, pp.~15--26, Nov.~2023.
-
-\bibitem{cvefixes2021}
-H.~Bhandari, A.~Naseer, and L.~Moonen,
-``CVEfixes: Automated collection of vulnerabilities and their fixes from open-source software,''
-in \emph{Proc.\ 17th Int.\ Conf.\ Predict.\ Models Data Analytics Softw.\ Eng.\ (PROMISE)}, 2021, pp.~30--39.
-doi:~10.1145/3475960.3475985.
+\emph{Future Gener.\ Comput.\ Syst.}, vol.~148, pp.~15--26, 2023.
 
 \bibitem{juliet2010}
 T.~Boland and P.~E.~Black,
 ``Juliet 1.1 C/C++ and Java test suite,''
-\emph{IEEE Comput.}, vol.~45, no.~10, pp.~88--90, Oct.~2012. doi:~10.1109/MC.2012.345.
+\emph{IEEE Comput.}, vol.~45, no.~10, pp.~88--90, 2012.
 
 \bibitem{msgvul2024}
 W.~Xiao, Z.~Hou, T.~Wang, C.~Zhou, and C.~Pan,
 ``MSGVUL: Multi-semantic integration vulnerability detection based on relational graph convolutional neural networks,''
-\emph{Inf.\ Softw.\ Technol.}, vol.~170, Art.\ no.~107442, 2024. doi:~10.1016/j.infsof.2024.107442.
+\emph{Inf.\ Softw.\ Technol.}, vol.~170, Art.\ no.~107442, 2024.
 
 \bibitem{stephens2016driller}
 N.~Stephens et~al.,
 ``Driller: Augmenting fuzzing through selective symbolic execution,''
-in \emph{Proc.\ NDSS}, vol.~16, 2016, pp.~1--16. doi:~10.14722/ndss.2016.23368.
+in \emph{Proc.\ NDSS}, 2016, pp.~1--16.
 
 \bibitem{yun2018qsym}
 I.~Yun, S.~Lee, M.~Xu, Y.~Jang, and T.~Kim,
@@ -857,27 +794,27 @@ in \emph{Proc.\ 27th USENIX Security Symp.}, 2018, pp.~745--761.
 \bibitem{rawat2017vuzzer}
 S.~Rawat, V.~Jain, A.~Kumar, L.~Cojocar, C.~Giuffrida, and H.~Bos,
 ``VUzzer: Application-aware evolutionary fuzzing,''
-in \emph{Proc.\ NDSS}, 2017, pp.~1--14. doi:~10.14722/ndss.2017.23404.
+in \emph{Proc.\ NDSS}, 2017, pp.~1--14.
 
 \bibitem{fioraldi2022libafl}
 A.~Fioraldi, D.~C.~Maier, D.~Zhang, and D.~Balzarotti,
 ``LibAFL: A framework to build modular and reusable fuzzers,''
-in \emph{Proc.\ ACM CCS}, 2022, pp.~1051--1065. doi:~10.1145/3548606.3560602.
+in \emph{Proc.\ ACM CCS}, 2022, pp.~1051--1065.
 
 \bibitem{poeplau2020symcc}
 S.~Poeplau and A.~Francillon,
 ``Symbolic execution with SymCC: Don't interpret, compile!''
 in \emph{Proc.\ 29th USENIX Security Symp.}, 2020, pp.~181--198.
 
-\bibitem{vyukov2015syzkaller}
-D.~Vyukov,
-``Syzkaller: An unsupervised coverage-guided Linux syscall fuzzer,'' 2015.
-[Online]. Available: \url{https://github.com/google/syzkaller}
-
 \bibitem{xu2020neuex}
 S.~Shen, S.~Shinde, S.~Ramesh, A.~Roychoudhury, and P.~Saxena,
 ``Neuro-symbolic execution: Augmenting symbolic execution with neural constraints,''
-in \emph{Proc.\ Network and Distributed System Security Symp.\ (NDSS)}, 2019. doi:~10.14722/ndss.2019.23530.
+in \emph{Proc.\ NDSS}, 2019.
+
+\bibitem{xu2018gin}
+K.~Xu, W.~Hu, J.~Leskovec, and S.~Jegelka,
+``How powerful are graph neural networks?''
+in \emph{Proc.\ Int.\ Conf.\ Learning Representations (ICLR)}, 2019.
 
 \end{thebibliography}
 
