@@ -1,0 +1,522 @@
+{
+  "juliet_graphs": 2681,
+  "juliet_vulnerable_binaries": 2450,
+  "juliet_patched_negative_binaries": 231,
+  "real_world_system_binaries": 39,
+  "real_world_total_nodes": 32752,
+  "real_world_total_edges": 49881,
+  "combined_total_binaries": 2720,
+  "juliet_total_basic_blocks": 530859,
+  "juliet_total_cfg_edges": 699483,
+  "combined_total_basic_blocks": 563611,
+  "combined_total_cfg_edges": 749364,
+  "total_vulnerable_blocks": 3058,
+  "distinct_cwe_count": 21,
+  "per_cwe": {
+    "CWE121": {
+      "total_graphs": 221,
+      "vuln_graphs": 210,
+      "patched_graphs": 11,
+      "nodes": 40998,
+      "edges": 53469,
+      "vuln_blocks": 264
+    },
+    "CWE122": {
+      "total_graphs": 201,
+      "vuln_graphs": 190,
+      "patched_graphs": 11,
+      "nodes": 40265,
+      "edges": 53485,
+      "vuln_blocks": 251
+    },
+    "CWE124": {
+      "total_graphs": 136,
+      "vuln_graphs": 125,
+      "patched_graphs": 11,
+      "nodes": 27717,
+      "edges": 37169,
+      "vuln_blocks": 147
+    },
+    "CWE126": {
+      "total_graphs": 126,
+      "vuln_graphs": 115,
+      "patched_graphs": 11,
+      "nodes": 25661,
+      "edges": 34443,
+      "vuln_blocks": 150
+    },
+    "CWE127": {
+      "total_graphs": 126,
+      "vuln_graphs": 115,
+      "patched_graphs": 11,
+      "nodes": 24533,
+      "edges": 32436,
+      "vuln_blocks": 135
+    },
+    "CWE134": {
+      "total_graphs": 181,
+      "vuln_graphs": 170,
+      "patched_graphs": 11,
+      "nodes": 43768,
+      "edges": 60001,
+      "vuln_blocks": 209
+    },
+    "CWE190": {
+      "total_graphs": 176,
+      "vuln_graphs": 165,
+      "patched_graphs": 11,
+      "nodes": 33730,
+      "edges": 43849,
+      "vuln_blocks": 178
+    },
+    "CWE191": {
+      "total_graphs": 151,
+      "vuln_graphs": 140,
+      "patched_graphs": 11,
+      "nodes": 29236,
+      "edges": 38168,
+      "vuln_blocks": 158
+    },
+    "CWE194": {
+      "total_graphs": 106,
+      "vuln_graphs": 95,
+      "patched_graphs": 11,
+      "nodes": 20786,
+      "edges": 27406,
+      "vuln_blocks": 112
+    },
+    "CWE195": {
+      "total_graphs": 106,
+      "vuln_graphs": 95,
+      "patched_graphs": 11,
+      "nodes": 20348,
+      "edges": 26666,
+      "vuln_blocks": 107
+    },
+    "CWE197": {
+      "total_graphs": 96,
+      "vuln_graphs": 85,
+      "patched_graphs": 11,
+      "nodes": 16598,
+      "edges": 20924,
+      "vuln_blocks": 101
+    },
+    "CWE369": {
+      "total_graphs": 126,
+      "vuln_graphs": 115,
+      "patched_graphs": 11,
+      "nodes": 25402,
+      "edges": 33435,
+      "vuln_blocks": 126
+    },
+    "CWE415": {
+      "total_graphs": 106,
+      "vuln_graphs": 95,
+      "patched_graphs": 11,
+      "nodes": 19428,
+      "edges": 25192,
+      "vuln_blocks": 95
+    },
+    "CWE416": {
+      "total_graphs": 91,
+      "vuln_graphs": 80,
+      "patched_graphs": 11,
+      "nodes": 18027,
+      "edges": 23659,
+      "vuln_blocks": 80
+    },
+    "CWE476": {
+      "total_graphs": 106,
+      "vuln_graphs": 95,
+      "patched_graphs": 11,
+      "nodes": 18444,
+      "edges": 23366,
+      "vuln_blocks": 95
+    },
+    "CWE590": {
+      "total_graphs": 96,
+      "vuln_graphs": 85,
+      "patched_graphs": 11,
+      "nodes": 17295,
+      "edges": 22460,
+      "vuln_blocks": 94
+    },
+    "CWE680": {
+      "total_graphs": 86,
+      "vuln_graphs": 75,
+      "patched_graphs": 11,
+      "nodes": 16438,
+      "edges": 21216,
+      "vuln_blocks": 125
+    },
+    "CWE690": {
+      "total_graphs": 106,
+      "vuln_graphs": 95,
+      "patched_graphs": 11,
+      "nodes": 18015,
+      "edges": 23052,
+      "vuln_blocks": 105
+    },
+    "CWE761": {
+      "total_graphs": 91,
+      "vuln_graphs": 80,
+      "patched_graphs": 11,
+      "nodes": 20441,
+      "edges": 27462,
+      "vuln_blocks": 212
+    },
+    "CWE78": {
+      "total_graphs": 156,
+      "vuln_graphs": 145,
+      "patched_graphs": 11,
+      "nodes": 31727,
+      "edges": 40813,
+      "vuln_blocks": 189
+    },
+    "CWE789": {
+      "total_graphs": 91,
+      "vuln_graphs": 80,
+      "patched_graphs": 11,
+      "nodes": 22002,
+      "edges": 30812,
+      "vuln_blocks": 125
+    }
+  },
+  "per_opt": {
+    "O0": {
+      "graphs": 1508,
+      "nodes": 316960,
+      "vuln_blocks": 1741
+    },
+    "O1": {
+      "graphs": 525,
+      "nodes": 96929,
+      "vuln_blocks": 578
+    },
+    "O2": {
+      "graphs": 376,
+      "nodes": 67324,
+      "vuln_blocks": 439
+    },
+    "Os": {
+      "graphs": 272,
+      "nodes": 49646,
+      "vuln_blocks": 300
+    }
+  },
+  "real_world_details": [
+    {
+      "status": "OK",
+      "name": "file",
+      "size_kb": 170.0,
+      "nodes": 6210,
+      "edges": 11639,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "bzip2",
+      "size_kb": 85.3,
+      "nodes": 948,
+      "edges": 1391,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "gzip",
+      "size_kb": 87.7,
+      "nodes": 1664,
+      "edges": 2515,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "hexdump",
+      "size_kb": 69.0,
+      "nodes": 941,
+      "edges": 1362,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "od",
+      "size_kb": 68.9,
+      "nodes": 941,
+      "edges": 1362,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "diff",
+      "size_kb": 119.9,
+      "nodes": 3057,
+      "edges": 4758,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "patch",
+      "size_kb": 119.4,
+      "nodes": 2775,
+      "edges": 4100,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "sort",
+      "size_kb": 105.2,
+      "nodes": 2723,
+      "edges": 3999,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "uniq",
+      "size_kb": 51.8,
+      "nodes": 242,
+      "edges": 331,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "tr",
+      "size_kb": 68.2,
+      "nodes": 617,
+      "edges": 897,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "wc",
+      "size_kb": 51.8,
+      "nodes": 201,
+      "edges": 257,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "cut",
+      "size_kb": 52.1,
+      "nodes": 343,
+      "edges": 470,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "fold",
+      "size_kb": 51.4,
+      "nodes": 103,
+      "edges": 113,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "fmt",
+      "size_kb": 67.7,
+      "nodes": 307,
+      "edges": 414,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "pr",
+      "size_kb": 68.4,
+      "nodes": 886,
+      "edges": 1328,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "csplit",
+      "size_kb": 52.2,
+      "nodes": 310,
+      "edges": 384,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "split",
+      "size_kb": 67.6,
+      "nodes": 225,
+      "edges": 298,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "head",
+      "size_kb": 51.6,
+      "nodes": 110,
+      "edges": 120,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "tail",
+      "size_kb": 52.5,
+      "nodes": 758,
+      "edges": 1071,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "nl",
+      "size_kb": 68.0,
+      "nodes": 204,
+      "edges": 264,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "paste",
+      "size_kb": 67.3,
+      "nodes": 130,
+      "edges": 171,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "join",
+      "size_kb": 68.0,
+      "nodes": 384,
+      "edges": 534,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "comm",
+      "size_kb": 51.3,
+      "nodes": 147,
+      "edges": 189,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "m4",
+      "size_kb": 68.1,
+      "nodes": 48,
+      "edges": 47,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "sed",
+      "size_kb": 86.3,
+      "nodes": 1413,
+      "edges": 1989,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "awk",
+      "size_kb": 151.3,
+      "nodes": 4444,
+      "edges": 6588,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "strings",
+      "size_kb": 68.1,
+      "nodes": 48,
+      "edges": 47,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "nm",
+      "size_kb": 68.1,
+      "nodes": 48,
+      "edges": 47,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "size",
+      "size_kb": 68.1,
+      "nodes": 48,
+      "edges": 47,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "base64",
+      "size_kb": 69.3,
+      "nodes": 742,
+      "edges": 992,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "cksum",
+      "size_kb": 67.4,
+      "nodes": 273,
+      "edges": 214,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "rev",
+      "size_kb": 51.0,
+      "nodes": 47,
+      "edges": 46,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "look",
+      "size_kb": 67.5,
+      "nodes": 150,
+      "edges": 201,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "expand",
+      "size_kb": 51.2,
+      "nodes": 114,
+      "edges": 146,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "unexpand",
+      "size_kb": 51.2,
+      "nodes": 141,
+      "edges": 192,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "col",
+      "size_kb": 51.3,
+      "nodes": 271,
+      "edges": 387,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "column",
+      "size_kb": 68.1,
+      "nodes": 222,
+      "edges": 286,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "tsort",
+      "size_kb": 51.5,
+      "nodes": 185,
+      "edges": 238,
+      "cfg_time_s": 0.15
+    },
+    {
+      "status": "OK",
+      "name": "cmp",
+      "size_kb": 51.9,
+      "nodes": 332,
+      "edges": 447,
+      "cfg_time_s": 0.15
+    }
+  ],
+  "build_time_seconds": 97.3
+}

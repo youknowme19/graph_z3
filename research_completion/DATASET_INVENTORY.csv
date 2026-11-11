@@ -1,0 +1,14 @@
+corpus,split,total_binaries,mapped_graphs,total_basic_blocks,vulnerable_blocks,clean_controls,positive_ratio_pct,overlap_train,overlap_val,overlap_test,notes
+Juliet Test Suite v1.3 (Synthetic),Total Processed,2681,2681,530859,3058,231,0.576,0,0,0,21 distinct CWE classes; DWARF mapping rate 100.0%; clean controls purity 100.0%
+Juliet Test Suite v1.3 (Synthetic),Train (Binary-Held-Out),1876,1876,371601,2140,161,0.576,1876,0,0,70% training partition; 0 binary or function overlap with val/test
+Juliet Test Suite v1.3 (Synthetic),Val (Binary-Held-Out),402,402,79629,459,35,0.576,0,402,0,15% validation partition for hyperparam tuning and threshold calibration
+Juliet Test Suite v1.3 (Synthetic),Test (Binary-Held-Out),403,403,79629,459,35,0.576,0,0,403,"15% test partition; 378 vuln graphs, 25 clean controls"
+PrimeVul (Real-World CVEs),Total Processed,2480,2430,106853,4038,1240,3.779,0,0,0,"36 CWEs, 292 CVEs, 76 open-source projects; 50 unmapped vulnerable binaries excluded"
+PrimeVul (Real-World CVEs),Train (Binary-Held-Out),1728,1728,74438,2814,864,3.78,1728,0,0,70% training partition; zero CVE overlap with val/test
+PrimeVul (Real-World CVEs),Val (Binary-Held-Out),336,336,14479,547,168,3.778,0,336,0,14% validation partition
+PrimeVul (Real-World CVEs),Test (Binary-Held-Out),416,416,17936,677,208,3.775,0,0,416,"16% test partition; 201 vuln graphs, 215 clean post-patch graphs"
+PrimeVul (Project-Held-Out),Train (53 Repositories),1176,1176,50650,1912,588,3.775,1176,0,0,Zero repository overlap with validation or test; 53 distinct source repos
+PrimeVul (Project-Held-Out),Val (11 Repositories),1184,1184,50995,1928,592,3.781,0,1184,0,"Contains linux repository (1,088 graphs, 43.87% of PrimeVul)"
+PrimeVul (Project-Held-Out),Test (12 Repositories),120,120,5208,198,60,3.802,0,0,120,"12 completely unseen repos (NetworkManager, WavPack, dosfstools, file, tor, etc.)"
+System Utilities & Tools,Inference Evaluation,39,39,32752,0,39,0.0,0,0,0,"Unlabeled real binaries from GNU coreutils & macOS system tools (awk, gzip, bzip2, etc.)"
+Combined Supervised Corpus,All Supervised Graphs,5161,5111,637712,7096,1471,1.113,0,0,0,"Combined 5,161 graphs (3,604 train, 738 val, 819 test); 50 PrimeVul excluded"

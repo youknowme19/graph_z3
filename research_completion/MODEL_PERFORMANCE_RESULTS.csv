@@ -1,0 +1,11 @@
+model,eval_split,eval_mode,accuracy,precision,recall,f1,roc_auc,pr_auc,top1,top3,top5,top10,mrr,nid,clean_binary_fpr,block_fpr,test_graphs_count,vuln_graphs_count,clean_graphs_count
+VulnGNN (Proposed),Standard Held-Out Test (819 Binaries),5-Seed Mean ± Std,0.9898,0.3375,0.2735,0.3006,0.9543,0.2739,0.4981,0.7568,0.8356,0.9271,0.646,0.0665,0.145,0.00336,819,579,240
+VulnGNN (Proposed),Standard Held-Out Test (819 Binaries),"Single-Seed (Seed 42, tau=0.75)",0.9901,0.5663,0.3954,0.4656,0.9737,0.4816,0.6725,0.8101,0.8589,0.9233,0.7278,0.0665,0.2204,0.00336,819,574,245
+GIN (Bidirectional),Standard Held-Out Test (819 Binaries),5-Seed Mean ± Std,0.9882,0.3307,0.2664,0.2903,0.9532,0.2545,0.4781,0.7727,0.8494,0.9268,0.6391,0.0656,0.1675,0.00451,819,579,240
+Unidirectional SAGE,Standard Held-Out Test (819 Binaries),5-Seed Mean ± Std,0.9865,0.3095,0.2396,0.266,0.9446,0.2267,0.409,0.6888,0.8073,0.9223,0.579,0.071,0.1708,0.00512,819,579,240
+MLP Baseline (No Graph),Standard Held-Out Test (819 Binaries),5-Seed Mean ± Std,0.9741,0.1899,0.19,0.1828,0.9037,0.1338,0.3617,0.6135,0.7285,0.8535,0.5204,0.0761,0.5108,0.01245,819,579,240
+XGBoost (Tabular Baseline),Standard Held-Out Test (819 Binaries),5-Seed Mean ± Std,0.9812,0.2959,0.223,0.2543,0.9333,0.2114,0.5285,0.7313,0.8149,0.9109,0.6539,0.0778,0.4317,0.00892,819,579,240
+VulnGNN (Proposed),Project-Held-Out Test (12 Unseen Repos),Macro-Averaged over 12 Repos,0.9621,0.1181,0.3464,0.1573,0.7769,0.196,0.3576,0.6852,0.7465,0.875,0.5092,0.1142,0.9375,0.0381,120,54,66
+VulnGNN (Proposed),Project-Held-Out Test (12 Unseen Repos),Micro-Averaged Pooled Blocks,0.9604,0.0852,0.4469,0.1431,0.7789,0.0985,0.3704,0.6481,0.7593,0.9074,0.5229,0.1142,0.9545,0.0412,120,54,66
+Random Ranking Baseline,Standard Held-Out Test (819 Binaries),Analytical / Empirical Random,0.5,0.012,0.5,0.0237,0.5,0.012,0.0562,0.138,0.1922,0.2771,0.131,0.5,0.5,0.5,819,579,240
+Static Unsafe Call Sinks Heuristic,Standard Held-Out Test (819 Binaries),Deterministic Static Sink Rule,0.7417,0.0615,0.0914,0.0736,0.5373,0.0165,0.0553,0.2021,0.2884,0.361,0.157,0.4967,0.2583,0.0241,819,579,240

@@ -1,0 +1,17 @@
+comparison_pair,metric,mean_diff,ci_95_lower,ci_95_upper,p_threshold,statistically_significant,direction,interpretation
+VulnGNN vs GIN (Bidirectional),MRR,0.0306,0.0059,0.0545,0.05,True,positive (VulnGNN > GIN),VulnGNN achieves significantly higher Mean Reciprocal Rank (p < 0.05)
+VulnGNN vs GIN (Bidirectional),Top-1 Hit Rate,0.0264,-0.0135,0.0629,0.05,False,not_significant,Confidence interval spans zero; no statistically significant difference in Top-1
+VulnGNN vs GIN (Bidirectional),Top-5 Hit Rate,0.0415,0.0156,0.0698,0.05,True,positive (VulnGNN > GIN),"VulnGNN achieves significantly higher Top-5 Hit Rate (+4.15%, p < 0.05)"
+VulnGNN vs GIN (Bidirectional),PR-AUC,0.0268,0.0131,0.0397,0.05,True,positive (VulnGNN > GIN),VulnGNN achieves significantly higher Precision-Recall AUC (+2.68%)
+VulnGNN vs GIN (Bidirectional),ROC-AUC,0.0018,-0.0014,0.0054,0.05,False,not_significant,ROC-AUC difference is within margin of error; both models exceed 0.95
+VulnGNN vs GIN (Bidirectional),F1-Score,0.0192,0.0023,0.0367,0.05,True,positive (VulnGNN > GIN),VulnGNN achieves significantly higher F1-score (+1.92%)
+VulnGNN vs GIN (Bidirectional),Clean Binary FPR,-0.0045,-0.0279,0.0208,0.05,False,not_significant,FPR difference on clean binaries is within margin of error
+VulnGNN vs XGBoost (Tabular),MRR,-0.0084,-0.0394,0.0222,0.05,False,not_significant,VulnGNN and XGBoost are statistically indistinguishable on MRR
+VulnGNN vs XGBoost (Tabular),Top-1 Hit Rate,-0.0398,-0.0848,0.0035,0.05,False,not_significant,"Cannot claim VulnGNN superiority; CI spans zero [-8.48%, +0.35%]"
+VulnGNN vs XGBoost (Tabular),Top-5 Hit Rate,0.0608,0.0306,0.0933,0.05,True,positive (VulnGNN > XGBoost),VulnGNN is significantly superior on Top-5 candidate localization (+6.08%)
+VulnGNN vs XGBoost (Tabular),PR-AUC,0.0457,0.0231,0.0685,0.05,True,positive (VulnGNN > XGBoost),VulnGNN achieves significantly superior Precision-Recall AUC (+4.57%)
+VulnGNN vs XGBoost (Tabular),ROC-AUC,0.0176,0.0124,0.0234,0.05,True,positive (VulnGNN > XGBoost),VulnGNN achieves significantly superior global discrimination (+1.76%)
+VulnGNN vs XGBoost (Tabular),F1-Score,0.0177,-0.0091,0.0467,0.05,False,not_significant,F1 difference spans zero; no statistically significant F1 advantage
+VulnGNN vs XGBoost (Tabular),Clean Binary FPR,-0.3913,-0.4626,-0.324,0.05,True,negative (VulnGNN << XGBoost),VulnGNN massively reduces clean binary false positive rate by 39.13 percentage points
+Symbolic Guided vs DFS (N=69),Restricted Mean Survival Time (tau=15s),0.2121,-0.3461,0.7446,0.05,False,not_significant,Paired RMST difference spans zero; no statistically significant runtime speedup
+Symbolic Guided vs DFS (N=69),RMST Ratio (DFS / Guided),0.9546,0.8465,1.081,0.05,False,not_significant,Ratio CI spans 1.0; GNN guidance does not accelerate wall-clock exploration
