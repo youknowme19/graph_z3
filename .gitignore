@@ -1,15 +1,42 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-.env
-venv/
-node_modules/
-dist/
-reports/
+*.py[cod]
+*$py.class
+*.so
+
+# macOS AppleDouble and metadata files
 ._*
 .DS_Store
 *.DS_Store
+
+# Environments and secrets
+.env
+.venv/
+venv/
+ENV/
+
+# Node / Frontend builds
+node_modules/
+dist/
+build/
+
+# Generated logs, runs, reports, and scratch files
+reports/
 build_*
 run_*
 *.log
 *.zip
+*.orig_*
 cwe120_scan_result.json
+
+# Large experimental corpora and raw binary datasets (prevents Git LFS/blob bloat and benchmark data leakage)
+data/primevul_raw/
+data/primevul_binaries/
+data/primevul_graphs/
+data/train_binaries/
+data/legacy_pe32_30/
+data/_support_objs/
+data/real_world_binaries/
+data/real_world_graphs/
+data/processed_graphs/*_O*.out.pt
+data/processed_graphs/*_PATCHED*.out.pt
